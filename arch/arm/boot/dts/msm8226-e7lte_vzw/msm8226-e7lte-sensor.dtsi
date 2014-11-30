@@ -1,0 +1,26 @@
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+&soc {
+	/* I2C device */
+	i2c@f9926000 {
+		/* sx9500 cap sensor */
+		Semtech_sx9500@28 {
+			Semtech,DynamicThres_Offset = <51000>;
+			Semtech,DynamicThres_Temp_Slope = <45>;
+			Semtech,DynamicThres_Hysteresis = <700>;
+			Semtech,Calibratoin_Margin = <0>;
+			Semtech,Startup_Touch_RegAvgThres = <0x29>;
+			Semtech,Startup_Release_RegAvgThres = <0x40>;
+		};
+	};
+};
