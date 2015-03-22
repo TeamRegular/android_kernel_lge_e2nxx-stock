@@ -51,6 +51,7 @@ extern int is_dsv_cont_splash_screening_f;
 #if defined(CONFIG_LGE_LCD_DSV_CTRL)
 int dsv_control_enable = 0;
 #endif
+int dual_panel;
 #endif
 
 #if defined(CONFIG_FB_MSM_MIPI_LGD_LH500WX9_VIDEO_HD_PT_PANEL) || defined (CONFIG_FB_MSM_MIPI_JDI_R69338_VIDEO_HD_PANEL)
@@ -1838,6 +1839,14 @@ int dsi_panel_device_register(struct device_node *pan_node,
 			return -ENODEV;
 		}
 	}
+
+	dual_panel = of_property_read_bool(pan_node,
+			"lge,dual-panel");
+
+	if(dual_panel)
+		pr_info("[mdss] dual panel is detected\n");
+	else
+		pr_info("[mdss] original panel is detected\n");
 #endif
 
 #if defined (CONFIG_FB_MSM_MIPI_TOVIS_LM570HN1A_VIDEO_HD_PT_PANEL) ||defined (CONFIG_FB_MSM_MIPI_JDI_R69338_VIDEO_HD_PANEL)

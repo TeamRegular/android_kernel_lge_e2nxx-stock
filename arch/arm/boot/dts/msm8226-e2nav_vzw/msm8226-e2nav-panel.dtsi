@@ -17,6 +17,9 @@
 &dsi_lgd_incell_vid {
 };
 
+&dsi_lgd_incell_vid_dual {
+};
+
 &mdss_dsi0 {
 		vdd-supply = <&pm8226_l15>;
 		vddio-supply = <&pm8226_l8>;

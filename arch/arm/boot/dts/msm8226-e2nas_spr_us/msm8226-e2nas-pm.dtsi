@@ -301,6 +301,9 @@
 			lge,cable-none = <1900000 800  500>;
 		};
 	};
+	qcom,msm-thermal {
+		qcom,sensor-id = <1>;
+	};
 };
 
 

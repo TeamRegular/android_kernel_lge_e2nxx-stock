@@ -134,8 +134,11 @@ fw-shipped-$(CONFIG_TOUCHSCREEN_LGE_MELFAS) += $(touch_fw_files)
 endif
 
 ifdef CONFIG_TOUCHSCREEN_APS_MIT200_E2
-mit200_fw_file := $(wildcard $(srctree)/firmware/melfas/mit200/e2/*)
-mit200_firmware := $(subst $(srctree)/firmware/,,$(mit200_fw_file))
+mit200_fw_file := $(wildcard $(srctree)/firmware/melfas/mit200/e2/*.fw)
+$(foreach var, $(mit200_fw_file),  $(shell objcopy -I binary -O ihex $(var) $(var).ihex))
+
+mit200_fw_list := $(subst .ihex, , $(notdir $(wildcard $(srctree)/firmware/melfas/mit200/e2/*.ihex)))
+mit200_firmware := $(foreach var, $(mit200_fw_list), melfas/mit200/e2/$(var))
 fw-shipped-$(CONFIG_TOUCHSCREEN_APS_MIT200_E2) += $(mit200_firmware)
 endif
 
@@ -292,7 +295,7 @@ quiet_cmd_ihex  = IHEX    $@
       cmd_ihex  = $(OBJCOPY) -Iihex -Obinary $< $@
 
 quiet_cmd_copy  = COPY    $@
-      cmd_copy  = cp $(srctree)/$@ $@_
+      cmd_copy  = cp $(srctree)/$@ $@
 
 quiet_cmd_ihex2fw  = IHEX2FW $@
       cmd_ihex2fw  = $(objtree)/$(obj)/ihex2fw $< $@
