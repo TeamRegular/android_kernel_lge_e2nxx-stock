@@ -41,11 +41,11 @@
 #define AEC_ROI_DX (192) // (128)
 #define AEC_ROI_DY (192) // (128) // (96)
 
-static int PREV_SOC_AEC_LOCK = -1;	/*LGE_CHANGE, to prevent duplicated setting, 2013-01-07, kwangsik83.kim@lge.com*/
-static int PREV_SOC_AWB_LOCK = -1;  /*LGE_CHANGE, to prevent duplicated setting, 2013-01-07, kwangsik83.kim@lge.com*/
-static int mCurrentFpsMode = 4;  /* LGE_CHANGE, check current fps mode to avoid setting. , 2014-02-11, hyunuk.park@lge.com */
+static int PREV_SOC_AEC_LOCK = -1;	/*                                                                             */
+static int PREV_SOC_AWB_LOCK = -1;  /*                                                                             */
+static int mCurrentFpsMode = 4;  /*                                                                                        */
 
-/* LGE_CHANGE_S, Fix for Dual Camera Module of HI707, 2014-02-28, dongsu.bag@lge.com */
+/*                                                                                   */
 typedef enum {
 		HI707_LGIT,
 		HI707_COWELL,
@@ -55,7 +55,7 @@ typedef enum {
 static int vt_cam_id_value = HI707_COWELL;
 static int product_kor = 0;
 
-/* LGE_CHANGE_E, Fix for Dual Camera Module of HI707, 2014-02-28, dongsu.bag@lge.com */
+/*                                                                                   */
 
 DEFINE_MSM_MUTEX(hi707_mut);
 static struct msm_sensor_ctrl_t hi707_s_ctrl;
@@ -195,7 +195,7 @@ static struct msm_sensor_power_setting hi707_power_setting_rev_b[] = {
 };
 #endif
 
-/*LGE_CHANGE_S, mipi end packet issue, 2013-10-15, kwangsik83.kim@lge.com*/
+/*                                                                       */
 static struct msm_camera_i2c_reg_conf hi707_entrance_start_settings[] = {
 	{0x03, 0x48},
 	{0x16, 0x88},
@@ -215,7 +215,7 @@ static struct msm_camera_i2c_reg_conf hi707_start_settings[] = {
 	{0x03, 0x20},
 	{0x18, 0x30},
 };
-/*LGE_CHANGE_S, mipi end packet issue, 2013-10-15, kwangsik83.kim@lge.com*/
+/*                                                                       */
 
 
 static struct msm_camera_i2c_reg_conf hi707_stop_settings[] = {
@@ -478,7 +478,7 @@ static struct msm_camera_i2c_reg_conf hi707_lgit_recommend_settings[] = {
 		{0x95, 0x10},	//Test Setting
 
 		///////////////////////////// Page 14
-		{0x03, 0x14}, //Page 14 - Lens Shading Correction, 20140718 jinyoung.bae@lge.com
+		{0x03, 0x14}, //                                                                
 		{0x10, 0x01},
 		{0x20, 0x80}, //60},   //XCEN LHC
 		{0x21, 0x80}, //YCEN
@@ -513,7 +513,7 @@ static struct msm_camera_i2c_reg_conf hi707_lgit_recommend_settings[] = {
 		{0x47, 0x02},
 		{0x48, 0x02},
 		//////////////////////////// 16page
-		{0x03, 0x16}, //gamma, , 20140718 jinyoung.bae@lge.com
+		{0x03, 0x16}, //                                      
 		{0x10, 0x01},
 		{0x30, 0x00},
 		{0x31, 0x0f},
@@ -552,7 +552,7 @@ static struct msm_camera_i2c_reg_conf hi707_lgit_recommend_settings[] = {
 		{0x3c, 0xde},
 
 					 // 130521, Flicker Test
-		{0x60, 0x71}, //70}, //0x71}, //AE weight, 20140718 jinyoung.bae@lge.com
+		{0x60, 0x71}, //                                                        
 		{0x61, 0x11}, //0x11},
 		{0x62, 0x71}, //70}, //0x71},
 		{0x63, 0x11}, //00}, //0x11},
@@ -563,7 +563,7 @@ static struct msm_camera_i2c_reg_conf hi707_lgit_recommend_settings[] = {
 #if defined(CONFIG_MACH_MSM8926_VFP_KR)
 		{0x70, 0x38}, //36 //34, //lgit 20140328  //Y Targe 32
 #else
-		{0x70, 0x3a}, //38 //36 //34, //lgit 20140328  //Y Targe 32, 20140718 jinyoung.bae@lge.com
+		{0x70, 0x3a}, //                                                                          
 #endif
 		{0x76, 0x88}, //22}, // Unlock bnd1
 		{0x77, 0xfe}, //02}, // Unlock bnd2
@@ -1183,7 +1183,7 @@ static struct msm_camera_i2c_reg_conf hi707_cowell_recommend_settings[] = {
 
 };
 
-/* LGE_CHANGE_S, Fix for Dual Camera Module of HI707, 2014-02-28, dongsu.bag@lge.com */
+/*                                                                                   */
 static struct msm_camera_i2c_reg_conf hi707_lgit_recommend_vt_settings[] = {
 			
 {0x03, 0x00},
@@ -2180,7 +2180,7 @@ static struct msm_camera_i2c_reg_conf hi707_cowell_recommend_vt_settings[] = {
 	//{0x01, 0x70},
 
 };
-/* LGE_CHANGE_E, Fix for Dual Camera Module of HI707, 2014-02-28, dongsu.bag@lge.com */
+/*                                                                                   */
 
 static struct msm_camera_i2c_reg_conf hi707_reg_effect_off[] = {
 	/* OFF */
@@ -2351,7 +2351,7 @@ static struct msm_camera_i2c_reg_conf hi707_reg_wb_auto[] = {
 	{0x8e, 0x61}, //11,}, //IN/OUT slop B
 	{0x10, 0xfb},
 };
-/* LGE_CHANGE_S, Fixes to add product_kor info capabilities for setting Hi707 of kor medel, 2014-03-11, dongsu.bag@lge.com */
+/*                                                                                                                         */
 static struct msm_camera_i2c_reg_conf hi707_reg_wb_auto_kr[] = {
 	/* Auto */
 	{0x03, 0x22},
@@ -2461,7 +2461,7 @@ static struct msm_camera_i2c_reg_conf hi707_reg_wb_cloudy_kr[] = {
 	{0x10, 0xfb},
 };
 
-/* LGE_CHANGE_E, Fixes to add product_kor info capabilities for setting Hi707 of kor medel, 2014-03-11, dongsu.bag@lge.com */
+/*                                                                                                                         */
 static struct msm_camera_i2c_reg_conf hi707_reg_wb_incandescent[] = {
 	/* INCANDESCENT */
 	{0x03, 0x22},
@@ -2582,7 +2582,7 @@ static const struct i2c_device_id hi707_i2c_id[] = {
 	{ }
 };
 
-/*LGE_CHANGE_S, fixed Fps setting of soc sensor for VT mode, 2014-01-27, dongsu.bag@lge.com*/
+/*                                                                                         */
 static struct msm_camera_i2c_reg_conf hi707_reg_7fps_fixed[] = {
 	//Fixed 7fps
 	
@@ -2651,7 +2651,7 @@ static struct msm_camera_i2c_reg_conf hi707_reg_10fps_fixed[] = {
 	
 	{0x03, 0x00},
 	{0x09, 0x01}, //SLEEP ON
-	
+
 	{0x03, 0x20}, //page 20
 	{0x10, 0x0c}, //AE OFF
 	{0x18, 0x38},
@@ -2666,6 +2666,7 @@ static struct msm_camera_i2c_reg_conf hi707_reg_10fps_fixed[] = {
 	{0x03, 0x20}, //Page 20
 	{0x2a, 0xf0}, 
 	{0x2b, 0x35}, 
+
 #if defined(CONFIG_MACH_MSM8926_VFP_KR)
 	{0x83, 0x00}, //EXP Normal 30.00 fps
 	{0x84, 0xc3},
@@ -2826,7 +2827,7 @@ static struct msm_camera_i2c_reg_conf hi707_reg_20fps_fixed[] = {
 	{0x03, 0x00}, 
 	{0x09, 0x00},
 };
-/*LGE_CHANGE_E, fixed Fps setting of soc sensor for VT mode, 2014-01-27, dongsu.bag@lge.com*/
+/*                                                                                         */
 static int32_t msm_hi707_i2c_probe(struct i2c_client *client,
 	const struct i2c_device_id *id)
 {
@@ -2890,13 +2891,13 @@ static int32_t hi707_platform_probe(struct platform_device *pdev)
 	int32_t rc;
 	const struct of_device_id *match;
 	match = of_match_device(hi707_dt_match, &pdev->dev);
-/* LGE_CHANGE_S, WBT issue fix, 2013-11-25, hyunuk.park@lge.com */
+/*                                                              */
 	if(!match)
 	{
 		  pr_err(" %s failed ",__func__);
 		  return -ENODEV;
 	}
-/* LGE_CHANGE_E, WBT issue fix, 2013-11-25, hyunuk.park@lge.com */
+/*                                                              */
 	rc = msm_sensor_platform_probe(pdev, match->data);
 	return rc;
 }
@@ -2905,7 +2906,8 @@ static int __init hi707_init_module(void)
 {
 	int32_t rc;
 	pr_info("%s:%d\n", __func__, __LINE__);
-	// LGE_CHANGE_S, jongkwon.chae, 2014.05.29, To separate power settings depending on HW revisions.
+
+	//                                                                                               
 #if defined(CONFIG_MACH_MSM8926_E2_SPR_US)
 		switch(lge_get_board_revno()) {
 			case HW_REV_A:
@@ -2928,7 +2930,7 @@ static int __init hi707_init_module(void)
 		hi707_s_ctrl.power_setting_array.power_setting = hi707_power_setting;
 		hi707_s_ctrl.power_setting_array.size = ARRAY_SIZE(hi707_power_setting);
 #endif
-	// LGE_CHANGE_E, jongkwon.chae, 2014.05.29, To separate power settings depending on HW revisions.
+	//                                                                                               
 
 	rc = platform_driver_probe(&hi707_platform_driver,
 		hi707_platform_probe);
@@ -2977,14 +2979,13 @@ int32_t hi707_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 		pr_err("msm_sensor_match_id chip id doesnot match\n");
 		return -ENODEV;
 	}
-/*LGE_CHANGE_S, sync with upgraded kernel version, LOS. 2014.11.18. sujeong.kwon*/
-/* LGE_CHANGE_S, Fixes to add product_kor info capabilities for setting Hi707 of kor medel, 2014-03-11, dongsu.bag@lge.com */
-	product_kor = s_ctrl->sensordata->sensor_info->product_kor;
-	pr_err("%s: product_kor - %d", __func__, product_kor);
-/* LGE_CHANGE_E, Fixes to add product_kor info capabilities for setting Hi707 of kor medel, 2014-03-11, dongsu.bag@lge.com */
-/* LGE_CHANGE_S, Fix for Dual Camera Module of HI707, 2014-02-28, dongsu.bag@lge.com */
-	maker_gpio = s_ctrl->sensordata->sensor_info->maker_gpio;
-	pr_err("%s: maker gpio - %d", __func__, maker_gpio);
+/*                                                                                                                         */
+	product_kor = s_ctrl->sensordata->sensor_init_params->product_kor;
+	pr_err("%s: product_kor - %d", __func__, product_kor); 
+/*                                                                                                                         */
+/*                                                                                   */
+	maker_gpio = s_ctrl->sensordata->sensor_init_params->maker_gpio;
+	pr_err("%s: maker gpio - %d", __func__, maker_gpio); 
 	if( maker_gpio >= 0 ){
 	 	if(gpio_is_valid(maker_gpio)){
 			 if(gpio_request(maker_gpio, "vt_cam_id") == 0){
@@ -2996,9 +2997,7 @@ int32_t hi707_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 				 }else pr_err("gpio %d request failed\n", maker_gpio);
 			 }else pr_err("Invalid gpio %d\n", maker_gpio);
 			}
-/* LGE_CHANGE_E, Fix for Dual Camera Module of HI707, 2014-03-04, dongsu.bag@lge.com */
-/*LGE_CHANGE_E, sync with upgraded kernel version, LOS. 2014.11.18. sujeong.kwon*/
-
+/*                                                                                   */
 	return rc;
 
 }
@@ -3152,7 +3151,7 @@ static void hi707_set_white_balance_mode(struct msm_sensor_ctrl_t *s_ctrl,
 	}
 }
 
-/* LGE_CHANGE_S, Fixes to add product_kor info capabilities for setting Hi707 of kor medel, 2014-03-11, dongsu.bag@lge.com */
+/*                                                                                                                         */
 static void hi707_set_white_balance_mode_kr(struct msm_sensor_ctrl_t *s_ctrl,
 	int value)
 {
@@ -3195,7 +3194,7 @@ static void hi707_set_white_balance_mode_kr(struct msm_sensor_ctrl_t *s_ctrl,
 		break;
 	}
 }
-/* LGE_CHANGE_S, Fixes to add product_kor info capabilities for setting Hi707 of kor medel, 2014-03-11, dongsu.bag@lge.com */
+/*                                                                                                                         */
 
 static int32_t hi707_set_aec_roi_mode(struct msm_sensor_ctrl_t *s_ctrl,
 	int value)
@@ -3332,7 +3331,7 @@ static int32_t hi707_set_aec_lock_mode(struct msm_sensor_ctrl_t *s_ctrl,
 	return rc;
 }
 
-//LGE_CHANGE_S,  This Function has been added only for fps of VIDEO Recording from SoC Camera Module. youngwook.song@lge.com 2013-11-04
+//                                                                                                                                     
 static void hi707_set_framerate_for_soc(struct msm_sensor_ctrl_t *s_ctrl, struct msm_fps_range_setting *framerate)
 {
 	int32_t value = 0;
@@ -3351,14 +3350,14 @@ static void hi707_set_framerate_for_soc(struct msm_sensor_ctrl_t *s_ctrl, struct
     else value = 4;
 	
 	pr_debug("%s value: %d\n", __func__, value);
-/* LGE_CHANGE_S, check current fps mode to avoid setting, 2014-02-11, hyunuk.park@lge.com */
+/*                                                                                        */
 	if(mCurrentFpsMode == value) {
 		pr_err("%s : no set fps since the same fps requested (mCurrentFpsMode: %d)\n", __func__, mCurrentFpsMode);
 		return;
 	} else {
 		mCurrentFpsMode = value;
 	}
-/* LGE_CHANGE_E, check current fps mode to avoid setting, 2014-02-11, hyunuk.park@lge.com */
+/*                                                                                        */
 	switch (value) {
 		case 0: { 
 			pr_err("%s - 7fps setting", __func__);
@@ -3392,7 +3391,7 @@ static void hi707_set_framerate_for_soc(struct msm_sensor_ctrl_t *s_ctrl, struct
 			break;
 	}
 }
-//LGE_CHANGE_E,  This Function has been added only for fps of VIDEO Recording from SoC Camera Module. youngwook.song@lge.com 2013-11-04
+//                                                                                                                                     
 int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 	void __user *argp)
 {
@@ -3416,16 +3415,6 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		for (i = 0; i < SUB_MODULE_MAX; i++)
 			cdata->cfg.sensor_info.subdev_id[i] =
 				s_ctrl->sensordata->sensor_info->subdev_id[i];
-/*LGE_CHANGE_S, sync with upgraded kernel version. 2014.11.18. sujeong.kwon*/
-		cdata->cfg.sensor_info.is_mount_angle_valid =
-			s_ctrl->sensordata->sensor_info->is_mount_angle_valid;
-		cdata->cfg.sensor_info.sensor_mount_angle =
-			s_ctrl->sensordata->sensor_info->sensor_mount_angle;
-		cdata->cfg.sensor_info.position =
-			s_ctrl->sensordata->sensor_info->position;
-		cdata->cfg.sensor_info.modes_supported =
-			s_ctrl->sensordata->sensor_info->modes_supported;
-/*LGE_CHANGE_E, sync with upgraded kernel version. 2014.11.18. sujeong.kwon*/
 		CDBG("%s:%d sensor name %s\n", __func__, __LINE__,
 			cdata->cfg.sensor_info.sensor_name);
 		CDBG("%s:%d session id %d\n", __func__, __LINE__,
@@ -3433,15 +3422,10 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		for (i = 0; i < SUB_MODULE_MAX; i++)
 			CDBG("%s:%d subdev_id[%d] %d\n", __func__, __LINE__, i,
 				cdata->cfg.sensor_info.subdev_id[i]);
-/*LGE_CHANGE_S, sync with upgraded kernel version. 2014.11.18. sujeong.kwon*/
-		CDBG("%s:%d mount angle valid %d value %d\n", __func__,
-			__LINE__, cdata->cfg.sensor_info.is_mount_angle_valid,
-			cdata->cfg.sensor_info.sensor_mount_angle);
-/*LGE_CHANGE_E, sync with upgraded kernel version. 2014.11.18. sujeong.kwon*/
 
 		break;
 	case CFG_SET_INIT_SETTING:
-/* LGE_CHANGE_S, Fix for Dual Camera Module of HI707, 2014-02-28, dongsu.bag@lge.com */
+/*                                                                                   */
 		if( vt_cam_id_value == HI707_LGIT )
 			{
 			pr_err("%s: init lgit setting", __func__);
@@ -3454,7 +3438,7 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 					&hi707_cowell_recommend_settings[0],
 					ARRAY_SIZE(hi707_cowell_recommend_settings));
 				}
-/* LGE_CHANGE_E, Fix for Dual Camera Module of HI707, 2014-02-28, dongsu.bag@lge.com */
+/*                                                                                   */
 
 		CDBG("init setting X");
 		break;
@@ -3476,7 +3460,7 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 	case CFG_SET_START_STREAM:
 		pr_err("%s - start stream",__func__);
 		CDBG("START_STREAM\n");
-/*LGE_CHANGE_S, mipi end packet issue, 2013-10-15, kwangsik83.kim@lge.com*/
+/*                                                                       */
 		if(s_ctrl->isFirstStream == TRUE){
 			hi707_i2c_write_table(s_ctrl, &hi707_entrance_start_settings[0], ARRAY_SIZE(hi707_entrance_start_settings));
 			s_ctrl->isFirstStream = FALSE;
@@ -3486,24 +3470,12 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 			hi707_i2c_write_table(s_ctrl, &hi707_start_settings[0], ARRAY_SIZE(hi707_start_settings));
 			pr_err("[WX] %s : normal start stream\n", __func__);
 		}
-/*LGE_CHANGE_E, mipi end packet issue, 2013-10-15, kwangsik83.kim@lge.com*/
+/*                                                                       */
 		CDBG("START_STREAM X\n");
 		break;
 	case CFG_GET_SENSOR_INIT_PARAMS:
-/*LGE_CHANGE_S, sync with upgraded kernel version. 2014.11.18. sujeong.kwon*/
-#if 0
 		cdata->cfg.sensor_init_params =
 			*s_ctrl->sensordata->sensor_init_params;
-#else
-		cdata->cfg.sensor_init_params.modes_supported =
-			s_ctrl->sensordata->sensor_info->modes_supported;
-		cdata->cfg.sensor_init_params.position =
-			s_ctrl->sensordata->sensor_info->position;
-		cdata->cfg.sensor_init_params.sensor_mount_angle =
-			s_ctrl->sensordata->sensor_info->sensor_mount_angle;
-#endif
-/*LGE_CHANGE_S, sync with upgraded kernel version. 2014.11.18. sujeong.kwon*/
-
 		CDBG("%s:%d init params mode %d pos %d mount %d\n", __func__,
 			__LINE__,
 			cdata->cfg.sensor_init_params.modes_supported,
@@ -3647,7 +3619,7 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		kfree(reg_setting);
 		break;
 	}
-/*LGE_CHANGE_S, add soc exif, 2013-10-04, kwangsik83.kim@lge.com*/
+/*                                                              */
 	case CFG_PAGE_MODE_READ_I2C_ARRAY:{
 		int16_t size=0;
 		uint16_t read_data_size = 0;
@@ -3669,7 +3641,7 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		size = conf_array.size;		//size for write(page_mode) and read
 		read_data_size = size - 1;	//size for read
 
-		CDBG("[WX] %s: size : %d rsize : %d\n", __func__, size, read_data_size);
+		pr_err("[WX] %s: size : %d rsize : %d\n", __func__, size, read_data_size);
 
 		if (!size || !read_data_size) {
 			pr_err("%s:%d failed\n", __func__, __LINE__);
@@ -3717,7 +3689,7 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 			}
 			else{
 				rc = s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_read(s_ctrl->sensor_i2c_client, conf_array.reg_setting->reg_addr, read_data, conf_array.data_type);
-				CDBG("[WX] %s read_data : %d\n", __func__, *read_data);
+				pr_err("[WX] %s read_data : %d\n", __func__, *read_data);
 				read_data++;
 			}
 			conf_array.reg_setting++;
@@ -3738,12 +3710,12 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		read_data = NULL;
 		read_data_head = NULL;
 
-		CDBG("[WX] %s done\n", __func__);
+		pr_err("[WX] %s done\n", __func__);
 
 		break;
 	}
-/*LGE_CHANGE_E, add soc exif, 2013-10-04, kwangsik83.kim@lge.com*/
-/*LGE_CHANGE_S, modified power-up/down status for recovery, 2013-12-27, hyungtae.lee@lge.com*/
+/*                                                              */
+/*                                                                                          */
 	case CFG_POWER_UP:{
 
 		if (s_ctrl->sensor_state != MSM_SENSOR_POWER_DOWN) {
@@ -3795,7 +3767,7 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		}
 		break;
 	}
-/*LGE_CHANGE_E, modified power-up/down status for recovery, 2013-12-27, hyungtae.lee@lge.com*/
+/*                                                                                          */
 	case CFG_SET_STOP_STREAM_SETTING: {
 		struct msm_camera_i2c_reg_setting *stop_setting =
 			&s_ctrl->stop_setting;
@@ -3887,13 +3859,13 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 			break;
 		}
 		CDBG("%s: white balance is %d", __func__, wb_mode);
-/* LGE_CHANGE_S, Fixes to add product_kor info capabilities for setting Hi707 of kor medel, 2014-03-11, dongsu.bag@lge.com */
+/*                                                                                                                         */
 		if(product_kor > 0){
 		hi707_set_white_balance_mode_kr(s_ctrl, wb_mode);
 	    }else{
 	    hi707_set_white_balance_mode(s_ctrl, wb_mode);
 	    }
-/* LGE_CHANGE_E, Fixes to add product_kor info capabilities for setting Hi707 of kor medel, 2014-03-11, dongsu.bag@lge.com */
+/*                                                                                                                         */
 		break;
 	}
 	case CFG_SET_AEC_ROI:{
@@ -3932,10 +3904,10 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		rc = hi707_set_aec_lock_mode(s_ctrl, aec_lock);
 		break;
 	}
-/*LGE_CHANGE_S, fixed Fps setting of soc sensor for VT mode, 2014-01-27, dongsu.bag@lge.com*/
+/*                                                                                         */
 	case CFG_SET_INIT_SETTING_VT:{
-		mCurrentFpsMode = 4; /* LGE_CHANGE, init current fps mode for vt setting , 2014-02-17, dongsu.bag@lge.com */
-/* LGE_CHANGE_S, Fix for Dual Camera Module of HI707, 2014-02-28, dongsu.bag@lge.com */
+		mCurrentFpsMode = 4; /*                                                                                   */
+/*                                                                                   */
 		pr_err("%s - vt init", __func__);
 		if( vt_cam_id_value == HI707_LGIT )
 		{
@@ -3949,7 +3921,7 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		&hi707_cowell_recommend_vt_settings[0],
 		ARRAY_SIZE(hi707_cowell_recommend_vt_settings));
 			}
-/* LGE_CHANGE_E, Fix for Dual Camera Module of HI707, 2014-02-28, dongsu.bag@lge.com */
+/*                                                                                   */
 		break;
 		}
 	case CFG_SET_FRAMERATE_FOR_SOC:{
@@ -3962,7 +3934,7 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		hi707_set_framerate_for_soc(s_ctrl, framerate);
 		break;
 	}
-/*LGE_CHANGE_E, fixed Fps setting of soc sensor for VT mode, 2014-01-27, dongsu.bag@lge.com*/
+/*                                                                                         */
 	default:
 		rc = -EFAULT;
 		break;
@@ -3982,10 +3954,10 @@ static struct msm_sensor_fn_t hi707_sensor_func_tbl = {
 
 static struct msm_sensor_ctrl_t hi707_s_ctrl = {
 	.sensor_i2c_client = &hi707_sensor_i2c_client,
-	//LGE_CHANGE_S, jongkwon.chae, 2014-05-29, To separate power settings depending on HW revisions.
+	//                                                                                              
 	//.power_setting_array.power_setting = hi707_power_setting,
 	//.power_setting_array.size = ARRAY_SIZE(hi707_power_setting),
-	//LGE_CHANGE_E, jongkwon.chae, 2014-05-29, To separate power settings depending on HW revisions.
+	//                                                                                              
 	.msm_sensor_mutex = &hi707_mut,
 	.sensor_v4l2_subdev_info = hi707_subdev_info,
 	.sensor_v4l2_subdev_info_size = ARRAY_SIZE(hi707_subdev_info),

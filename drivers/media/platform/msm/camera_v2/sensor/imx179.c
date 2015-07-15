@@ -640,7 +640,7 @@ static int __init imx179_init_module(void)
 	pr_info("%s:%d\n", __func__, __LINE__);
 
       rev_type = lge_get_board_revno();
-#if 1// defined(CONFIG_MACH_LGE)
+#if 1//                         
 	switch(rev_type) {
 		case HW_REV_0:
 			pr_err("%s: Sensor power is set as Rev.0\n", __func__);
@@ -675,7 +675,7 @@ static int __init imx179_init_module(void)
 			break;
 	}
 #endif
-/* LGE_CHANGE_E, jaehan.jeong, 2013.7.30, To separate power settings depending on HW revisions.,  [ENDS HERE] */
+/*                                                                                                            */
 
 	rc = platform_driver_probe(&imx179_platform_driver,
 		imx179_platform_probe);

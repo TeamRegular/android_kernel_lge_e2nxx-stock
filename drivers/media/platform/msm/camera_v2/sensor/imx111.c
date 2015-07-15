@@ -17,7 +17,7 @@ DEFINE_MSM_MUTEX(imx111_mut);
 
 static struct msm_sensor_ctrl_t imx111_s_ctrl;
 
-/* LGE_CHANGE_S, jaehan.jeong, 2013.7.30,  To separate power settings depending on HW revisions, [STARTS HERE] */
+/*                                                                                                             */
 static struct msm_sensor_power_setting imx111_power_setting_rev_0[] = {
 	{
 		.seq_type = SENSOR_VREG,
@@ -185,7 +185,7 @@ static struct msm_sensor_power_setting imx111_power_setting_rev_b[] = {
 	},
 };
 #endif
-/* LGE_CHANGE_E, jaehan.jeong, 2013.7.30,  To separate power settings depending on HW revisions,  [ENDS HERE] */
+/*                                                                                                            */
 
 static struct v4l2_subdev_info imx111_subdev_info[] = {
 	{
@@ -250,9 +250,9 @@ static int __init imx111_init_module(void)
 	int32_t rc = 0;
 	hw_rev_type rev_type = 0;
 	pr_info("%s:%d\n", __func__, __LINE__);
-/* LGE_CHANGE_S, jaehan.jeong, 2013.7.30, To separate power settings depending on HW revisions., [STARTS HERE] */
+/*                                                                                                             */
       rev_type = lge_get_board_revno();
-#if 1// defined(CONFIG_MACH_LGE)
+#if 1//                         
 	switch(rev_type) {
 		case HW_REV_0:
 			printk("%s: Sensor power is set as Rev.0\n", __func__);
@@ -282,7 +282,7 @@ static int __init imx111_init_module(void)
 			break;
 	}
 #endif
-/* LGE_CHANGE_E, jaehan.jeong, 2013.7.30, To separate power settings depending on HW revisions.,  [ENDS HERE] */
+/*                                                                                                            */
 	rc = platform_driver_probe(&imx111_platform_driver,
 		imx111_platform_probe);
 	if (!rc)
@@ -304,10 +304,10 @@ static void __exit imx111_exit_module(void)
 
 static struct msm_sensor_ctrl_t imx111_s_ctrl = {
 	.sensor_i2c_client = &imx111_sensor_i2c_client,
-/* LGE_CHANGE_S, jaehan.jeong, 2013.7.30, To separate power settings depending on HW revisions., [STARTS HERE] */
+/*                                                                                                             */
 /*	.power_setting_array.power_setting = imx111_power_setting,
 	.power_setting_array.size = ARRAY_SIZE(imx111_power_setting),	*/
-/* LGE_CHANGE_E, jaehan.jeong, 2013.7.30, To separate power settings depending on HW revisions.,  [ENDS HERE] */
+/*                                                                                                            */
 	.msm_sensor_mutex = &imx111_mut,
 	.sensor_v4l2_subdev_info = imx111_subdev_info,
 	.sensor_v4l2_subdev_info_size = ARRAY_SIZE(imx111_subdev_info),

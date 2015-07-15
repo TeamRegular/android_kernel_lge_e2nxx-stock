@@ -26,11 +26,10 @@ DEFINE_MSM_MUTEX(imx219_mut);
 
 static struct msm_sensor_ctrl_t imx219_s_ctrl;
 #if defined(CONFIG_MACH_MSM8926_B2L_ATT) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_X10_VZW) \
- || defined(CONFIG_MACH_MSM8926_JAGNM_ATT) || defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_JAGC_SPR) || defined(CONFIG_MACH_MSM8926_JAGNM_GLOBAL_COM) \
+ || defined(CONFIG_MACH_MSM8926_JAGNM_ATT) || defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_JAGC_SPR) || defined(CONFIG_MACH_MSM8926_JAGNM_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_JAGNM_KDDI_JP) \
  || defined(CONFIG_MACH_MSM8926_JAGDSNM_CMCC_CN) || defined(CONFIG_MACH_MSM8926_JAGDSNM_CTC_CN) || defined(CONFIG_MACH_MSM8926_JAGDSNM_CUCC_CN) \
  || defined(CONFIG_MACH_MSM8226_JAG3GSS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_JAG3GDS_GLOBAL_COM)|| defined (CONFIG_MACH_MSM8926_VFP_KR) \
- || defined(CONFIG_MACH_MSM8926_AKA_KR) || defined(CONFIG_MACH_MSM8926_AKA_CN) \
- || defined(CONFIG_MACH_MSM8926_JAGNM_RGS) || defined(CONFIG_MACH_MSM8926_JAGNM_TLS) || defined(CONFIG_MACH_MSM8926_JAGNM_VTR) || defined(CONFIG_MACH_MSM8926_JAGNM_BELL) || defined(CONFIG_MACH_MSM8926_JAGC_SPR)
+ || defined(CONFIG_MACH_MSM8926_JAGNM_RGS) || defined(CONFIG_MACH_MSM8926_JAGNM_TLS) || defined(CONFIG_MACH_MSM8926_JAGNM_VTR) || defined(CONFIG_MACH_MSM8926_AKA_KR)
 static struct msm_sensor_power_setting imx219_power_setting[] = {
 	 /* Set GPIO_RESET to low to disable power on reset*/
 	{
@@ -57,14 +56,14 @@ static struct msm_sensor_power_setting imx219_power_setting[] = {
 		.config_val = GPIO_OUT_HIGH,
 		.delay = 1,
 	},
-/* LGE_CHANGE_S, add gpio setting for ldaf-en, 2014-04-07, jungryoul.choi@lge.com */
+/*                                                                                */
 	{
 		.seq_type = SENSOR_GPIO,
 		.seq_val = SENSOR_GPIO_LDAF_EN,
 		.config_val = GPIO_OUT_HIGH,
 		.delay = 0,
 	},
-/* LGE_CHANGE_E, add gpio setting for ldaf-en, 2014-04-07, jungryoul.choi@lge.com */
+/*                                                                                */
 	{
 		.seq_type = SENSOR_GPIO,
 		.seq_val = SENSOR_GPIO_VAF,
@@ -92,7 +91,7 @@ static struct msm_sensor_power_setting imx219_power_setting[] = {
 };
 
 #else // if not B2 Lite Or B2 Mini
-/* LGE_CHANGE_S, jaehan.jeong, 2013.7.30,  To separate power settings depending on HW revisions, [STARTS HERE] */
+/*                                                                                                             */
 static struct msm_sensor_power_setting imx219_power_setting_rev_0[] = {
 	{
 		.seq_type = SENSOR_VREG,
@@ -263,7 +262,7 @@ static struct msm_sensor_power_setting imx219_power_setting_on_8x10[] = {
 	},
 };
 #endif
-/* LGE_CHANGE_E, jaehan.jeong, 2013.7.30,  To separate power settings depending on HW revisions,  [ENDS HERE] */
+/*                                                                                                            */
 #endif // B2 Lite Or B2 Mini
 
 static struct v4l2_subdev_info imx219_subdev_info[] = {
@@ -335,11 +334,10 @@ static int __init imx219_init_module(void)
 	rev_type = lge_get_board_revno();
 
 #if defined(CONFIG_MACH_MSM8926_B2L_ATT) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_X10_VZW) \
- || defined(CONFIG_MACH_MSM8926_JAGNM_ATT) || defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_JAGC_SPR) || defined(CONFIG_MACH_MSM8926_JAGNM_GLOBAL_COM) \
+ || defined(CONFIG_MACH_MSM8926_JAGNM_ATT) || defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_JAGC_SPR) || defined(CONFIG_MACH_MSM8926_JAGNM_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_JAGNM_KDDI_JP) \
  || defined(CONFIG_MACH_MSM8926_JAGDSNM_CMCC_CN) || defined(CONFIG_MACH_MSM8926_JAGDSNM_CTC_CN) || defined(CONFIG_MACH_MSM8926_JAGDSNM_CUCC_CN) \
  || defined(CONFIG_MACH_MSM8226_JAG3GSS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_JAG3GDS_GLOBAL_COM)|| defined (CONFIG_MACH_MSM8926_VFP_KR) \
- || defined(CONFIG_MACH_MSM8926_AKA_KR) || defined(CONFIG_MACH_MSM8926_AKA_CN) \
- || defined(CONFIG_MACH_MSM8926_JAGNM_RGS) || defined(CONFIG_MACH_MSM8926_JAGNM_TLS) || defined(CONFIG_MACH_MSM8926_JAGNM_VTR) || defined(CONFIG_MACH_MSM8926_JAGNM_BELL) || defined(CONFIG_MACH_MSM8926_JAGC_SPR)
+ || defined(CONFIG_MACH_MSM8926_JAGNM_RGS) || defined(CONFIG_MACH_MSM8926_JAGNM_TLS) || defined(CONFIG_MACH_MSM8926_JAGNM_VTR) || defined(CONFIG_MACH_MSM8926_AKA_KR)
 	imx219_s_ctrl.power_setting_array.power_setting = imx219_power_setting;
 	imx219_s_ctrl.power_setting_array.size = ARRAY_SIZE(imx219_power_setting);
 #else
