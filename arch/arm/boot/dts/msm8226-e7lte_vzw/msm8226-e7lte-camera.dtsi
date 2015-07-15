@@ -40,8 +40,8 @@
 		qcom,cam-power-seq-cfg-val = <1 1>;
 		qcom,cam-power-seq-delay = <1 1>;
 		qcom,gpio-no-mux = <0>;
-		gpios = <&msmgpio 110 0>,	//1.8V IOVDD
-			<&msmgpio 36 0>;		//2.8V VCM
+		gpios = <&msmgpio 113 0>,	//1.8V IOVDD
+			<&msmgpio 0 0>;		//2.8V VCM
 		qcom,gpio-vio = <1>;
 		qcom,gpio-standby = <0>;		//CAM_STANDBY
 		qcom,gpio-req-tbl-num = <0 1>;

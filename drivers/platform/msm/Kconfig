@@ -101,12 +101,6 @@ config QPNP_COINCELL
 	  maintain PMIC register state when the main battery is removed from the
 	  mobile device.
 
-config QPNP_DISABLE_HARD_RESET
-	bool "not support hard reset"
-	default n
-	help
-	  To disable hard reset function. It is necessary that you cut connection of RESET pin.
-
 config IPA
 	tristate "IPA support"
 	depends on SPS
@@ -121,10 +115,20 @@ config IPA
 	  to configure IPA core.
 config MSM_AVTIMER
 	tristate "Avtimer Driver"
-	depends on ARCH_MSM8960
+	depends on MSM_QDSP6_APRV2
 	help
 		This driver gets the Q6 out of power collapsed state and
 		exposes ioctl control to read avtimer tick.
+
+config PFT
+	bool "Per-File-Tagger driver"
+	default n
+	help
+		This driver is used for tagging enterprise files.
+		It is part of the Per-File-Encryption (PFE) feature.
+		The driver is tagging files when created by
+		registered application.
+		Tagged files are encrypted using the dm-req-crypt driver.
 
 config SSM
 	tristate "Qualcomm Secure Service Module"

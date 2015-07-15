@@ -48,16 +48,13 @@
 				qcom,use-blink;
 				};
 		};
-		/delete-node/ qcom,leds@a100;
-		/delete-node/ qcom,leds@a300;
-		/delete-node/ qcom,leds@a500;
 	};
 
 	qcom,pm8226@1 {
 		qcom,vibrator@c000 {
                         status = "okay";
                         qcom,vib-timeout-ms = <15000>;
-                        qcom,vib-vtg-level-mV = <3100>;
+                        qcom,vib-vtg-level-mV = <2400>;
                 };
 		qcom,leds@d300 {
 			status = "okay";
@@ -101,7 +98,7 @@
 				qcom,cs-out-en;
 				qcom,op-fdbck = <1>;
 				qcom,default-state = "on";
-				qcom,max-current = <17>;
+				qcom,max-current = <20>;
 				qcom,ctrl-delay-us = <0>;
 				qcom,boost-curr-lim = <3>;
 				qcom,cp-sel = <0>;

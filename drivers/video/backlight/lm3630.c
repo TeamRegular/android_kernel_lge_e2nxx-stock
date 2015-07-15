@@ -44,7 +44,7 @@
 #define BL_OFF       0
 
 
-/*                                                                                       */
+/* LGE_CHANGE  - To turn backlight on by setting default brightness while kernel booting */
 #define BOOT_BRIGHTNESS 1
 
 static struct i2c_client *lm3630_i2c_client;
@@ -111,7 +111,7 @@ EXPORT_SYMBOL(wireless_backlight_state);
 static void lm3630_hw_reset(void)
 {
 	int gpio = main_lm3630_dev->gpio;
-	/*                                      */
+	/* LGE_CHANGE - Fix GPIO Setting Warning*/
 	if (gpio_is_valid(gpio)) {
 		gpio_direction_output(gpio, 1);
 		gpio_set_value_cansleep(gpio, 1);
@@ -236,7 +236,7 @@ void lm3630_backlight_on(int level)
 		pr_info("%s with level %d\n", __func__, level);
 		lm3630_hw_reset();
 
-#if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE_KR) || defined(CONFIG_MACH_MSM8926_E8LTE) || defined ( CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined(CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US)
+#if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8926_E8LTE) || defined ( CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined(CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US)
 		lm3630_write_reg(main_lm3630_dev->client, 0x02, 0x50); //OVP 32V, OCP 1.0A Boost Freq. 500Khz
 
 		if( lm3630_pwm_enable ) {
@@ -253,7 +253,7 @@ void lm3630_backlight_on(int level)
 #else
 
 		/*  OVP(24V),OCP(1.0A) , Boost Frequency(500khz) */
-#if !defined(CONFIG_MACH_MSM8926_X10_VZW) && !defined(CONFIG_MACH_MSM8926_B2L_ATT) && !defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_JAGNM_ATT) || defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_JAGNM_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_JAGNM_KDDI_JP) || defined(CONFIG_MACH_MSM8926_AKA_KR)  || defined(CONFIG_MACH_MSM8926_E2JPS_JP)
+#if !defined(CONFIG_MACH_MSM8926_X10_VZW) && !defined(CONFIG_MACH_MSM8926_B2L_ATT) && !defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_JAGNM_ATT) || defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_JAGNM_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_JAGNM_BELL) || defined(CONFIG_MACH_MSM8926_JAGC_SPR)
 		lm3630_write_reg(main_lm3630_dev->client, 0x02, 0x30);
 #else
 		lm3630_write_reg(main_lm3630_dev->client, 0x02, 0x50);  /*B1L Rev0,A... OVP = 32V */
@@ -274,7 +274,7 @@ void lm3630_backlight_on(int level)
 		lm3630_write_reg(main_lm3630_dev->client, 0x05, 0x16);
 
 		/* Enable LED A to Exponential, LED2 is connected to BANK_A */
-#if !defined(CONFIG_MACH_MSM8926_X10_VZW) && !defined(CONFIG_MACH_MSM8926_B2L_ATT) && !defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_JAGNM_ATT) || defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_JAGNM_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_JAGNM_KDDI_JP) || defined(CONFIG_MACH_MSM8926_AKA_KR)  || defined(CONFIG_MACH_MSM8926_E2JPS_JP)
+#if !defined(CONFIG_MACH_MSM8926_X10_VZW) && !defined(CONFIG_MACH_MSM8926_B2L_ATT) && !defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_JAGNM_ATT) || defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_JAGNM_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_JAGNM_BELL) || defined(CONFIG_MACH_MSM8926_JAGC_SPR)
 		lm3630_write_reg(main_lm3630_dev->client, 0x00, 0x15);
 #else
 		if(HW_REV_0 == hw_rev)
@@ -339,7 +339,7 @@ static int bl_set_intensity(struct backlight_device *bd)
 {
 	struct i2c_client *client = to_i2c_client(bd->dev.parent);
 
-	/*                                                                  */
+	/* LGE_CHANGE - if it's trying to set same backlight value, skip it.*/
 	if(bd->props.brightness == cur_main_lcd_level){
 		pr_debug("%s level is already set. skip it\n", __func__);
 		return 0;
@@ -592,7 +592,7 @@ static int lm3630_probe(struct i2c_client *i2c_dev,
 	int err;
 
 	pr_debug("[LCD][DEBUG] %s: i2c probe start\n", __func__);
-	
+
 #ifdef CONFIG_OF
 	if (&i2c_dev->dev.of_node) {
 		pdata = devm_kzalloc(&i2c_dev->dev,

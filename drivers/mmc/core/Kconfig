@@ -58,13 +58,4 @@ config MMC_DAMAGED_SDCARD_CTRL
     help
 		If you say Y here, damaged flag is activated for sd card.
 		It is enabled if card init fails.
-
-config LGE_MMC_PON_SLEEP_NOTI
-	bool "POWER_OFF_NOTIFICATION - use SLEEP_NOTIFICATION"
-    default n
-    help
-		If you say Y here, send POWER_OFF_NOCIFICATION 0x4(SLEEP_NOTIFICATION) before sleep
-		This is necessary if device is capable of autonomously initialting background operations 
-		for possible performance improvements.
-
 # LGE_CHANGE_E : bohyun.jung@lge.com

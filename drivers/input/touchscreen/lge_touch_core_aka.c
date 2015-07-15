@@ -84,7 +84,7 @@ static struct lge_touch_data *ts_data = NULL;
 /* Debug mask value
  * usage: echo [debug_mask] > /sys/module/lge_touch_core/parameters/debug_mask
  */
-u32 touch_debug_mask = DEBUG_BASE_INFO | DEBUG_LPWG_COORDINATES;
+u32 touch_debug_mask = DEBUG_BASE_INFO;
 module_param_named(debug_mask, touch_debug_mask, int, S_IRUGO|S_IWUSR|S_IWGRP);
 
 #ifdef LGE_TOUCH_TIME_DEBUG
@@ -96,6 +96,16 @@ module_param_named(time_debug_mask,
 		touch_time_debug_mask, int, S_IRUGO|S_IWUSR|S_IWGRP);
 #endif
 
+int mdss_dsi_touch_cmd(int num);
+
+int jdi_init_sequence = 0;
+int tp_ack(int num)
+{
+	jdi_init_sequence = num;
+	TOUCH_DEBUG(DEBUG_BASE_INFO, "%s value = %d\n", __func__, jdi_init_sequence);
+
+	return 0;
+}
 
 /* set_touch_handle / get_touch_handle
  *
@@ -592,10 +602,22 @@ static enum filter_return_type quickcover_filter(struct i2c_client *client,
 	u32 id_mask_prev_only =
 		(curr_data->id_mask ^ prev_data->id_mask) & prev_data->id_mask;
 
-	u32 X1 = info->role->X1;
-	u32 X2 = info->role->X2;
-	u32 Y1 = info->role->Y1;
-	u32 Y2 = info->role->Y2;
+	u32 x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+
+	if(info->role->use_halfcover == 1 && quick_cover_status == QUICKCOVER_HALFOPEN) {
+		x1 = info->role->half_x1;
+		x2 = info->role->half_x2;
+		y1 = info->role->half_y1;
+		y2 = info->role->half_y2;
+	} else {
+		x1 = info->role->x1;
+		x2 = info->role->x2;
+		y1 = info->role->y1;
+		y2 = info->role->y2;
+	}
+
+	if(!info->role->enable)
+		return FRT_REPORT;
 
 	for (i = 0 ; i < curr_data->total_num; i++) {
 		c_data = &curr_data->abs_data[i];
@@ -614,13 +636,13 @@ static enum filter_return_type quickcover_filter(struct i2c_client *client,
 
 			p_data = &prev_data->abs_data[index];
 
-			if ((c_data->raw_x > X1 && c_data->raw_x < X2)
-					&& (c_data->raw_y > Y1 && c_data->raw_y < Y2)){
+			if ((c_data->raw_x > x1 && c_data->raw_x < x2)
+					&& (c_data->raw_y > y1 && c_data->raw_y < y2)){
 				info->data.quickcover_mask &= ~(1 << id);
 			}
 		}
 
-		if (c_data->raw_x < X1 || c_data->raw_x > X2 || c_data->raw_y < Y1 || c_data->raw_y > Y2)
+		if (c_data->raw_x < x1 || c_data->raw_x > x2 || c_data->raw_y < y1 || c_data->raw_y > y2)
 			info->data.quickcover_mask |= (1 << id);
 
 		if (id_mask_prev_only & (1 << id))
@@ -883,6 +905,8 @@ static void release_all_touch_event(struct lge_touch_data *ts)
  */
 static int power_control(struct lge_touch_data *ts, int on_off)
 {
+	int count = 0;
+
 	if (atomic_read(&ts->state.upgrade_state) == UPGRADE_START
 		|| atomic_read(&ts->state.crack_test_state) == CRACK_TEST_START) {
 		TOUCH_DEBUG(DEBUG_BASE_INFO,
@@ -891,13 +915,35 @@ static int power_control(struct lge_touch_data *ts, int on_off)
 		return 0;
 	}
 	/* To ignore the probe time */
-	if (ts->input_dev != NULL
-		&& (atomic_read(&ts->state.power_state) != on_off)
-		&& (atomic_read(&ts->state.power_state) == POWER_ON || atomic_read(&ts->state.power_state) == POWER_WAKE))
+	if (ts->input_dev != NULL)
 		release_all_touch_event(ts);
 
 	if (atomic_read(&ts->state.power_state) != on_off) {
-		DO_IF(touch_device_func->power(ts->client, on_off) != 0, error);
+
+		if(ts->pdata->role->use_jdi_incell && (on_off == POWER_ON || on_off == POWER_WAKE))
+		{
+			mdss_dsi_touch_cmd(1);
+			while(jdi_init_sequence == 0)
+			{
+				mdelay(10);
+				count++;
+				if(count > 10)
+				break;
+			}
+			DO_IF(touch_device_func->power(ts->client, on_off) != 0, error);
+			mdss_dsi_touch_cmd(2);
+
+			while(jdi_init_sequence == 1)
+			{
+				mdelay(10);
+				count++;
+				if(count > 10)
+				break;
+			}
+		} else {
+			DO_IF(touch_device_func->power(ts->client, on_off) != 0, error);
+		}
+
 		atomic_set(&ts->state.power_state, on_off);
 	}
 
@@ -922,12 +968,16 @@ static int interrupt_control(struct lge_touch_data *ts, int on_off)
 {
 	if (atomic_read(&ts->state.interrupt_state) != on_off) {
 		atomic_set(&ts->state.interrupt_state, on_off);
-		if (ts->pdata->role->wake_up_by_touch)
+
+		if(on_off)
+			enable_irq(ts->client->irq);
+		else
+			disable_irq(ts->client->irq);
+
+		if (ts->pdata->role->wake_up_by_touch) {
 			on_off ? enable_irq_wake(ts->client->irq)
 				: disable_irq_wake(ts->client->irq);
-		else
-			on_off ? enable_irq(ts->client->irq)
-				: disable_irq(ts->client->irq);
+		}
 	}
 
 	TOUCH_DEBUG(DEBUG_BASE_INFO, "interrupt_state[%d]\n", on_off);
@@ -947,14 +997,18 @@ static int interrupt_control(struct lge_touch_data *ts, int on_off)
  */
 static void safety_reset(struct lge_touch_data *ts)
 {
-
 	TOUCH_TRACE();
 
-	DO_SAFE(power_control(ts, POWER_OFF), error);
-	msleep(ts->pdata->role->reset_delay);
-	DO_SAFE(power_control(ts, POWER_ON), error);
-	msleep(ts->pdata->role->booting_delay);
-
+	if(ts->pdata->role->use_jdi_incell) {
+		DO_SAFE(power_control(ts, SAFETY_RESET), error);
+		msleep(ts->pdata->role->reset_delay);
+		atomic_set(&ts->state.power_state, POWER_ON);
+	} else {
+		DO_SAFE(power_control(ts, POWER_OFF), error);
+		msleep(ts->pdata->role->reset_delay);
+		DO_SAFE(power_control(ts, POWER_ON), error);
+		msleep(ts->pdata->role->booting_delay);
+	}
 	return;
 error:
 	/* TO_DO : error handling, if it needs */
@@ -1342,9 +1396,7 @@ static void touch_trigger_handle(struct work_struct *work_trigger_handle)
 		return;
 	}
 
-	if ((ts->ts_report_data.total_num
-			|| atomic_read(&ts->state.upgrade_state) == UPGRADE_START
-			|| mutex_is_locked(&ts->thread_lock))
+	if ((ts->ts_report_data.total_num || atomic_read(&ts->state.upgrade_state) == UPGRADE_START)
 			&& ta_rebase_retry_count < MAX_RETRY_COUNT) {
 		++ta_rebase_retry_count;
 		TOUCH_DEBUG(DEBUG_BASE_INFO,
@@ -1357,27 +1409,30 @@ static void touch_trigger_handle(struct work_struct *work_trigger_handle)
 			queue_delayed_work(touch_wq,
 							&ts->work_trigger_handle,
 							msecs_to_jiffies(0));
-		return;
 	} else {
 		if (atomic_read(&ts->state.device_init_state) == INIT_DONE) {
-			if (mutex_is_locked(&ts->thread_lock))
-				return;
-			mutex_lock(&ts->thread_lock);
 			if (touch_ta_status)
 				HANDLE_GHOST_ALG_RET(ghost_alg_ret = rebase_ic(ts));
 			else
 				goto do_init;
-		} else
-			return;
+		}
 	}
 
 do_reset_curr_data:
 ignore:
+	if (mutex_is_locked(&ts->thread_lock)) {
+		TOUCH_DEBUG(DEBUG_BASE_INFO, "mutex unlock, end rebase work .\n");
 		mutex_unlock(&ts->thread_lock);
+	}
 	return;
 
 do_init:
 error:
+	if (mutex_is_locked(&ts->thread_lock)) {
+		TOUCH_DEBUG(DEBUG_BASE_INFO, "mutex unlock, end rebase work .\n");
+		mutex_unlock(&ts->thread_lock);
+	}
+	mutex_lock(&ts->thread_lock);
 	safety_reset(ts);
 	touch_ic_init(ts, 0);
 	mutex_unlock(&ts->thread_lock);
@@ -1436,6 +1491,7 @@ EXPORT_SYMBOL(update_status);
  */
 static void firmware_upgrade_func(struct work_struct *work_upgrade)
 {
+	int count = 0;
 	struct lge_touch_data *ts = container_of(to_delayed_work(work_upgrade),
 		struct lge_touch_data, work_upgrade);
 	TOUCH_TRACE();
@@ -1450,12 +1506,36 @@ static void firmware_upgrade_func(struct work_struct *work_upgrade)
 
 	atomic_set(&ts->state.upgrade_state, UPGRADE_START);
 
-	if(ERROR == touch_device_func->fw_upgrade(ts->client, &ts->fw_info, ts->pdata->fw)) {
-		TOUCH_DEBUG(DEBUG_BASE_INFO, "%s - fw_upgrade Fail\n", __func__);
-	safety_reset(ts);
+	if(ts->pdata->role->use_jdi_incell &&
+		((atomic_read(&ts->state.power_state) == POWER_ON) || (atomic_read(&ts->state.power_state) == POWER_WAKE)))
+	{
+		mdss_dsi_touch_cmd(1);
+
+		while(jdi_init_sequence == 0)
+		{
+			mdelay(10);
+			count++;
+			if(count > 10)
+				break;
+		}
+
+		touch_device_func->fw_upgrade(ts->client, &ts->fw_info, ts->pdata->fw);
+		mdss_dsi_touch_cmd(2);
+
+		while(jdi_init_sequence == 1)
+		{
+			mdelay(10);
+				count++;
+			if(count > 10)
+				break;
+		}
+	} else {
+		touch_device_func->fw_upgrade(ts->client, &ts->fw_info, ts->pdata->fw);
 	}
 
 	atomic_set(&ts->state.upgrade_state, UPGRADE_FINISH);
+
+	safety_reset(ts);
 	interrupt_control(ts, INTERRUPT_ENABLE);
 	touch_ic_init(ts, 0);
 
@@ -1610,7 +1690,12 @@ static void change_ime_drumming_func(struct work_struct *work_ime_drumming)
 	if (atomic_read(&ts->state.power_state) == POWER_OFF) {
 		return;
 	}
-	touch_device_func->ime_drumming(ts->client, ime_stat);
+	if(ts->pdata->role->use_jdi_incell) {
+		//touch_device_func->ime_drumming(ts->client, ime_stat);
+		TOUCH_INFO_MSG("%s: IME solution is disabled.\n", __func__);
+	} else {
+		touch_device_func->ime_drumming(ts->client, ime_stat);
+	}
 
 	return;
 }
@@ -1654,6 +1739,39 @@ void change_thermal_param(struct work_struct *work_thermal)
 	touch_device_func->ic_ctrl(ts->client, IC_CTRL_THERMAL, current_thermal_mode, NULL);
 	mutex_unlock(&ts->thread_lock);
 	TOUCH_INFO_MSG("%s: Thermal prarmeters are changed.\n", __func__);
+
+	return;
+}
+
+
+void set_lpwg_area(struct lge_touch_data *ts, int left, int right, int top, int bottom)
+{
+	int x1 = left;
+	int x2 = right;
+	int y1 = top;
+	int y2 = bottom;
+
+	if(quick_cover_status == QUICKCOVER_CLOSE) {
+		x1 = ts->pdata->role->quickcover_filter->x1 + ts->pdata->role->quickcover_filter->grip_margin;
+		x2 = ts->pdata->role->quickcover_filter->x2 - ts->pdata->role->quickcover_filter->grip_margin;
+		y1 = ts->pdata->role->quickcover_filter->y1 + ts->pdata->role->quickcover_filter->grip_margin;
+		y2 = ts->pdata->role->quickcover_filter->y2;
+	} else if(quick_cover_status == QUICKCOVER_HALFOPEN) {
+		x1 = ts->pdata->role->quickcover_filter->half_x1 + ts->pdata->role->quickcover_filter->grip_margin;
+		x2 = ts->pdata->role->quickcover_filter->half_x2 - ts->pdata->role->quickcover_filter->grip_margin;
+		y1 = ts->pdata->role->quickcover_filter->half_y1 + ts->pdata->role->quickcover_filter->grip_margin;
+		y2 = ts->pdata->role->quickcover_filter->half_y2;
+	} else {
+		x1 = ts->pdata->role->quickcover_filter->grip_margin;
+		x2 = ts->pdata->caps->max_x - 1 - ts->pdata->role->quickcover_filter->grip_margin;
+		y1 = ts->pdata->role->quickcover_filter->grip_margin;
+		y2 = ts->pdata->caps->max_y - 1 - ts->pdata->role->quickcover_filter->grip_margin;
+	}
+
+	touch_device_func->lpwg(ts->client, LPWG_ACTIVE_AREA_X1, x1, NULL);
+	touch_device_func->lpwg(ts->client, LPWG_ACTIVE_AREA_X2, x2, NULL);
+	touch_device_func->lpwg(ts->client, LPWG_ACTIVE_AREA_Y1, y1, NULL);
+	touch_device_func->lpwg(ts->client, LPWG_ACTIVE_AREA_Y2, y2, NULL);
 
 	return;
 }
@@ -1709,6 +1827,8 @@ static ssize_t show_platform_data(struct i2c_client *client, char *buf)
 			pdata->role->use_sleep_mode);
 	ret += sprintf(buf+ret, "\t%25s = %d\n", "use_lpwg_all",
 			pdata->role->use_lpwg_all);
+	ret += sprintf(buf+ret, "\t%25s = %d\n", "use_jdi_incell",
+			pdata->role->use_jdi_incell);
 	ret += sprintf(buf+ret, "\t%25s = %d\n", "thermal_check",
 			pdata->role->thermal_check);
 	ret += sprintf(buf+ret, "\t%25s = %d\n", "palm_ctrl_mode",
@@ -1741,14 +1861,30 @@ static ssize_t show_platform_data(struct i2c_client *client, char *buf)
 			pdata->role->jitter_filter->curr_ratio);
 	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.enable",
 			pdata->role->quickcover_filter->enable);
-	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.X1",
-			pdata->role->quickcover_filter->X1);
-	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.Y1",
-			pdata->role->quickcover_filter->Y1);
-	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.X2",
-			pdata->role->quickcover_filter->X2);
-	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.Y2",
-			pdata->role->quickcover_filter->Y2);
+	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.x1",
+			pdata->role->quickcover_filter->x1);
+	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.y1",
+			pdata->role->quickcover_filter->y1);
+	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.x2",
+			pdata->role->quickcover_filter->x2);
+	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.y2",
+			pdata->role->quickcover_filter->y2);
+	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.use_halfcover",
+			pdata->role->quickcover_filter->use_halfcover);
+	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.half_x1",
+			pdata->role->quickcover_filter->half_x1);
+	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.half_y1",
+			pdata->role->quickcover_filter->half_y1);
+	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.half_x2",
+			pdata->role->quickcover_filter->half_x2);
+	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.half_y2",
+			pdata->role->quickcover_filter->half_y2);
+	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.grip_margin",
+			pdata->role->quickcover_filter->grip_margin);
+	ret += sprintf(buf+ret, "\t%25s = %d\n", "quickcover.cover_proxi",
+			pdata->role->quickcover_filter->cover_proxi);
+	ret += sprintf(buf+ret, "\t%25s = %d\n", "ghost_detection_enable",
+			pdata->role->ghost_detection->check_enable.ghost_detection_enable);
 	ret += sprintf(buf+ret, "pwr:\n");
 	ret += sprintf(buf+ret, "\t%25s = %d\n", "use_regulator",
 			pdata->pwr->use_regulator);
@@ -1761,9 +1897,10 @@ static ssize_t show_platform_data(struct i2c_client *client, char *buf)
 	ret += sprintf(buf+ret, "\t%25s = %s\n", "power",
 			pdata->pwr->power ? "YES" : "NO");
 	ret += sprintf(buf+ret, "firmware:\n");
+	ret += sprintf(buf+ret, "\t%25s = %s\n", "Base fw_image",
+			pdata->inbuilt_fw_name);	
 	ret += sprintf(buf+ret, "\t%25s = %s\n", "fw_image",
-			pdata->inbuilt_fw_name);
-	//		pdata->inbuilt_fw_name_s3528_a1);
+			pdata->inbuilt_fw_name_s3320_a0);
 	ret += sprintf(buf+ret, "\t%25s = %d\n", "need_upgrade",
 			pdata->fw->need_upgrade);
 
@@ -1803,6 +1940,8 @@ static ssize_t store_platform_data(struct i2c_client *client,
 		ts->pdata->role->use_sleep_mode = value;
 	else if (!strcmp(string, "use_lpwg_all"))
 		ts->pdata->role->use_lpwg_all = value;
+	else if (!strcmp(string, "use_jdi_incell"))
+		ts->pdata->role->use_jdi_incell = value;
 	else if (!strcmp(string, "thermal_check"))
 		ts->pdata->role->thermal_check = value;
 	else if (!strcmp(string, "palm_ctrl_mode"))
@@ -1823,14 +1962,30 @@ static ssize_t store_platform_data(struct i2c_client *client,
 		ts->pdata->role->grip_filter->width_ratio = value;
 	else if (!strcmp(string, "quickcover.enable"))
 		ts->pdata->role->quickcover_filter->enable = value;
-	else if (!strcmp(string, "quickcover.X1"))
-		ts->pdata->role->quickcover_filter->X1 = value;
-	else if (!strcmp(string, "quickcover.X2"))
-		ts->pdata->role->quickcover_filter->X2 = value;
-	else if (!strcmp(string, "quickcover.Y1"))
-		ts->pdata->role->quickcover_filter->Y1 = value;
-	else if (!strcmp(string, "quickcover.Y2"))
-		ts->pdata->role->quickcover_filter->Y2 = value;
+	else if (!strcmp(string, "quickcover.x1"))
+		ts->pdata->role->quickcover_filter->x1 = value;
+	else if (!strcmp(string, "quickcover.x2"))
+		ts->pdata->role->quickcover_filter->x2 = value;
+	else if (!strcmp(string, "quickcover.y1"))
+		ts->pdata->role->quickcover_filter->y1 = value;
+	else if (!strcmp(string, "quickcover.y2"))
+		ts->pdata->role->quickcover_filter->y2 = value;
+	else if (!strcmp(string, "quickcover.use_halfcover"))
+		ts->pdata->role->quickcover_filter->use_halfcover = value;
+	else if (!strcmp(string, "quickcover.half_x1"))
+		ts->pdata->role->quickcover_filter->half_x1 = value;
+	else if (!strcmp(string, "quickcover.half_x2"))
+		ts->pdata->role->quickcover_filter->half_x2 = value;
+	else if (!strcmp(string, "quickcover.half_y1"))
+		ts->pdata->role->quickcover_filter->half_y1 = value;
+	else if (!strcmp(string, "quickcover.half_y2"))
+		ts->pdata->role->quickcover_filter->half_y2 = value;
+	else if (!strcmp(string, "quickcover.grip_margin"))
+		ts->pdata->role->quickcover_filter->grip_margin = value;
+	else if (!strcmp(string, "quickcover.cover_proxi"))
+		ts->pdata->role->quickcover_filter->cover_proxi = value;
+	else if (!strcmp(string, "ghost_detection_enable"))
+		ts->pdata->role->ghost_detection->check_enable.ghost_detection_enable = value;
 	else if (!strcmp(string, "accuracy.enable"))
 		ts->pdata->role->accuracy_filter->enable = value;
 	else if (!strcmp(string, "accuracy.min_delta"))
@@ -2015,19 +2170,13 @@ static ssize_t show_upgrade(struct i2c_client *client, char *buf)
 
 	len = strlen(ts->pdata->inbuilt_fw_name);
 	strncpy(ts->fw_info.fw_path, ts->pdata->inbuilt_fw_name, len);
-/*
-	len = strlen(ts->pdata->inbuilt_fw_name_s3621);
-	strncpy(ts->fw_info.fw_path_s3621, ts->pdata->inbuilt_fw_name_s3621, len);
 
-	len = strlen(ts->pdata->inbuilt_fw_name_s3528_a1);
-	strncpy(ts->fw_info.fw_path_s3528_a1, ts->pdata->inbuilt_fw_name_s3528_a1, len);
+	len = strlen(ts->pdata->inbuilt_fw_name_s3320_a0);
+	strncpy(ts->fw_info.fw_path_s3320_a0, ts->pdata->inbuilt_fw_name_s3320_a0, len);
 
-	len = strlen(ts->pdata->inbuilt_fw_name_s3528_a1_suntel);
-	strncpy(ts->fw_info.fw_path_s3528_a1_suntel, ts->pdata->inbuilt_fw_name_s3528_a1_suntel, len);
+	len = strlen(ts->pdata->inbuilt_fw_name_s3320_a1_factory);
+	strncpy(ts->fw_info.fw_path_s3320_a1_factory, ts->pdata->inbuilt_fw_name_s3320_a1_factory, len);
 
-	len = strlen(ts->pdata->inbuilt_fw_name_s3528_a1_factory);
-	strncpy(ts->fw_info.fw_path_s3528_a1_factory, ts->pdata->inbuilt_fw_name_s3528_a1_factory, len);
-*/
 	ts->fw_info.fw_force_upgrade_cat = 1;
 
 	queue_delayed_work(touch_wq, &ts->work_upgrade, 0);
@@ -2136,7 +2285,10 @@ static ssize_t store_lpwg_notify(struct i2c_client *client,
 			touch_device_func->lpwg(client,
 				LPWG_LCD_Y, value[1], NULL);
 			break;
+
 		case 3 :
+			set_lpwg_area(ts, value[0], value[1], value[2], value[3]);
+#if 0
 			touch_device_func->lpwg(client,
 				LPWG_ACTIVE_AREA_X1, value[0], NULL);
 			touch_device_func->lpwg(client,
@@ -2145,6 +2297,7 @@ static ssize_t store_lpwg_notify(struct i2c_client *client,
 				LPWG_ACTIVE_AREA_Y1, value[2], NULL);
 			touch_device_func->lpwg(client,
 				LPWG_ACTIVE_AREA_Y2, value[3], NULL);
+#endif
 			break;
 		case 4 :
 			touch_device_func->lpwg(client,
@@ -2258,17 +2411,9 @@ static ssize_t store_quick_cover_status(struct i2c_client *client, const char *b
 	int value;
 	sscanf(buf, "%d", &value);
 
-	if( (value == QUICKCOVER_CLOSE) && (quick_cover_status == QUICKCOVER_OPEN) ) {
-		quick_cover_status = QUICKCOVER_CLOSE;
-	}
-	else if( (value == QUICKCOVER_OPEN) && (quick_cover_status == QUICKCOVER_CLOSE) ) {
-		quick_cover_status = QUICKCOVER_OPEN;
-	}
-	else {
-		return count;
-	}
+	quick_cover_status = value;
 
-	TOUCH_INFO_MSG("quick cover status = %s\n", (quick_cover_status == QUICKCOVER_CLOSE) ? "QUICK_COVER_CLOSE" : "QUICK_COVER_OPEN");
+	TOUCH_INFO_MSG("quick cover status = %d\n", quick_cover_status);
 	return count;
 }
 static ssize_t store_incoming_call(struct i2c_client *client, const char *buf, size_t count)
@@ -2526,19 +2671,14 @@ static struct touch_platform_data* get_dts_data(struct device *dev)
 
 	//firmware
 	p_data->inbuilt_fw_name = NULL;
-	/*
-	p_data->inbuilt_fw_name_s3528_a1 = NULL;
-	p_data->inbuilt_fw_name_s3528_a1_suntel = NULL;
-	p_data->inbuilt_fw_name_s3621 = NULL;
-	p_data->inbuilt_fw_name_s3528_a1_factory = NULL;
-	*/
-	of_property_read_string(np, "fw_image_s3320_a0",  &p_data->inbuilt_fw_name);
-	/*
-	of_property_read_string(np, "fw_image_s3528_a1", &p_data->inbuilt_fw_name_s3528_a1);
-	of_property_read_string(np, "fw_image_s3528_a1_suntel", &p_data->inbuilt_fw_name_s3528_a1_suntel);
-	of_property_read_string(np, "fw_image_s3621",  &p_data->inbuilt_fw_name_s3621);
-	of_property_read_string(np, "fw_image_s3528_a1_factory", &p_data->inbuilt_fw_name_s3528_a1_factory);
-	*/
+	
+	p_data->inbuilt_fw_name_s3320_a0 = NULL;
+	p_data->inbuilt_fw_name_s3320_a1_factory = NULL;
+	
+	of_property_read_string(np, "fw_image_s3320",  &p_data->inbuilt_fw_name);
+	of_property_read_string(np, "fw_image_s3320_a0", &p_data->inbuilt_fw_name_s3320_a0);
+	of_property_read_string(np, "fw_image_s3320_a1_factory", &p_data->inbuilt_fw_name_s3320_a1_factory);
+
 
     // PANEL
 	p_data->panel_spec = NULL;
@@ -2618,6 +2758,7 @@ static struct touch_platform_data* get_dts_data(struct device *dev)
 	GET_PROPERTY_U32(np, "wake_up_by_touch", p_data->role->wake_up_by_touch);
 	GET_PROPERTY_U32(np, "use_sleep_mode", p_data->role->use_sleep_mode);
 	GET_PROPERTY_U32(np, "use_lpwg_all", p_data->role->use_lpwg_all);
+	GET_PROPERTY_U32(np, "use_jdi_incell", p_data->role->use_jdi_incell);
 	GET_PROPERTY_U32(np, "thermal_check", p_data->role->thermal_check);
 	GET_PROPERTY_U32(np, "palm_ctrl_mode", p_data->role->palm_ctrl_mode);
 	GET_PROPERTY_U32(np, "mini_os_finger_amplitude", p_data->role->mini_os_finger_amplitude);
@@ -2634,10 +2775,18 @@ static struct touch_platform_data* get_dts_data(struct device *dev)
 	GET_PROPERTY_U32(np, "jitter.enable", p_data->role->jitter_filter->enable);
 	GET_PROPERTY_U32(np, "jitter.curr_ratio", p_data->role->jitter_filter->curr_ratio);
 	GET_PROPERTY_U32(np, "quickcover.enable", p_data->role->quickcover_filter->enable);
-	GET_PROPERTY_U32(np, "quickcover.X1", p_data->role->quickcover_filter->X1);
-	GET_PROPERTY_U32(np, "quickcover.X2", p_data->role->quickcover_filter->X2);
-	GET_PROPERTY_U32(np, "quickcover.Y1", p_data->role->quickcover_filter->Y1);
-	GET_PROPERTY_U32(np, "quickcover.Y2", p_data->role->quickcover_filter->Y2);
+	GET_PROPERTY_U32(np, "quickcover.x1", p_data->role->quickcover_filter->x1);
+	GET_PROPERTY_U32(np, "quickcover.x2", p_data->role->quickcover_filter->x2);
+	GET_PROPERTY_U32(np, "quickcover.y1", p_data->role->quickcover_filter->y1);
+	GET_PROPERTY_U32(np, "quickcover.y2", p_data->role->quickcover_filter->y2);
+	GET_PROPERTY_U32(np, "quickcover.use_halfcover", p_data->role->quickcover_filter->use_halfcover);
+	GET_PROPERTY_U32(np, "quickcover.half_x1", p_data->role->quickcover_filter->half_x1);
+	GET_PROPERTY_U32(np, "quickcover.half_x2", p_data->role->quickcover_filter->half_x2);
+	GET_PROPERTY_U32(np, "quickcover.half_y1", p_data->role->quickcover_filter->half_y1);
+	GET_PROPERTY_U32(np, "quickcover.half_y2", p_data->role->quickcover_filter->half_y2);
+	GET_PROPERTY_U32(np, "quickcover.grip_margin", p_data->role->quickcover_filter->grip_margin);
+	GET_PROPERTY_U32(np, "quickcover.cover_proxi", p_data->role->quickcover_filter->cover_proxi);
+	GET_PROPERTY_U32(np, "crack.enable", p_data->role->crack_detection->use_crack_mode);
 	GET_PROPERTY_U32(np, "crack.enable", p_data->role->crack_detection->use_crack_mode);
 	GET_PROPERTY_U32(np, "crack.min.cap", p_data->role->crack_detection->min_cap_value);
 
@@ -2737,10 +2886,12 @@ static int check_platform_data(const struct touch_platform_data* p_data)
 		ERROR_IF(!pwr->vdd || !pwr->vio,
 			 "VDD, VIO should be defined"
 			 "if use_regulator is true\n", error);
-	else
-		/*ERROR_IF(!pwr->power,
-			 "power ctrl function should be defined"
-			 "if use_regulator is false\n", error);*/
+	else {
+		if(!role->use_jdi_incell)
+			ERROR_IF(!pwr->power,
+				"power ctrl function should be defined"
+				 "if use_regulator is false\n", error);
+	}
 	return 0;
 error:
 	return -1;
@@ -2883,6 +3034,8 @@ static int touch_suspend(struct device *dev)
 	struct lge_touch_data *ts =  dev_get_drvdata(dev);
 
 	TOUCH_TRACE();
+	if(ts->pdata->role->use_jdi_incell)
+		touch_device_func->lpwg(ts->client, LPWG_INCELL_LPWG_ON, 0, NULL);
 
 	cancel_delayed_work_sync(&ts->work_init);
 	cancel_delayed_work_sync(&ts->work_upgrade);
@@ -2893,19 +3046,12 @@ static int touch_suspend(struct device *dev)
 	power_control(ts, ts->pdata->role->use_sleep_mode
 		? POWER_SLEEP : POWER_OFF);
 
-	if((quick_cover_status == QUICKCOVER_CLOSE)
-		&& (atomic_read(&ts->state.power_state) != POWER_OFF)){
+	if(atomic_read(&ts->state.power_state) != POWER_OFF) {
 		mutex_lock(&ts->thread_lock);
-		touch_device_func->lpwg(ts->client,
-				LPWG_ACTIVE_AREA_X1, ts->pdata->role->quickcover_filter->X1, NULL);
-		touch_device_func->lpwg(ts->client,
-				LPWG_ACTIVE_AREA_X2, ts->pdata->role->quickcover_filter->X2, NULL);
-		touch_device_func->lpwg(ts->client,
-				LPWG_ACTIVE_AREA_Y1, ts->pdata->role->quickcover_filter->Y1, NULL);
-		touch_device_func->lpwg(ts->client,
-				LPWG_ACTIVE_AREA_Y2, ts->pdata->role->quickcover_filter->Y2, NULL);
+		set_lpwg_area(ts, 0, 0, 0, 0);
 		mutex_unlock(&ts->thread_lock);
 	}
+
 	return 0;
 }
 
@@ -2947,8 +3093,6 @@ static int touch_resume(struct device *dev)
 		TOUCH_DEBUG(DEBUG_BASE_INFO, "%s:Firmware-upgrade' is not finished.\n",__func__);
 
 	touch_ic_init(ts,0);
-
-	memset(t_ex_debug, 0, sizeof(t_ex_debug));
 
 	mutex_unlock(&ts->thread_lock);
 
@@ -2999,12 +3143,8 @@ static int touch_probe(struct i2c_client *client,
 	struct attribute **specific_attribute_list;
 	int ret = -ENOMEM;
 	int len_a0 = 0;
-	/*
 	int len_a1 = 0;
-	int len_a1_suntel = 0;
-	int rc = 0;
 	int factory = 0;
-	*/
 
 	TOUCH_TRACE();
 
@@ -3039,7 +3179,8 @@ static int touch_probe(struct i2c_client *client,
 		&ts->state, &specific_attribute_list) != 0, error);
 
 	DO_SAFE(power_control(ts, POWER_ON), error);
-	//msleep(ts->pdata->role->booting_delay);
+	if(!ts->pdata->role->use_jdi_incell)
+		msleep(ts->pdata->role->booting_delay);
 
 	mutex_init(&ts->thread_lock); // it should be initialized before both init_func and enable_irq
 	INIT_DELAYED_WORK(&ts->work_init, touch_init_func);
@@ -3096,6 +3237,8 @@ static int touch_probe(struct i2c_client *client,
 		ts->fw_info.fw_force_upgrade = 1;
 	}
 
+	irq_set_status_flags(ts->client->irq, IRQ_NOAUTOEN);
+
 	DO_SAFE(ret = request_threaded_irq(ts->client->irq,
 		touch_irq_handler, touch_thread_irq_handler,
 		ts->pdata->role->irqflags | IRQF_ONESHOT, ts->client->name, ts),
@@ -3104,24 +3247,20 @@ static int touch_probe(struct i2c_client *client,
 	interrupt_control(ts, INTERRUPT_ENABLE);
 
 	len_a0 = strlen(ts->pdata->inbuilt_fw_name);
-	/*
-	len_a1 = strlen(ts->pdata->inbuilt_fw_name_s3528_a1);
-	len_a1_suntel = strlen(ts->pdata->inbuilt_fw_name_s3528_a1_suntel);
-	rc = strlen(ts->pdata->inbuilt_fw_name_s3621);
-	factory = strlen(ts->pdata->inbuilt_fw_name_s3528_a1_factory);
-	*/
+	len_a1 = strlen(ts->pdata->inbuilt_fw_name_s3320_a0);
+	factory = strlen(ts->pdata->inbuilt_fw_name_s3320_a1_factory);
+
 
 	strncpy(ts->fw_info.fw_path, ts->pdata->inbuilt_fw_name, len_a0);
-	/*
-	strncpy(ts->fw_info.fw_path_s3528_a1, ts->pdata->inbuilt_fw_name_s3528_a1, len_a1);
-	strncpy(ts->fw_info.fw_path_s3621, ts->pdata->inbuilt_fw_name_s3621, rc);
-	strncpy(ts->fw_info.fw_path_s3528_a1_factory, ts->pdata->inbuilt_fw_name_s3528_a1_factory, factory);
-	strncpy(ts->fw_info.fw_path_s3528_a1_suntel, ts->pdata->inbuilt_fw_name_s3528_a1_suntel, len_a1_suntel);
-*/
+	strncpy(ts->fw_info.fw_path_s3320_a0, ts->pdata->inbuilt_fw_name_s3320_a0, len_a1);
+	strncpy(ts->fw_info.fw_path_s3320_a1_factory, ts->pdata->inbuilt_fw_name_s3320_a1_factory, factory);
+
 	queue_delayed_work(touch_wq, &ts->work_upgrade, 0);
 
 	if(ts->pdata->role->crack_detection->use_crack_mode) {
 		queue_delayed_work(touch_wq, &ts->work_crack, msecs_to_jiffies(100)); 
+	} else {
+		TOUCH_DEBUG(DEBUG_BASE_INFO, "%s crack mode is disabled.\n",__func__);
 	}
 
 	ts->bouncing_filter.role = ts->pdata->role->bouncing_filter;

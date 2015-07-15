@@ -33,18 +33,13 @@
 #define DC_CURRENT_DEF   -1
 
 /* Battery temperature states */
-#if defined(CONFIG_MACH_MSM8926_X5_SPR) || defined(CONFIG_MACH_MSM8X10_W5C_SPR_US) || defined(CONFIG_MACH_MSM8926_JAGC_SPR) || defined(CONFIG_MACH_MSM8926_E2_SPR_US)
+#if defined(CONFIG_MACH_MSM8926_X5_SPR) || defined(CONFIG_MACH_MSM8X10_W5C_SPR_US) || defined(CONFIG_MACH_MSM8926_JAGC_SPR)
 enum lge_battemp_states {
 	CHG_BATTEMP_BL_M7,
 	CHG_BATTEMP_M6_M5,
 	CHG_BATTEMP_M4_43,
 	CHG_BATTEMP_44_45,
-#if defined(CONFIG_LGE_PM_CHARGING_TEMP_SCENARIO_V1_8)
-	CHG_BATTEMP_46_52,
-	CHG_BATTEMP_53_OT,
-#else
 	CHG_BATTEMP_46_OT,
-#endif
 	CHG_BATTEMP_AB_OT,
 
 };
@@ -59,7 +54,7 @@ enum lge_battemp_states {
 
 };
 #endif 
-/*                     */
+/* LGE charging states */
 enum lge_charging_states {
 	CHG_BATT_NORMAL_STATE,
 	CHG_BATT_DECCUR_STATE,
@@ -67,7 +62,7 @@ enum lge_charging_states {
 	CHG_BATT_STPCHG_STATE,
 };
 
-/*                            */
+/* LGE charging states change */
 enum lge_states_changes {
 	STS_CHE_NONE,
 	STS_CHE_NORMAL_TO_DECCUR,
@@ -75,9 +70,6 @@ enum lge_states_changes {
 	STS_CHE_DECCUR_TO_NORAML,
 	STS_CHE_DECCUR_TO_STPCHG,
 	STS_CHE_STPCHG_TO_NORMAL,
-#if defined(CONFIG_LGE_PM_CHARGING_TEMP_SCENARIO_V1_8)
-	STS_CHE_STPCHG_TO_DECCUR
-#endif
 };
 
 /* BTM status */
@@ -117,5 +109,5 @@ struct batt_temp_table {
 extern void
 lge_monitor_batt_temp(struct charging_info req, struct charging_rsp *res);
 #endif
-/*                            */
+/* __LGE_CHARGING_SCENARIO_H_ */
 

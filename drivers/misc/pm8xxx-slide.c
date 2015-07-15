@@ -18,132 +18,107 @@
 #include <linux/of_gpio.h>
 #include <linux/wakelock.h>
 #include <mach/board_lge.h>
-#include <linux/sw3800.h>
 
 struct pm8xxx_slide {
 	struct switch_dev sdev;
-	struct switch_dev detect_sdev;
-	struct delayed_work top_work;
-	struct delayed_work bottom_work;
+	struct switch_dev hani_sdev;
 	struct delayed_work slide_work;
-	struct delayed_work detect_work;
 	struct device *dev;
 	struct wake_lock wake_lock;
 	const struct pm8xxx_slide_platform_data *pdata;
-	int top;
-	int bottom;
 	spinlock_t lock;
 	int state;
-	int detect;
+	int hall_state;
 };
+
+#ifdef CONFIG_MACH_MSM8926_AKA_CN
+#include <mach/msm_smem.h>
+
+typedef struct {
+    unsigned int cable_type;        /* PIF detection */
+    unsigned int qem;               /* QEM */
+    unsigned int build_info;
+    unsigned int reserved;
+    uint8_t port_type;         /* TA/USB */
+} smem_vendor1_type;
+
+int pm8xxx_get_qem(void)
+{
+	int smem_size = 0;
+	smem_vendor1_type* smem_vendor1_type_ptr = (smem_vendor1_type *)
+		(smem_get_entry(SMEM_ID_VENDOR1, &smem_size));
+
+	if (smem_vendor1_type_ptr != NULL) {
+		return smem_vendor1_type_ptr->qem;
+	} else {
+		return 0;
+	}
+}
+#endif
 
 #define SLIDE_DETECT_DELAY 150
 
 static struct workqueue_struct *slide_wq;
 static struct pm8xxx_slide *slide;
 
-bool slide_irq_mask = 1;
+bool top_irq_mask = 1;
+bool bottom_irq_mask = 1;
 
-void slide_enable_irq(unsigned int irq)
+static void slide_top_enable_irq(unsigned int irq)
 {
-	if(!slide_irq_mask){
-		slide_irq_mask = 1;
+	if(!top_irq_mask){
+		top_irq_mask = 1;
+		enable_irq_wake(irq);
 		enable_irq(irq);
-		printk("[Slide] slide_enable_irq(%d)\n", slide_irq_mask);
+		printk("%s : [Slide] slide_top_enable_irq\n", __func__);
 	}
 }
 
-void slide_disable_irq(unsigned int irq)
+static void slide_top_disable_irq(unsigned int irq)
 {
-	if(slide_irq_mask){
-		slide_irq_mask = 0;
-	disable_irq(irq);
-	printk("[Slide] slide_disable_irq(%d)\n", slide_irq_mask);
+	if(top_irq_mask){
+		top_irq_mask = 0;
+		disable_irq_wake(irq);
+		disable_irq(irq);
+		printk("%s : [Slide] slide_disable_irq\n", __func__);
 	}
 }
 
-static void boot_slide_det_func(void)
+static void slide_bottom_enable_irq(unsigned int irq)
 {
-	int condition;
-	u32 result_t=0;
-
-	if (slide->pdata->backcover_detect_pin) {
-		slide->detect = !gpio_get_value(slide->pdata->backcover_detect_pin);
-
-		printk("%s : [Slide] boot detectcover === > %d \n", __func__ , slide->detect);
-
-		switch (slide->detect) {
-			case 0:		//BackCover OPEN
-				wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(3000));
-				switch_set_state(&slide->detect_sdev, slide->detect);
-				printk("%s : [Slide] detect === > %d\n", __func__ , slide->detect);
-
-				break;
-
-			case 1:		//BackCover Close and Authentication
-				result_t = SW3800_Authentication();
-				printk("%s : [Slide] SW3800_Authentication === > %d \n", __func__ , result_t);
-
-				wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(3000));
-				switch_set_state(&slide->detect_sdev, result_t);
-
-				if(result_t==0) {		//Authentication Fail, Disable IRQ
-					switch_set_state(&slide->sdev, 0);
-					//slide_disable_irq(slide->pdata->hallic_top_irq);
-				}
-				else {			//Authentication Success, Enable IRQ
-					slide->top = !gpio_get_value(slide->pdata->hallic_top_detect_pin);
-					printk("%s : [Slide] boot top === > %d \n", __func__ , slide->top);
-
-					if(slide->top == 1)
-					condition = SMARTCOVER_SLIDE_CLOSED;
-					else
-					condition = SMARTCOVER_SLIDE_OPENED;
-
-					printk("%s : [Slide] boot slide value is %d\n", __func__ , condition);
-
-					slide->state = condition;
-					wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(3000));
-					switch_set_state(&slide->sdev, slide->state);
-				}
-				break;
-		}
-	}
-	else {
-		wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(3000));
-		switch_set_state(&slide->detect_sdev,0);
-		switch_set_state(&slide->sdev, 0);
+	if(!bottom_irq_mask){
+		bottom_irq_mask = 1;
+		enable_irq_wake(irq);
+		enable_irq(irq);
+		printk("%s : [Slide] slide_bottom_enable_irq\n", __func__);
 	}
 }
 
-static void pm8xxx_top_work_func(struct work_struct *work)
+static void slide_bottom_disable_irq(unsigned int irq)
 {
-	unsigned long flags;
-
-	spin_lock_irqsave(&slide->lock, flags);
-
-	if (slide->pdata->hallic_top_detect_pin)
-		slide->top = !gpio_get_value(slide->pdata->hallic_top_detect_pin);
-
-	spin_unlock_irqrestore(&slide->lock, flags);
-	printk("%s : [Slide]top === > %d \n", __func__ , slide->top);
-
+	if(bottom_irq_mask){
+		bottom_irq_mask = 0;
+		disable_irq_wake(irq);
+		disable_irq(irq);
+		printk("%s : [Slide] slide_bottom_disable_irq\n", __func__);
+	}
 }
 
-static void pm8xxx_bottom_work_func(struct work_struct *work)
+bool slide_boot_mode(void)
 {
-	unsigned long flags;
-
-	spin_lock_irqsave(&slide->lock, flags);
-
-	if (slide->pdata->hallic_bottom_detect_pin)
-		slide->bottom = !gpio_get_value(slide->pdata->hallic_bottom_detect_pin);
-
-	spin_unlock_irqrestore(&slide->lock, flags);
-	printk("%s : [Slide]bottom === > %d \n", __func__ , slide->bottom);
+	enum lge_boot_mode_type boot_mode;
+	boot_mode = lge_get_boot_mode();
+	if (boot_mode == LGE_BOOT_MODE_QEM_56K || boot_mode == LGE_BOOT_MODE_QEM_130K)
+	{
+		printk("[Slide] boot_mode == 56K || 130K\n");
+		return 1;
+	}
+	printk("[Slide] boot_mode ==%d\n", boot_mode);
+	return 0;
 }
+EXPORT_SYMBOL(slide_boot_mode);
 
-static void pm8xxx_slide_work_func(struct work_struct *work)
+static void boot_slide_factory_func(void)
 {
 	int slide_state = 0;
 	unsigned long flags;
@@ -157,8 +132,56 @@ static void pm8xxx_slide_work_func(struct work_struct *work)
 	if (slide->pdata->hallic_bottom_detect_pin)
 		tmp_bottom = !gpio_get_value(slide->pdata->hallic_bottom_detect_pin);
 
-	 printk("%s : [Slide] tmp_top === > %d \n", __func__ , tmp_top);
-	 printk("%s : [Slide] tmp_bottom === > %d \n", __func__ , tmp_bottom);
+	if (tmp_top == 1 && tmp_bottom == 1)
+		slide_state = SMARTCOVER_SLIDE_CLOSED;
+	else if (tmp_top == 0 && tmp_bottom == 1)
+		slide_state = SMARTCOVER_SLIDE_HALF;
+	else if (tmp_top == 0 && tmp_bottom == 0)
+		slide_state = SMARTCOVER_SLIDE_OPENED;
+	else
+		slide_state = SMARTCOVER_SLIDE_TOP;
+
+	if (slide->state != slide_state) {
+		slide->state = slide_state;
+		spin_unlock_irqrestore(&slide->lock, flags);
+		wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(3000));
+		switch_set_state(&slide->sdev, slide->state);
+		switch_set_state(&slide->hani_sdev, slide->state);
+		printk("%s : [Slide] Slide value is %d\n", __func__ , slide_state);
+	}
+	else {
+		spin_unlock_irqrestore(&slide->lock, flags);
+		printk("%s : [Slide] Slide value is %d (no change)\n", __func__ , slide_state);
+	}
+}
+
+void pm8xxx_slide_enable(void)
+{
+	slide_top_enable_irq(slide->pdata->hallic_top_irq);
+	slide_bottom_enable_irq(slide->pdata->hallic_bottom_irq);
+	printk("%s : [Slide] Authentication Success, Enable IRQ\n", __func__ );
+
+}
+EXPORT_SYMBOL(pm8xxx_slide_enable);
+
+void pm8xxx_slide_boot_func(void)
+
+{
+	int slide_state = 0;
+	unsigned long flags;
+	int tmp_top = 0;
+	int tmp_bottom = 0;
+
+	slide_top_enable_irq(slide->pdata->hallic_top_irq);
+	slide_bottom_enable_irq(slide->pdata->hallic_bottom_irq);
+	printk("%s : [Slide] Authentication Success, Enable IRQ\n", __func__ );
+
+	spin_lock_irqsave(&slide->lock, flags);
+
+	if (slide->pdata->hallic_top_detect_pin)
+		tmp_top = !gpio_get_value(slide->pdata->hallic_top_detect_pin);
+	if (slide->pdata->hallic_bottom_detect_pin)
+		tmp_bottom = !gpio_get_value(slide->pdata->hallic_bottom_detect_pin);
 
 	if (tmp_top == 1 && tmp_bottom == 1)
 		slide_state = SMARTCOVER_SLIDE_CLOSED;
@@ -167,9 +190,9 @@ static void pm8xxx_slide_work_func(struct work_struct *work)
 	else
 		slide_state = SMARTCOVER_SLIDE_OPENED;
 
-
 	if (slide->state != slide_state) {
 		slide->state = slide_state;
+		slide->hall_state = slide_state;
 		spin_unlock_irqrestore(&slide->lock, flags);
 		wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(3000));
 		switch_set_state(&slide->sdev, slide->state);
@@ -179,49 +202,71 @@ static void pm8xxx_slide_work_func(struct work_struct *work)
 		spin_unlock_irqrestore(&slide->lock, flags);
 		printk("%s : [Slide] Slide value is %d (no change)\n", __func__ , slide_state);
 	}
-}
 
-static void sw3800_backcover_work_func(struct work_struct *work)
+}
+EXPORT_SYMBOL(pm8xxx_slide_boot_func);
+
+void pm8xxx_slide_disable(void)
 {
+#ifdef CONFIG_MACH_MSM8926_AKA_CN
+    if(!pm8xxx_get_qem()) {
+#endif
+
+	slide_top_disable_irq(slide->pdata->hallic_top_irq);
+	slide_bottom_disable_irq(slide->pdata->hallic_bottom_irq);
+	switch_set_state(&slide->sdev, 0);
+	printk("%s : [Slide] Disable IRQ\n", __func__ );
+#ifdef CONFIG_MACH_MSM8926_AKA_CN
+    }
+#endif
+}
+EXPORT_SYMBOL(pm8xxx_slide_disable);
+
+static void pm8xxx_slide_work_func(struct work_struct *work)
+{
+	int slide_state = 0;
+	int hall_state = 0;
 	unsigned long flags;
-	u32 result_t = 0;
+	int tmp_top = 0;
+	int tmp_bottom = 0;
 
 	spin_lock_irqsave(&slide->lock, flags);
 
-	if (slide->pdata->backcover_detect_pin){
-		slide->detect = !gpio_get_value(slide->pdata->backcover_detect_pin);
+	if (slide->pdata->hallic_top_detect_pin)
+		tmp_top = !gpio_get_value(slide->pdata->hallic_top_detect_pin);
+	if (slide->pdata->hallic_bottom_detect_pin)
+		tmp_bottom = !gpio_get_value(slide->pdata->hallic_bottom_detect_pin);
 
-		switch (slide->detect) {
-			case 0:		//BackCover OPEN
-				spin_unlock_irqrestore(&slide->lock, flags);
-				wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(3000));
-				switch_set_state(&slide->detect_sdev, slide->detect);
-				printk("%s : [Slide] detect === > %d\n", __func__ , slide->detect);
-				break;
+	if (tmp_top == 1 && tmp_bottom == 1)
+		slide_state = SMARTCOVER_SLIDE_CLOSED;
+	else if (tmp_top == 0 && tmp_bottom == 1)
+		slide_state = SMARTCOVER_SLIDE_HALF;
+	else if (tmp_top == 0 && tmp_bottom == 0)
+		slide_state = SMARTCOVER_SLIDE_OPENED;
+	else
+		slide_state = SMARTCOVER_SLIDE_TOP;
 
-			case 1:		//BackCover Close and Authentication
-				result_t = SW3800_Authentication();
-				printk("%s : [Slide] SW3800_Authentication === > %d \n", __func__ , result_t);
+	hall_state = slide_state;
 
-				spin_unlock_irqrestore(&slide->lock, flags);
-				wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(3000));
-				switch_set_state(&slide->detect_sdev, result_t);
+	if (slide->hall_state != hall_state) {
+		slide->state = slide_state;
+		slide->hall_state = hall_state;
+		spin_unlock_irqrestore(&slide->lock, flags);
+		wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(3000));
 
-				if(result_t==0)		//Authentication Fail, Disable IRQ
-					switch_set_state(&slide->sdev, 0);
-				else {			//Authentication Success, Enable IRQ
-					printk("%s : [Slide] Authentication Success, Enable IRQ\n", __func__ );
-				}
-				break;
-		}
+		if (SMARTCOVER_SLIDE_TOP == slide->state)
+		 slide->state = SMARTCOVER_SLIDE_OPENED;
+
+		switch_set_state(&slide->sdev, slide->state);
+		switch_set_state(&slide->hani_sdev, slide->hall_state);
+		printk("%s : [Slide] Slide value is %d\n", __func__ , slide->state);
 	}
 	else {
 		spin_unlock_irqrestore(&slide->lock, flags);
-		wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(3000));
-		switch_set_state(&slide->detect_sdev, 0);
-		switch_set_state(&slide->sdev, 0);
+		printk("%s : [Slide] Slide value is %d (no change)\n", __func__ , slide_state);
 	}
 }
+
 
 static irqreturn_t pm8xxx_top_irq_handler(int irq, void *handle)
 {
@@ -230,8 +275,7 @@ static irqreturn_t pm8xxx_top_irq_handler(int irq, void *handle)
 	printk("[Slide] top irq!!!!\n");
 
 	v = 1 + 1*(!gpio_get_value(slide->pdata->hallic_top_detect_pin));
-	wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(5));
-	queue_delayed_work(slide_wq, &slide_handle->top_work, msecs_to_jiffies(5));
+	wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(3000));
 	queue_delayed_work(slide_wq, &slide_handle->slide_work, msecs_to_jiffies(SLIDE_DETECT_DELAY*v+5));
 	return IRQ_HANDLED;
 }
@@ -243,40 +287,9 @@ static irqreturn_t pm8xxx_bottom_irq_handler(int irq, void *handle)
 	printk("[Slide] bottom irq!!!!\n");
 
 	v = 1 + 1*(!gpio_get_value(slide->pdata->hallic_bottom_detect_pin));
-	wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(5));
-	queue_delayed_work(slide_wq, &slide_handle->bottom_work, msecs_to_jiffies(5));
+	wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(3000));
 	queue_delayed_work(slide_wq, &slide_handle->slide_work, msecs_to_jiffies(SLIDE_DETECT_DELAY*v+5));
 	return IRQ_HANDLED;
-}
-
-static irqreturn_t sw3800_backcover_irq_handler(int irq, void *handle)
-{
-	struct pm8xxx_slide *slide_handle = handle;
-	printk("[Slide] backcover irq!!!!\n");
-
-	wake_lock_timeout(&slide->wake_lock, msecs_to_jiffies(5));
-	queue_delayed_work(slide_wq, &slide_handle->detect_work, msecs_to_jiffies(5));
-	return IRQ_HANDLED;
-}
-
-static ssize_t
-slide_top_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	int len;
-	struct pm8xxx_slide *slide = dev_get_drvdata(dev);
-	len = snprintf(buf, PAGE_SIZE, "top : %d\n", slide->top);
-
-	return len;
-}
-
-static ssize_t
-slide_bottom_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	int len;
-	struct pm8xxx_slide *slide = dev_get_drvdata(dev);
-	len = snprintf(buf, PAGE_SIZE, "bottom : %d\n", slide->bottom);
-
-	return len;
 }
 
 
@@ -303,31 +316,7 @@ slide_slide_store(struct device *dev, struct device_attribute *attr,
 }
 
 
-static ssize_t
-slide_detect_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	int len;
-	struct pm8xxx_slide *slide = dev_get_drvdata(dev);
-	len = snprintf(buf, PAGE_SIZE, "sensing(slide state) : %d\n", slide->detect);
-
-	return len;
-}
-
-static ssize_t
-slide_detect_store(struct device *dev, struct device_attribute *attr,
-               const char *buf, size_t count)
-{
-       struct pm8xxx_slide *slide = dev_get_drvdata(dev);
-
-       sscanf(buf, "%d\n", &slide->detect);
-       switch_set_state(&slide->detect_sdev, slide->detect);
-       return count;
-}
-
 static struct device_attribute slide_slide_attr = __ATTR(slide, S_IRUGO | S_IWUSR, slide_slide_show, slide_slide_store);
-static struct device_attribute slide_top_attr   = __ATTR(top, S_IRUGO | S_IWUSR, slide_top_show, NULL);
-static struct device_attribute slide_bottom_attr   = __ATTR(bottom, S_IRUGO | S_IWUSR, slide_bottom_show, NULL);
-static struct device_attribute slide_detect_attr   = __ATTR(detect, S_IRUGO | S_IWUSR, slide_detect_show, slide_detect_store);
 
 
 static ssize_t slide_print_name(struct switch_dev *sdev, char *buf)
@@ -358,28 +347,13 @@ static void bu52061nvx_parse_dt(struct device *dev,
 
 	printk("[Slide] hallic_bottom_gpio: %d\n", pdata->hallic_bottom_detect_pin);
 
-	if ((pdata->backcover_detect_pin = of_get_named_gpio_flags(np, "cover-detect-irq-gpio", 0, NULL)) > 0)
-		pdata->backcover_irq = gpio_to_irq(pdata->backcover_detect_pin);
-
-	printk("[Slide] cover-detect-irq-gpio: %d\n", pdata->backcover_detect_pin);
-
-	if ((pdata->backcover_validation_pin = of_get_named_gpio_flags(np, "cover-validation-gpio", 0, NULL)) > 0)
-		SW3800_DETECT = pdata->backcover_validation_pin;
-
-	printk("[Slide] cover-validation-gpio: %d\n", pdata->backcover_validation_pin);
-
-	if ((pdata->cover_pullup_pin = of_get_named_gpio_flags(np, "cover-pullup-gpio", 0, NULL)) > 0)
-		SW3800_PULLUP = pdata->cover_pullup_pin;
-
-	printk("[Slide] cover-pullup-gpio: %d\n", pdata->cover_pullup_pin);
-
 	pdata->irq_flags = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING;
 }
 
 static int __devinit pm8xxx_slide_probe(struct platform_device *pdev)
 {
 	int ret;
-	unsigned int hall_top_gpio_irq = 0, hall_bottom_gpio_irq =0, backcover_gpio_irq=0;
+	unsigned int hall_top_gpio_irq = 0, hall_bottom_gpio_irq =0;
 
 	struct pm8xxx_slide_platform_data *pdata;
 
@@ -409,27 +383,21 @@ static int __devinit pm8xxx_slide_probe(struct platform_device *pdev)
 
 	slide->pdata	= pdata;
 	slide->sdev.name = "smartcover";
+	slide->hani_sdev.name = "hallstate";
 	slide->sdev.print_name = slide_print_name;
-	slide->detect_sdev.name = "backcover";
-	slide->detect_sdev.print_name = slide_print_name;
 	slide->state = 0;
-	slide->top = 0;
-	slide->bottom = 0;
-	slide->detect= 0;
+	slide->hall_state = 0;
 
 	spin_lock_init(&slide->lock);
 
 	ret = switch_dev_register(&slide->sdev);
-	ret = switch_dev_register(&slide->detect_sdev);
+	ret = switch_dev_register(&slide->hani_sdev);
 	if (ret < 0)
 		goto err_switch_dev_register;
 
 	wake_lock_init(&slide->wake_lock, WAKE_LOCK_SUSPEND, "hall_ic_wakeups");
 
-	INIT_DELAYED_WORK(&slide->top_work, pm8xxx_top_work_func);
-	INIT_DELAYED_WORK(&slide->bottom_work, pm8xxx_bottom_work_func);
 	INIT_DELAYED_WORK(&slide->slide_work, pm8xxx_slide_work_func);
-	INIT_DELAYED_WORK(&slide->detect_work, sw3800_backcover_work_func);
 
 	printk("%s : [Slide] init slide\n", __func__);
 
@@ -476,35 +444,14 @@ static int __devinit pm8xxx_slide_probe(struct platform_device *pdev)
 			printk("%s :[Slide] enable_irq_wake failed(2)\n",__func__);
 	}
 
-	if (slide->pdata->backcover_detect_pin > 0) {
-		backcover_gpio_irq = gpio_to_irq(slide->pdata->backcover_detect_pin);
-		printk("%s : [Slide] hall_bottom_gpio_irq = [%d]\n", __func__, backcover_gpio_irq);
-		if (backcover_gpio_irq < 0) {
-			printk("Failed : [Slide] GPIO TO IRQ \n");
-			ret = backcover_gpio_irq;
-			goto err_request_irq;
-		}
-
-		ret = request_irq(backcover_gpio_irq, sw3800_backcover_irq_handler, pdata->irq_flags, HALL_IC_DEV_NAME, slide);
-		if (ret > 0) {
-			printk(KERN_ERR "%s: [Slide] Can't allocate irq %d, ret %d\n", __func__, backcover_gpio_irq, ret);
-			goto err_request_irq;
-		}
-
-		if (enable_irq_wake(backcover_gpio_irq) == 0)
-			printk("%s :[Slide] enable_irq_wake Enable(3)\n",__func__);
-		else
-			printk("%s :[Slide] enable_irq_wake failed(3)\n",__func__);
-	}
 	printk("%s : [Slide] pdata->irq_flags = [%d]\n", __func__,(int)pdata->irq_flags);
 
-	printk("%s : [Slide] boot_slide_det_func START\n",__func__);
-	boot_slide_det_func();
+	if (slide_boot_mode()) {
+		boot_slide_factory_func();
+	}else
+		pm8xxx_slide_disable();
 
 	ret = device_create_file(&pdev->dev, &slide_slide_attr);
-	ret = device_create_file(&pdev->dev, &slide_top_attr);
-	ret = device_create_file(&pdev->dev, &slide_bottom_attr);
-	ret = device_create_file(&pdev->dev, &slide_detect_attr);
 	if (ret)
 		goto err_request_irq;
 
@@ -516,12 +463,10 @@ err_request_irq:
 		free_irq(hall_top_gpio_irq, 0);
 	if (hall_bottom_gpio_irq)
 		free_irq(hall_bottom_gpio_irq, 0);
-	if (backcover_gpio_irq)
-		free_irq(backcover_gpio_irq, 0);
 
 err_switch_dev_register:
 	switch_dev_unregister(&slide->sdev);
-	switch_dev_unregister(&slide->detect_sdev);
+	switch_dev_unregister(&slide->hani_sdev);
 	kfree(slide);
 	return ret;
 }
@@ -529,12 +474,9 @@ err_switch_dev_register:
 static int __devexit pm8xxx_slide_remove(struct platform_device *pdev)
 {
 	struct pm8xxx_slide *slide = platform_get_drvdata(pdev);
-	cancel_delayed_work_sync(&slide->top_work);
-	cancel_delayed_work_sync(&slide->bottom_work);
 	cancel_delayed_work_sync(&slide->slide_work);
-	cancel_delayed_work_sync(&slide->detect_work);
 	switch_dev_unregister(&slide->sdev);
-	switch_dev_unregister(&slide->detect_sdev);
+	switch_dev_unregister(&slide->hani_sdev);
 	platform_set_drvdata(pdev, NULL);
 	kfree(slide);
 

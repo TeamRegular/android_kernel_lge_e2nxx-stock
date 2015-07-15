@@ -108,6 +108,7 @@ struct lge_touch_attribute lge_touch_attr_##_name = __ATTR(_name, _mode, _show, 
 #define ts_limit	(ts_pdata->limit)
 #define ts_lpwg		(ts_pdata->tci_info)
 
+extern int dual_panel;
 
 struct touch_device_driver	*touch_drv;
 static struct workqueue_struct	*touch_wq = NULL;
@@ -1640,6 +1641,10 @@ static int touch_request_firmware(struct lge_touch_data *ts)
 	int ret = 0;
 	char *fw_name = ts_pdata->fw_image;
 
+	if(dual_panel) {
+		fw_name = ts_pdata->p3_fw_image;
+	}
+
 	TOUCH_TRACE_FUNC();
 
 	if (ts->fw_info.path[0])
@@ -1992,6 +1997,9 @@ static int touch_parse_dt(struct device *dev, struct touch_platform_data *pdata)
 		{ "lge,maker", &pdata->maker, DT_STRING, 0 },
 		{ "lge,product", &pdata->fw_product, DT_STRING, 0 },
 		{ "lge,fw_image", &pdata->fw_image, DT_STRING, 0 },
+		{ "lge,p3_product", &pdata->p3_fw_product, DT_STRING, 0 },
+		{ "lge,p3_fw_image", &pdata->p3_fw_image, DT_STRING, 0 },
+
 		{ "lge,auto_fw_update", &pdata->auto_fw_update, DT_U8, 0 },
 		{ "active_area_gap", &pdata->active_area_gap, DT_U8, 0 },
 
@@ -2565,7 +2573,7 @@ static ssize_t fw_upgrade_show(struct lge_touch_data *ts, char *buf, bool forceu
 
 	ret += sprintf(buf + ret, "  erase : Erase the firmware at the Touch IC.\n");
 	ret += sprintf(buf + ret, "  [F/W name].fw : Upgrade with the written name.\n");
-	ret += sprintf(buf + ret, "  1 : Upgrade with the given name in Device Tree [%s]\n", ts_pdata->fw_image);
+	ret += sprintf(buf + ret, "  1 : Upgrade with the given name in Device Tree [%s]\n", dual_panel ? ts_pdata->p3_fw_image : ts_pdata->fw_image);
 	ret += sprintf(buf + ret, "  9 : Upgrade with %s%s\n", EXTERNAL_FW_PATH, EXTERNAL_FW_NAME);
 	ret += sprintf(buf + ret, "\n");
 	ret += sprintf(buf + ret, "cat fw_upgrade\n");
@@ -2589,9 +2597,13 @@ static ssize_t fw_upgrade_store(struct lge_touch_data *ts, const char *buf, size
 	} else if (strncmp(&cmd[strlen(cmd) - 3], ".fw", 3) == 0 || strncmp(&cmd[strlen(cmd) - 3], ".FW", 3) == 0) {
 		TOUCH_INFO_MSG("F/W File : %s\n",cmd);
 		snprintf(ts->fw_info.path, NAME_BUFFER_SIZE, "%s", cmd);
-	} else if(!strncmp(cmd,"1",1)){
-		strncpy(ts->fw_info.path, ts_pdata->fw_image, NAME_BUFFER_SIZE);
-	} else if(!strncmp(cmd,"9",1)){
+	} else if(!strncmp(cmd,"1",1)) {
+		if(dual_panel) {
+			strncpy(ts->fw_info.path, ts_pdata->p3_fw_image, NAME_BUFFER_SIZE);
+		} else {
+			strncpy(ts->fw_info.path, ts_pdata->fw_image, NAME_BUFFER_SIZE);
+		}
+	} else if(!strncmp(cmd,"9",1)) {
 		snprintf(ts->fw_info.path, NAME_BUFFER_SIZE, "%s", EXTERNAL_FW_NAME);
 	} else {
 		ts->fw_info.path[0] = '\0';
@@ -3379,6 +3391,8 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 
 	if ((ret = touch_init_platform_data(client)) < 0)
 		goto err_assign_platform_data;
+
+	TOUCH_INFO_MSG("Panel Type : P%d\n", dual_panel ? 3 : 4);
 
 	/* Specific device probe */
 	if (touch_drv->probe) {

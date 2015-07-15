@@ -39,7 +39,7 @@
 		status = "ok";          //"ok" or "disable"
 		revision = "rev_a";
 	};
-
+	
 	lge_sw_irrc { /* LGE_UPDATE 20110107 euna.jo@lge.com WX_IRRC */
         compatible = "lge,sw_irrc";
         vreg_irrc-supply = <&pm8226_l19>;
@@ -53,11 +53,6 @@
         vreg2_irrc-supply = <&pm8226_l6>;
 
 	};
-
-    spi_0: spi@f9923000 { /* LGE_UPDATE 20140723 E2_BSP */
-        status = "disable";
-        compatible = "qcom,spi-qup-v2";
-    };
 };
 
 &sdcc1 {

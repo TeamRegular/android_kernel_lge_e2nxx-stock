@@ -34,7 +34,7 @@ static int gpio_reserved_pin_rev_b[] = {
 	94, 95, 96, 97, 98, 100,
 	MSM8x10_GPIO_END // This is included to notify the end of reserved GPIO configuration.
 };
-#else /*                          */
+#else /* !CONFIG_LGE_NFC_PN547_C2 */
 /* NFC_MODE(70), NFC_VEN(71), NFC_CLK_OUT(78), NFC_IRQ(99) */
 static int gpio_reserved_pin_rev_a[] = {
 	12, 19, 35, 39, 44, 46, 47, 48, 57, 61, 62, 66, 70, 71, 74, 75, 76, 78, 79, 88,
@@ -46,7 +46,7 @@ static int gpio_reserved_pin_rev_b[] = {
 	91,	92, 93, 94, 95, 96, 97, 98, 99, 100,
 	MSM8x10_GPIO_END // This is included to notify the end of reserved GPIO configuration.
 };
-#endif /*                         */
+#endif /* CONFIG_LGE_NFC_PN547_C2 */
 
 static struct gpiomux_setting reserved_pin_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
@@ -689,7 +689,7 @@ static struct msm_gpiomux_config touch_configs_rev_b[] __initdata = {
 	},
 };
 
-/*                                                                 */
+/*  LGE_CHANGE_S, [Camera][yt.jeon@lge.com], front Camera Module ID*/
 #ifdef CONFIG_MACH_LGE
 static struct gpiomux_setting main_cam_id_gpio_act_config = {
 	.func = GPIOMUX_FUNC_GPIO,
@@ -713,10 +713,10 @@ static struct msm_gpiomux_config main_cam_id_gpio[] __initdata = {
 		}
 	}
 };
-#endif /*                 */
-/*                                                                 */
+#endif /* CONFIG_MACH_LGE */
+/*  LGE_CHANGE_E, [Camera][yt.jeon@lge.com], front Camera Module ID*/
 
-/*                                                            */
+/*  LGE_CHANGE_S, [NFC][seunghoon65.lee@lge.com], NFC Bring up*/
 #ifdef CONFIG_LGE_NFC_PN547_C2
 
 static struct gpiomux_setting nfc_pn547_ven_cfg = {
@@ -768,7 +768,7 @@ static struct msm_gpiomux_config msm_nfc_configs[] __initdata = {
 };
 
 #endif
-/*                                                            */
+/*  LGE_CHANGE_E, [NFC][seunghoon65.lee@lge.com], NFC Bring up*/
 
 void __init msm8610_init_gpiomux(void)
 {
@@ -822,9 +822,9 @@ void __init msm8610_init_gpiomux(void)
 	msm_gpiomux_install(hall_int_configs, ARRAY_SIZE(hall_int_configs));
 	msm_gpiomux_install(accel_int_configs, ARRAY_SIZE(accel_int_configs));
 	msm_gpiomux_install(compass_reset_configs, ARRAY_SIZE(compass_reset_configs));
-	/*                                                        */
+	/*  LGE_CHANGE_S, [NFC][taesik.kim@lge.com], NFC Bring up */
 #ifdef CONFIG_LGE_NFC_PN547_C2
 	msm_gpiomux_install(msm_nfc_configs, ARRAY_SIZE(msm_nfc_configs));
 #endif
-/*                                                        */
+/*  LGE_CHANGE_E, [NFC][taesik.kim@lge.com], NFC Bring up */
 }

@@ -39,20 +39,20 @@
 			melfas,use_vdd = <1>;
 			melfas,use_vdd_i2c = <1>;
 			melfas,gpio-vdd-en = <60>;
-			melfas,fw-image-name = "melfas/vfp_kr/vfp_kr_rev_a_v107.mfsb";
-			melfas,panel-spec-name = "melfas/vfp_kr/vfp_kr_limit.txt";
-			revision = "rev_a...";
+			melfas,fw-image-name = "melfas/vfp_lgu_kr/vfp_lgu_kr_rev_a_v107.mfsb";
+			melfas,panel-spec-name = "melfas/vfp_lgu_kr/vfp_lgu_kr_limit.txt";
+			revision = "rev_a..";
 			status = "disable";
 		};
 
 		lge_touch@48 {
-			revision = "rev_a...";
+			revision = "rev_a..";
 			status = "ok";
 			interrupts = <17 0x2>;
 			lge,int-gpio = <&msmgpio 17 0x00>;
 			lge,product = "T2S35A";
-			lge,fw_image = "melfas/vfp_kr/vfp_kr_rev_a_v004.mfsb";
-			lge,panel_spec = "melfas/vfp_kr/vfp_kr_limit.txt";
+			lge,fw_image = "melfas/vfp_lgu_kr/vfp_lgu_kr_rev_a_v001.mfsb";
+			lge,panel_spec = "melfas/vfp_lgu_kr/vfp_lgu_kr_limit.txt";
 			lge,ic_type = <0>;
 			lge,auto_fw_update = <1>;
 			button_support = <0>;
@@ -67,7 +67,7 @@
 		};
 
 		lge_ts_misc {
-			revision = "rev_a...";
+			revision = "rev_a..";
 			vdd_on = <1>;
 			vio_l28_on = <0>;
 			vio_lvs1_on = <1>;

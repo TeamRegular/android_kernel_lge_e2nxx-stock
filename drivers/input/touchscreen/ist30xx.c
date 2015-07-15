@@ -56,10 +56,10 @@
 
 #define MAX_ERR_CNT             (100)
 
-/*                       */
+/* sukkyoon.hong@lge.com */
 #define ON			1
 #define OFF			0
-/*                       */
+/* sukkyoon.hong@lge.com */
 #if IST30XX_USE_KEY
 #if 0
 int ist30xx_key_code[] = { 0, KEY_BACK, KEY_HOMEPAGE, KEY_MENU, KEY_RECENT };
@@ -105,7 +105,7 @@ extern TSP_INFO ist30xx_tsp_info;
 extern TKEY_INFO ist30xx_tkey_info;
 #endif
 
-/*                       */
+/* sukkyoon.hong@lge.com */
 /* struct ist30xx_ts_device {
 	struct i2c_client *client;
 	int (*power)(unsigned char onoff);
@@ -114,9 +114,9 @@ extern TKEY_INFO ist30xx_tkey_info;
 	int sda_gpio;
 };
 struct ist30xx_ts_device ist30xx_ts_dev; */
-/*                       */
+/* sukkyoon.hong@lge.com */
 
-/*                       */
+/* sukkyoon.hong@lge.com */
 #if 0
 void Send_Touch(unsigned int x, unsigned int y)
 {
@@ -134,7 +134,7 @@ void Send_Touch(unsigned int x, unsigned int y)
 }
 EXPORT_SYMBOL(Send_Touch);
 #endif
-/*                       */
+/* sukkyoon.hong@lge.com */
 
 int ist30xx_dbg_level = IST30XX_DEBUG_LEVEL;
 void tsp_printk(int level, const char *fmt, ...)
@@ -585,7 +585,7 @@ static void report_input_data(struct ist30xx_data *data, int finger_counts, int 
 
 	memset(data->prev_fingers, 0, sizeof(data->prev_fingers));
 
-#if 1   //                 
+#if 1   // for LGE scenario
     if (finger_counts) {
         for (i = 0; i < 5; i++) {
             //tsp_debug("finger[%d]: %08x\n", i, data->prev_keys[i].full_field);
@@ -1049,7 +1049,7 @@ static void ist30xx_late_resume(struct early_suspend *h)
 }
 #endif // CONFIG_HAS_EARLYSUSPEND
 
-/*                       */
+/* sukkyoon.hong@lge.com */
 void ist30xx_ts_reset(void)
 {
 	ist30xx_ts_off();
@@ -1119,7 +1119,7 @@ err_power_failed:
 	return ret;
 #endif
 }
-/*                       */
+/* sukkyoon.hong@lge.com */
 
 void ist30xx_set_ta_mode(bool charging)
 {
@@ -1414,13 +1414,13 @@ static int __devinit ist30xx_probe(struct i2c_client *		client,
 	struct input_dev *input_dev;
 
 #if 0
-	/*                       */
+	/* sukkyoon.hong@lge.com */
 	struct touch_platform_data *ts_pdata;
 //	struct ist30xx_ts_device *dev;
 
 	ts_pdata = client->dev.platform_data;
 //	dev = &ist30xx_ts_dev;
-	/*                       */
+	/* sukkyoon.hong@lge.com */
 #endif
 
 	tsp_info("\n%s(), the i2c addr=0x%x \n", __func__, client->addr);
@@ -1484,9 +1484,9 @@ static int __devinit ist30xx_probe(struct i2c_client *		client,
 	data->client = client;
 	data->input_dev = input_dev;
 #if 0
-	/*                       */
+	/* sukkyoon.hong@lge.com */
 	data->power = ts_pdata->power;
-	/*                       */
+	/* sukkyoon.hong@lge.com */
 #endif
 	i2c_set_clientdata(client, data);
 

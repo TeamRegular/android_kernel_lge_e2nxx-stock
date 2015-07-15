@@ -385,16 +385,12 @@ static int hw_device_reset(struct ci13xxx *udc)
 	}
 
 #ifdef CONFIG_USB_G_LGE_ANDROID_PFSC
-
 	/* USB FS only used in 130K */
 
 	boot_mode = lge_get_boot_mode();
-    if ((boot_mode == LGE_BOOT_MODE_QEM_130K) ||
-        (boot_mode == LGE_BOOT_MODE_PIF_130K))
-	{
+	if ((boot_mode == LGE_BOOT_MODE_QEM_130K) ||
+			(boot_mode == LGE_BOOT_MODE_PIF_130K))
 		hw_cwrite(CAP_PORTSC, PORTSC_PFSC, PORTSC_PFSC);
-	}
-
 #endif
 
 	return 0;
@@ -862,9 +858,6 @@ static int hw_usb_reset(void)
 
 	/* ESS flushes only at end?!? */
 	hw_cwrite(CAP_ENDPTFLUSH,    ~0, ~0);   /* flush all EPs */
-
-	/* clear setup token semaphores */
-	hw_cwrite(CAP_ENDPTSETUPSTAT, 0,  0);   /* writes its content */
 
 	/* clear complete status */
 	hw_cwrite(CAP_ENDPTCOMPLETE,  0,  0);   /* writes its content */
@@ -2320,6 +2313,7 @@ static int _gadget_stop_activity(struct usb_gadget *gadget)
 	udc->configured = 0;
 	spin_unlock_irqrestore(udc->lock, flags);
 
+	gadget->xfer_isr_count = 0;
 	gadget->b_hnp_enable = 0;
 	gadget->a_hnp_support = 0;
 	gadget->host_request = 0;
@@ -2819,7 +2813,7 @@ __acquires(udc->lock)
 					udc->remote_wakeup = 1;
 					err = isr_setup_status_phase(udc);
 					break;
-#ifdef CONFIG_USB_G_LGE_ANDROID_OTG // this feature is not set.
+#ifdef CONFIG_USB_G_LGE_ANDROID_OTG /* this feature is not set. */
 				case USB_DEVICE_B_HNP_ENABLE:
 					udc->gadget.b_hnp_enable = 1;
 					err = isr_setup_status_phase(udc);
@@ -2840,7 +2834,7 @@ __acquires(udc->lock)
 				case USB_DEVICE_A_ALT_HNP_SUPPORT:
 					err = 0;
 					break;
-#endif //                            
+#endif /* CONFIG_USB_G_LGE_ANDROID_OTG */
 				case USB_DEVICE_TEST_MODE:
 					tmode = le16_to_cpu(req.wIndex) >> 8;
 					switch (tmode) {
@@ -2853,7 +2847,7 @@ __acquires(udc->lock)
 						err = isr_setup_status_phase(
 								udc);
 						break;
-#ifdef CONFIG_USB_G_LGE_ANDROID_OTG // this feature is not set.
+#ifdef CONFIG_USB_G_LGE_ANDROID_OTG /* this feature is not set. */
 					case TEST_OTG_SRP_REQD:
 						udc->gadget.otg_srp_reqd = 1;
 						err = isr_setup_status_phase(
@@ -3734,6 +3728,7 @@ static irqreturn_t udc_irq(void)
 			isr_statistics.uei++;
 		if (USBi_UI  & intr) {
 			isr_statistics.ui++;
+			udc->gadget.xfer_isr_count++;
 			isr_tr_complete_handler(udc);
 		}
 		if (USBi_SLI & intr) {

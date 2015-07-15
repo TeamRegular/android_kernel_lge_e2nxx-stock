@@ -269,7 +269,7 @@ static struct msm_gpiomux_config msm_atmel_configs[] __initdata = {
 //Need to set GPIO[020] NFC_VEN
 //Need to set GPIO[021] NFC_IRQ
 //Need to set GPIO[022] NFC_MODE
-/*                                                      */
+/*  LGE_CHANGE_S, [NFC][garam.kim@lge.com], NFC Bring up*/
 #ifdef CONFIG_LGE_NFC_PN547_C2
 static struct gpiomux_setting nfc_pn547_ven_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
@@ -319,7 +319,7 @@ static struct msm_gpiomux_config msm_nfc_configs[] __initdata = {
 	},
 };
 #endif
-/*                                                      */
+/*  LGE_CHANGE_E, [NFC][garam.kim@lge.com], NFC Bring up*/
 
 // GPIO related function <<6.LCD>>
 // GPIO[111] LCD_LDO_EN
@@ -456,7 +456,7 @@ static struct gpiomux_setting gpio_suspend_config[] = {
 	},
 };
 
-/*                                                                           */
+/* LGE_CHANGE_S, Set gpio for camera EVB, 2014-02-07, sangwoo25.park@lge.com */
 static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
 	{
 		.gpio = 26, /* CAM_MCLK0 */
@@ -537,8 +537,8 @@ static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
 	},
 };
 
-/*                                                                           */
-/*                                                                             */
+/* LGE_CHANGE_E, Set gpio for camera EVB, 2014-02-26, sangwoo25.park@lge.com */
+/* LGE_CHANGE_S, Set gpio for camera Rev A, 2014-02-26, sangwoo25.park@lge.com */
 
 static struct msm_gpiomux_config msm_sensor_configs_rev_a[] __initdata = {
 	{
@@ -614,7 +614,7 @@ static struct msm_gpiomux_config msm_sensor_configs_rev_a[] __initdata = {
 
 };
 
-/*                                                                             */
+/* LGE_CHANGE_E, Set gpio for camera Rev A, 2014-02-07, sangwoo25.park@lge.com */
 
 // GPIO related function <<8.FLASH LED>>
 
@@ -885,11 +885,11 @@ void __init msm8226_init_gpiomux(void)
 	msm_gpiomux_install(msm_atmel_configs, ARRAY_SIZE(msm_atmel_configs));
 
 	// GPIO related function <<5.NFC>>
-	/*                                                      */
+	/*	LGE_CHANGE_S, [NFC][garam.kim@lge.com], NFC Bring up */
 #ifdef CONFIG_LGE_NFC_PN547_C2
 	msm_gpiomux_install(msm_nfc_configs, ARRAY_SIZE(msm_nfc_configs));
 #endif
-	/*                                                      */
+	/*	LGE_CHANGE_E, [NFC][garam.kim@lge.com], NFC Bring up */
 
 
 	// GPIO related function <<6.LCD>>
@@ -897,7 +897,7 @@ void __init msm8226_init_gpiomux(void)
 	msm_gpiomux_install_nowrite(msm_bl_configs, ARRAY_SIZE(msm_bl_configs));
 	
 	// GPIO related function <<7.CAMERA>>
-	/*                                                                        */
+	/* LGE_CHANGE_S, Add gpiomux for gpio, 2014-02-26, sangwoo25.park@lge.com */
 	if(hw_rev == HW_REV_0) {
 		msm_gpiomux_install(msm_sensor_configs, ARRAY_SIZE(msm_sensor_configs));
 		printk(KERN_ERR " [Camera] below HW_REV_0 is using power source from ex_LDO\n");
@@ -907,7 +907,7 @@ void __init msm8226_init_gpiomux(void)
 		printk(KERN_ERR " [Camera] greater than HW_REV_A is using power source from PMIC\n");
 	}
 
-	/*                                                                        */
+	/* LGE_CHANGE_E, Add gpiomux for gpio, 2014-02-26, sangwoo25.park@lge.com */
 
 	// GPIO related function <<8.FLASH LED>>
 	msm_gpiomux_install(gpio_func_irrc_configs,

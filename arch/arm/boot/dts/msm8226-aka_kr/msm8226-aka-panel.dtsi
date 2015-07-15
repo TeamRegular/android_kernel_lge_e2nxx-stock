@@ -31,7 +31,9 @@
 	mdss_dsi0: qcom,mdss_dsi@fd922800 {
 		vdd-supply = <&pm8226_l28>;
 		qcom,platform-lcd_dsv_enp_gpio = <&msmgpio 111 0>;//DSV ENP
-		qcom,platform-enable-gpio = <&msmgpio 60 0>;//DSV ENN.
+		qcom,platform-enable-gpio = <&msmgpio 112 0>;//DSV ENN.
+		qcom,platform-enable-gpio_b = <&msmgpio 60 0>;//DSV ENN.
+		qcom,resx2_gpio = <&msmgpio 23 0>;   // Rev.A only
 		qcom,platform-supply-entry1 {
 			qcom,supply-name = "vdd";
 			qcom,supply-min-voltage = <3050000>;
@@ -43,4 +45,5 @@
 			qcom,supply-post-on-sleep = <1>;
 		};
 	};
+
 };

@@ -22,14 +22,15 @@
 	};
 
 	i2c@f9927000 { /* BLSP1 QUP5 */
-	    rmi_s3320@20  {
+	    synaptics_dsx@20  {
 			status = "disable";
 		};
 
 		synaptics_s3320@20 {
 			status = "ok";
-			revision = "rev_a...";
-				fw_image_s3320_a0 = "synaptics/aka_kr/PR1690629-s3320t_00000000_A208A.img";
+				fw_image_s3320 =            "synaptics/aka_kr/PLG431-V1.28_PR1819632_DS5.2.12.1013_4005019C.img";
+				fw_image_s3320_a0 =         "synaptics/aka_kr/PLG431-V1.28_PR1819632_DS5.2.12.1013_4005019C.img";
+				fw_image_s3320_a1_factory = "synaptics/aka_kr/PLG431-V1.28_PR1819632_DS5.2.12.1013_4005019C.img";
 				panel_spec = "synaptics/aka_kr/aka_kr_limit.txt";
 		};
 

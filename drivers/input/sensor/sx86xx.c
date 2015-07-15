@@ -14,7 +14,12 @@
 #include <linux/slab.h>
 #include <linux/interrupt.h>
 #include <sx86xx.h> /* main struct, interrupt,init,pointers */
+#ifdef CONFIG_SENSOR_SX9311
+#include <sx9311_platform_data.h> /* platform data */
+#endif
+#ifdef CONFIG_SENSOR_SX9500
 #include <sx9500_platform_data.h> /* platform data */
+#endif
 
 #define FAR_IRQ                 0x20
 #define COMPDONE_IRQ            0x10
@@ -39,7 +44,12 @@ void sx86XX_process_interrupt(struct sx86XX *this, u8 nirqlow)
 
     if ((this->inStartupTouch) == true) {
         if (((status & COMPDONE_IRQ) == COMPDONE_IRQ) || ((status & FAR_IRQ) == FAR_IRQ)) {
+#ifdef CONFIG_SENSOR_SX9311
+            struct sx9311 *pDevice = this->pDevice;
+#endif
+#ifdef CONFIG_SENSOR_SX9500
             struct sx9500 *pDevice = this->pDevice;
+#endif
 
             if (pDevice) {
                 StartupTouchCheckWithReferenceSensor(this,

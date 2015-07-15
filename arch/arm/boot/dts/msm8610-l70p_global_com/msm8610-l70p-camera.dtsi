@@ -64,7 +64,7 @@
     youngwook.song@lge.com, 2014-02-20*/
 
 	actuator2: qcom,actuator_2@18 {
-		cell-index = <3>;//Use Af_main_2 of dw9718
+		cell-index = <2>;//Use Af_main_2 of dw9718
 		reg = <0x18 0x0>;
 		compatible = "qcom,actuator";
 	};

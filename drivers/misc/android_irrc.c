@@ -250,7 +250,7 @@ static ssize_t android_irrc_write(struct file *file, const char __user *buf, siz
 
 #ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
 extern void mute_spk_for_swirrc (int enable);
-#endif //                               
+#endif //CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
 
 static long android_irrc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
@@ -266,7 +266,7 @@ static long android_irrc_ioctl(struct file *file, unsigned int cmd, unsigned lon
 		android_irrc_enable_pwm(irrc, test.frequency/1000, test.duty);
 #ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
 		mute_spk_for_swirrc (1);
-#endif //                               
+#endif //CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
 		break;
 
 	case IRRC_STOP:
@@ -275,7 +275,7 @@ static long android_irrc_ioctl(struct file *file, unsigned int cmd, unsigned lon
 		queue_delayed_work(irrc->workqueue, &irrc->gpio_off_work, msecs_to_jiffies(1500));
 #ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
 		mute_spk_for_swirrc (0);
-#endif //                               
+#endif //CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
 		break;
 	default:
 	    INFO_MSG("CMD ERROR: cmd:%d\n", cmd);
@@ -305,7 +305,7 @@ struct miscdevice irrc_misc = {
 	.fops	= &IRRC_pcm_fops,
 };
 
-#ifdef CONFIG_DEBUG_FS //                             
+#ifdef CONFIG_DEBUG_FS //2013-07-08 beekay.lee@lge.com
 static struct dentry *debugfs_wcd9xxx_dent;
 static struct dentry *debugfs_poke;
 
@@ -443,6 +443,10 @@ static int android_irrc_probe(struct platform_device *pdev)
 {
 	int rc;
 	struct timed_irrc_data *irrc;
+#if defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US) | defined(CONFIG_MACH_MSM8926_T8LTE)
+#define BOOST_GPIO 447;
+	int boost_gpio = BOOST_GPIO;
+#endif
 
 	INFO_MSG("probe\n");
 
@@ -451,6 +455,14 @@ static int android_irrc_probe(struct platform_device *pdev)
 		ERR_MSG("Can not allocate memory.\n");
 		goto err_1;
 	}
+
+#if defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US) | defined(CONFIG_MACH_MSM8926_T8LTE)
+	INFO_MSG("***work-around set boost gpio low\n");
+	gpio_request(boost_gpio , "BOOST_GPIO_TEMP");
+	gpio_direction_output(boost_gpio, 0);
+	gpio_free(boost_gpio);
+#endif
+
 
 #ifdef CONFIG_OF
 	if (pdev->dev.of_node) {

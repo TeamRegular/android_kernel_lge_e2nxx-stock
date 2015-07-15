@@ -42,19 +42,11 @@ enum pon_trigger_source {
  * %PON_POWER_OFF_HARD_RESET:	Reset the MSM and all PMIC peripherals
 };
  */
-#ifdef CONFIG_MACH_MSM8926_JAGDSNM_CN
-enum pon_power_off_type {
-	PON_POWER_OFF_WARM_RESET	= 0x01,
-	PON_POWER_OFF_SHUTDOWN		= 0x05,
-	PON_POWER_OFF_HARD_RESET	= 0x07,
-};
-#else
 enum pon_power_off_type {
 	PON_POWER_OFF_WARM_RESET	= 0x01,
 	PON_POWER_OFF_SHUTDOWN		= 0x04,
 	PON_POWER_OFF_HARD_RESET	= 0x07,
 };
-#endif
 
 #ifdef CONFIG_QPNP_POWER_ON
 int qpnp_pon_system_pwr_off(enum pon_power_off_type type);

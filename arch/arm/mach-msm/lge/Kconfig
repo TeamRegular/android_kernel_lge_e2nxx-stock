@@ -125,9 +125,10 @@ config MACH_MSM8926_E8LTE
 config MACH_MSM8926_E8LTE_KR
         depends on ARCH_MSM8226
         select MACH_LGE
-        bool "MSM8926 E8LTE KR OPEN"
+        bool "MSM8926 E8LTE OPEN"
         help
-          Support for the Qualcomm MSM8926 E8 LTE KR device.
+          Support for the Qualcomm MSM8926 E8 LTE device.
+
 
 config MACH_MSM8226_E7WIFI
         depends on ARCH_MSM8226
@@ -150,6 +151,62 @@ config MACH_MSM8926_E7LTE_VZW_US
         help
           Support for the Qualcomm MSM8926 E7 LTE device.
 
+config MACH_MSM8926_T8LTE
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8926 T8LTE"
+        help
+          Support for the Qualcomm MSM8926 T8 LTE device.
+
+config MACH_MSM8926_T8LTE_ATT_US
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8926 T8LTE ATT US"
+        help
+          Support for the Qualcomm MSM8926 T8 LTE device.
+
+config MACH_MSM8926_T8LTE_TMO_US
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8926 T8LTE TMO US"
+        help
+          Support for the Qualcomm MSM8926 T8 LTE device.
+
+config MACH_MSM8926_T8LTE_USC_US
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8926 T8LTE USC US"
+        help
+          Support for the Qualcomm MSM8926 T8 LTE device.
+
+config MACH_MSM8926_T8LTE_ACG_US
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8926 T8LTE ACG US"
+        help
+          Support for the Qualcomm MSM8926 T8 LTE device.
+
+config MACH_MSM8926_T8LTE_RGS_CA
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8926 T8LTE RGS CA"
+        help
+          Support for the Qualcomm MSM8926 T8 LTE device.
+
+config MACH_MSM8926_E9LTE_VZW_US
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8926 E9LTE VZW US"
+        help
+          Support for the Qualcomm MSM8926 E9 LTE device.
+
+config MACH_MSM8926_E9LTE
+	   depends on ARCH_MSM8226
+	   select MACH_LGE
+	   bool "MSM8926 E9LTE"
+	   help
+	       Support for the Qualcomm MSM8926 E9 LTE device.
+
 config MACH_MSM8926_E2_SPR_US
         depends on ARCH_MSM8226
         select MACH_LGE
@@ -163,6 +220,20 @@ config MACH_MSM8926_E2_MPCS_US
         bool "MSM8926 E2 MPCS US"
         help
           Support for the Qualcomm MSM8926 E2 MPCS US device.
+
+config MACH_MSM8926_E2_BELL_CA
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8926 E2 BELL CA"
+        help
+          Support for the Qualcomm MSM8926 E2 BELL CA device.
+
+config MACH_MSM8926_E2_RGS_CA
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8926 E2 RGS CA"
+        help
+          Support for the Qualcomm MSM8926 E2 RGS CA device.
 
 config MACH_MSM8926_E2_VTR_CA
         depends on ARCH_MSM8226
@@ -347,6 +418,13 @@ config MACH_MSM8926_JAGNM_ATT
         help
           Support for the Qualcomm MSM8926 B2L ATT device.
 
+config MACH_MSM8926_JAGNM_BELL
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8926 B2L ATT"
+        help
+          Support for the Qualcomm MSM8926 B2L ATT device.
+
 config MACH_MSM8926_JAGNM_RGS
         depends on ARCH_MSM8226
         select MACH_LGE
@@ -375,21 +453,7 @@ config MACH_MSM8926_JAGN_KR
         help
           Support for the Qualcomm MSM8926 JAGN KR device.
 
-config MACH_MSM8926_AKA_KR
-        depends on ARCH_MSM8226
-        select MACH_LGE
-        bool "MSM8926 AKA KR"
-        help
-          Support for the Qualcomm MSM8926 AKA KR device.
-
 config MACH_MSM8926_JAGNM_GLOBAL_COM
-        depends on ARCH_MSM8226
-        select MACH_LGE
-        bool "MSM8926 Jaguar Global"
-        help
-          Support for the Qualcomm MSM8926 Jaguar Global device.
-
-config MACH_MSM8926_JAGNM_KDDI_JP
         depends on ARCH_MSM8226
         select MACH_LGE
         bool "MSM8926 Jaguar Global"
@@ -402,13 +466,6 @@ config MACH_MSM8926_VFP_KR
         bool "MSM8926 VFP KR"
         help
           Support for the Qualcomm MSM8926 VFP KR device.
-
-config MACH_MSM8926_E2JPS_JP
-        depends on ARCH_MSM8226
-        select MACH_LGE
-        bool "MSM8926 E2JPS JP"
-        help
-          Support for the Qualcomm MSM8926 E2JPS JP device.
 
 config MACH_MSM8X10_LGPS15
 	depends on ARCH_MSM8610
@@ -773,6 +830,20 @@ config MACH_MSM8926_JAGDSNM_CTC_CN
         help
           Support for the Qualcomm MSM8926 JAGDSNM CTC device.
 
+config MACH_MSM8926_AKA_CN
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8926 AKA CN"
+        help
+          Support for the Qualcomm MSM8926 AKA CN device.
+
+config MACH_MSM8926_AKA_KR
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8926 AKA KR"
+        help
+          Support for the Qualcomm MSM8926 AKA KR device.
+
 config MACH_MSM8X10_L70P
         depends on ARCH_MSM8610
         select MACH_LGE
@@ -800,13 +871,6 @@ config MACH_MSM8X10_L70PDS_GLOBAL_COM
         bool "MSM8610 L70PDS Global Common"
         help
           Support for the Qualcomm MSM8610 L70PDS Global Common device.
-
-config MACH_MSM8X10_Y25C_TRF_US
-	depends on ARCH_MSM8610
-	select MACH_LGE
-	bool "MSM8610 Y25 CDMA Tracfone"
-	help
-	  Support for the Qualcomm MSM8610 Y25 CDMA Tracfone device.
 
 config LCD_LGIT_VIDEO_WXGA
 	depends on ARCH_MSM8226
@@ -872,19 +936,12 @@ config LGE_ENABLE_MMC_STRENGTH_CONTROL
 	help
 	  LGE mmc data,cmd,clk strength control support
 
-config LGE_KCAL
-     bool "Interface to calibrate LCD color temperature"
-         default n
-         depends on MACH_LGE
-         help
-                Interface to calibrate LCD color temperature
-
-config LGE_LCD_TUNING
-	bool "lcd_tuning"
-	default n
-	depends on MACH_LGE
-	help
-		Support LCD tuning.
+config LGE_PM_CONTROL_TSENS_CRITICAL_TEMPERATURE
+    bool "Support tsens critical temperature contorol"
+    default n
+    help
+      change tsens critical temperature for Accelerated High Temperature &
+	  Humidity Test
 
 menu "LGE Battery Profile"
 
@@ -999,24 +1056,11 @@ config LGE_ENABLE_PRINT_CLK_LOG
 	help
 	 Support Enable printing clock log
 
-config LGE_PRINT_WAKEUP_IRQ
-	bool "print wakeup irq"
-	default n
-	help
-	 print wakeup irq
-
 config PRE_SELF_DIAGNOSIS
 	tristate "Support LGE self diagnosis for factory"
 	default n
 	depends on MACH_LGE
 	help
 	  LGE self diagnosis
-
-config LGE_MOCA
-       tristate "Support LGE MOCA"
-       default n
-       depends on MACH_LGE
-       help
-         LGE MOCA modem logger
 
 endmenu

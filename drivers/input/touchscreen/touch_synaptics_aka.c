@@ -53,7 +53,6 @@
  * $36		Auxiliary ADC			174
  * $54		Test Reporting			176
  */
-static void set_knockOn_param(struct synaptics_ts_data *ts, int mode);
 static int get_ic_info(struct synaptics_ts_data *ts);
 static int read_page_description_table(struct i2c_client *client);
 
@@ -256,7 +255,7 @@ char touch_wake_log_buf[256] = {0};
 #define TOUCH_WAKE_COUNTER_LOG_PATH		"/mnt/sdcard/wake_cnt.txt"
 enum error_type synaptics_ts_init(struct i2c_client *client);
 enum error_type synaptics_ts_ic_ctrl(struct i2c_client *client, u8 code, u32 value, u32* ret);
-static int set_doze_param(struct synaptics_ts_data *ts, int value);
+static int set_doze_param(struct synaptics_ts_data *ts);
 static bool need_scan_pdt = true;
 
 void touch_enable_irq(unsigned int irq)
@@ -333,12 +332,12 @@ void write_firmware_version_log(struct synaptics_ts_data *ts)
 	if(!(strncmp(ts->fw_info.fw_product_id, S3320_PRODUCT_ID, strlen(S3320_PRODUCT_ID)))) {
 		ver_outbuf += sprintf(version_string+ver_outbuf, "Touch IC : s3320(family_id = %d, fw_rev = %d)\n",
 			ts->fw_info.family, ts->fw_info.fw_revision);
-    } else if (!(strncmp(ts->fw_info.fw_product_id, "PLG313", 6)) || !(strncmp(ts->fw_info.fw_product_id, "PLG352", 6)) || !(strncmp(ts->fw_info.fw_product_id, "PLG391", 6))) {
+    } else if (!(strncmp(ts->fw_info.fw_product_id, "s3320", 5))) {
 		if (ts->fw_info.family && ts->fw_info.fw_revision) {
-			ver_outbuf += sprintf(version_string+ver_outbuf, "Touch IC : s3528(family_id = %d, fw_rev = %d)\n",
+			ver_outbuf += sprintf(version_string+ver_outbuf, "Touch IC : s3320(family_id = %d, fw_rev = %d)\n",
 					ts->fw_info.family, ts->fw_info.fw_revision);
 		} else {
-			ver_outbuf += sprintf(version_string+ver_outbuf, "Touch IC : s3528(family_id = %d, fw_rev = %d)\n",
+			ver_outbuf += sprintf(version_string+ver_outbuf, "Touch IC : s3320(family_id = %d, fw_rev = %d)\n",
 					ts->fw_info.family, ts->fw_info.fw_revision);
 		}
 	} else {
@@ -413,9 +412,9 @@ static int tci_control(struct synaptics_ts_data *ts, int type, u8 value)
 		DO_SAFE(touch_i2c_write_byte(ts->client, INTERRUPT_ENABLE_REG,
 				value ? buffer[0] & ~INTERRUPT_MASK_ABS0 : buffer[0] | INTERRUPT_MASK_ABS0), error);
 		if (value) {
-			//buffer[0] = 0x29;
-			//buffer[1] = 0x29;
-			//DO_SAFE(touch_i2c_write(client, f12_info.ctrl_reg_addr[15], 2, buffer), error);
+			buffer[0] = 0x29;
+			buffer[1] = 0x29;
+			DO_SAFE(touch_i2c_write(client, f12_info.ctrl_reg_addr[15], 2, buffer), error);
 		}
 		DO_SAFE(touch_i2c_read(client, f12_info.ctrl_reg_addr[20], 3, buffer), error);
 		buffer[2] = (buffer[2] & 0xfc) | (value ? 0x2 : 0x0);
@@ -577,7 +576,8 @@ static int lpwg_control(struct synaptics_ts_data *ts, int mode)
 		tci_control(ts, TAP_DISTANCE_CTRL, 10);		// tap distance = 10mm
 		tci_control(ts, INTERRUPT_DELAY_CTRL, 0);	// interrupt delay = 0ms
 		tci_control(ts, TCI_ENABLE_CTRL2, 0);		// tci-2 disable
-		tci_control(ts, REPORT_MODE_CTRL, 1);		// wakeup_gesture_only
+		if(!ts->pdata->role->use_jdi_incell)
+			tci_control(ts, REPORT_MODE_CTRL, 1);	// wakeup_gesture_only
 		break;
 	case LPWG_PASSWORD:					// TCI-1 and TCI-2
 		tci_control(ts, TCI_ENABLE_CTRL, 1);		// tci-1 enable
@@ -596,7 +596,8 @@ static int lpwg_control(struct synaptics_ts_data *ts, int mode)
 		tci_control(ts, TAP_DISTANCE_CTRL2, 255);	// tap distance = MAX
 		tci_control(ts, INTERRUPT_DELAY_CTRL2, 0);	// interrupt delay = 0ms
 
-		tci_control(ts, REPORT_MODE_CTRL, 1);		// wakeup_gesture_only
+		if(!ts->pdata->role->use_jdi_incell)
+			tci_control(ts, REPORT_MODE_CTRL, 1);	// wakeup_gesture_only
 		break;
 	default:
 		tci_control(ts, TCI_ENABLE_CTRL, 0);		// tci-1 disable
@@ -1183,6 +1184,12 @@ static char *productcode_parse(unsigned char *product)
 	case 3 :
 		len += sprintf(str+len, "Innotek ");
 		break;
+	case 4 :
+		len += sprintf(str+len, "JDI ");
+		break;
+	case 5 :
+		len += sprintf(str+len, "LGD ");
+		break;
 	default :
 		len += sprintf(str+len, "Unknown ");
 		break;
@@ -1336,15 +1343,15 @@ static ssize_t show_firmware(struct i2c_client *client, char *buf)
 		ret += sprintf(buf+ret, "=== ic_fw_version info === \n%s", productcode_parse(ts->fw_info.fw_version));
 	}
 	ret += sprintf(buf+ret, "IC_product_id[%s]\n", ts->fw_info.fw_product_id);
-	if (!(strncmp(ts->fw_info.fw_product_id, S3320_PRODUCT_ID, strlen(S3320_PRODUCT_ID)))) {
-		ret += sprintf(buf+ret, "Touch IC : s3320(family_id = %d, fw_rev = %d)\n\n",
+	if (!(strncmp(ts->fw_info.fw_product_id, "s3320", 5))) {
+		ret += sprintf(buf+ret, "Touch IC : s3320_base(family_id = %d, fw_rev = %d)\n\n",
 			ts->fw_info.family, ts->fw_info.fw_revision);		
-	} else if (!(strncmp(ts->fw_info.fw_product_id, "PLG313", 6)) || !(strncmp(ts->fw_info.fw_product_id, "PLG352", 6)) || !(strncmp(ts->fw_info.fw_product_id, "PLG391", 6))) {
+	} else if (!(strncmp(ts->fw_info.fw_product_id, S3320_PRODUCT_ID, 6))) {
 		if (ts->fw_info.family && ts->fw_info.fw_revision) {
-			ret += sprintf(buf+ret, "Touch IC : s3528(family_id = %d, fw_rev = %d)\n\n",
+			ret += sprintf(buf+ret, "Touch IC : s3320(family_id = %d, fw_rev = %d)\n\n",
 							ts->fw_info.family, ts->fw_info.fw_revision);
 		} else {
-			ret += sprintf(buf+ret, "Touch IC : s3528(family_id = %d, fw_rev = %d)\n\n",
+			ret += sprintf(buf+ret, "Touch IC : s3320(family_id = %d, fw_rev = %d)\n\n",
 							ts->fw_info.family, ts->fw_info.fw_revision);
 		}
 	} else {
@@ -1360,15 +1367,15 @@ static ssize_t show_firmware(struct i2c_client *client, char *buf)
 		ret += sprintf(buf+ret, "=== img_fw_version info === \n%s", productcode_parse(ts->fw_info.fw_image_version));
 	}
 	ret += sprintf(buf+ret, "Img_product_id[%s]\n", ts->fw_info.fw_image_product_id);
-	if (!(strncmp(ts->fw_info.fw_image_product_id, S3320_PRODUCT_ID, strlen(S3320_PRODUCT_ID)))) {
+	if (!(strncmp(ts->fw_info.fw_image_product_id, S3320_PRODUCT_ID, 6))) {
 		ret += sprintf(buf+ret, "Touch IC : s3320(family_id = %d, fw_rev = %d)\n",
 			ts->fw_info.family, ts->fw_info.fw_revision);		
-	} else if (!(strncmp(ts->fw_info.fw_image_product_id, "PLG313", 6)) || !(strncmp(ts->fw_info.fw_image_product_id, "PLG352", 6)) || !(strncmp(ts->fw_info.fw_product_id, "PLG391", 6))) {
+	} else if (!(strncmp(ts->fw_info.fw_image_product_id, "s3320", 6))) {
 		if (ts->fw_info.family && ts->fw_info.fw_revision) {
-			ret += sprintf(buf+ret, "Touch IC : s3528(family_id = %d, fw_rev = %d)\n",
+			ret += sprintf(buf+ret, "Touch IC : s3320(family_id = %d, fw_rev = %d)\n",
 							ts->fw_info.family, ts->fw_info.fw_revision);
 		} else {
-			ret += sprintf(buf+ret, "Touch IC : s3528(family_id = %d, fw_rev = %d)\n",
+			ret += sprintf(buf+ret, "Touch IC : s3320(family_id = %d, fw_rev = %d)\n",
 							ts->fw_info.family, ts->fw_info.fw_revision);
 		}
 	} else {
@@ -1403,12 +1410,12 @@ static ssize_t show_synaptics_fw_version(struct i2c_client *client, char *buf)
 	if (!(strncmp(ts->fw_info.fw_product_id, S3320_PRODUCT_ID, strlen(S3320_PRODUCT_ID)))) {
 		ret += sprintf(buf+ret, "Touch IC : s3320(family_id = %d, fw_rev = %d)\n\n",
 			ts->fw_info.family, ts->fw_info.fw_revision);		
-	} else if (!(strncmp(ts->fw_info.fw_product_id, "PLG313", 6)) || !(strncmp(ts->fw_info.fw_product_id, "PLG352", 6)) || !(strncmp(ts->fw_info.fw_product_id, "PLG391", 6))) {
+	} else if (!(strncmp(ts->fw_info.fw_product_id, "s3320", 5))) {
 		if (ts->fw_info.family && ts->fw_info.fw_revision) {
-			ret += sprintf(buf+ret, "Touch IC : s3528(family_id = %d, fw_rev = %d)\n\n",
+			ret += sprintf(buf+ret, "Touch IC : s3320(family_id = %d, fw_rev = %d)\n\n",
 							ts->fw_info.family, ts->fw_info.fw_revision);
 		} else {
-			ret += sprintf(buf+ret, "Touch IC : s3528(family_id = %d, fw_rev = %d)\n\n",
+			ret += sprintf(buf+ret, "Touch IC : s3320(family_id = %d, fw_rev = %d)\n\n",
 							ts->fw_info.family, ts->fw_info.fw_revision);
 		}
 	} else {
@@ -1453,13 +1460,10 @@ static ssize_t show_sd(struct i2c_client *client, char *buf)
 
 		SCAN_PDT();
 
-		if(!(strncmp(ts->fw_info.fw_product_id, "PLG391", 6))) {
-			lower_img = get_limit(TxChannelCount, RxChannelCount, *ts->client, ts->pdata, "LowerImageLimitSuntel", LowerImage);
-			upper_img = get_limit(TxChannelCount, RxChannelCount, *ts->client, ts->pdata, "UpperImageLimitSuntel", UpperImage);
-		} else {
+
 			lower_img = get_limit(TxChannelCount, RxChannelCount, *ts->client, ts->pdata, "LowerImageLimit", LowerImage);
 			upper_img = get_limit(TxChannelCount, RxChannelCount, *ts->client, ts->pdata, "UpperImageLimit", UpperImage);
-		}
+
 
 		lower_sensor = get_limit(TxChannelCount, RxChannelCount, *ts->client, ts->pdata, "SensorSpeedLowerImageLimit", SensorSpeedLowerImage);
 		upper_sensor = get_limit(TxChannelCount, RxChannelCount, *ts->client, ts->pdata, "SensorSpeedUpperImageLimit", SensorSpeedUpperImage);
@@ -2537,8 +2541,6 @@ static int get_ic_info(struct synaptics_ts_data *ts)
 	DO_SAFE(touch_i2c_read(ts->client, FLASH_CONFIG_ID_REG, sizeof(ts->fw_info.fw_version) - 1, ts->fw_info.fw_version), error);
 	DO_SAFE(touch_i2c_read(ts->client, CUSTOMER_FAMILY_REG, 1, &(ts->fw_info.family)), error);
 	DO_SAFE(touch_i2c_read(ts->client, FW_REVISION_REG, 1, &(ts->fw_info.fw_revision)), error);
-	TOUCH_DEBUG(DEBUG_BASE_INFO, "IC FW_PRODUC_ID = %s\n", ts->fw_info.fw_product_id);
-	TOUCH_DEBUG(DEBUG_BASE_INFO, "IC FW_VERSION = %s\n", ts->fw_info.fw_version);
 	TOUCH_DEBUG(DEBUG_BASE_INFO, "CUSTOMER_FAMILY_REG = %d\n", ts->fw_info.family);
 	TOUCH_DEBUG(DEBUG_BASE_INFO, "FW_REVISION_REG = %d\n", ts->fw_info.fw_revision);
 
@@ -2546,38 +2548,20 @@ static int get_ic_info(struct synaptics_ts_data *ts)
 		goto error;
 	}
 
-	if (!(strncmp(ts->fw_info.fw_product_id, "PLG313", 6))
-		|| !(strncmp(ts->fw_info.fw_product_id, "PLG352", 6))
-		|| !(strncmp(ts->fw_info.fw_product_id, "PLG391", 6))
-		|| !(strncmp(ts->fw_info.fw_product_id, S3320_PRODUCT_ID, strlen(S3320_PRODUCT_ID)))) {
-		if (ts->fw_info.family == 0 && ts->fw_info.fw_revision == 0) {
-			TOUCH_DEBUG(DEBUG_BASE_INFO, "!!fw_image_s3320_a0 = [%s]\n", ts->pdata->inbuilt_fw_name);
-			rc = request_firmware(&fw_entry, ts->pdata->inbuilt_fw_name, &ts->client->dev);
-			ts->fw_flag = S3320_A0;
-		}/* else {
+	if (!(strncmp(ts->fw_info.fw_product_id, "s3320", 6))
+		|| !(strncmp(ts->fw_info.fw_product_id, S3320_PRODUCT_ID, 6))) {
 			if (mfts_mode) {
-				rc = request_firmware(&fw_entry, ts->pdata->inbuilt_fw_name_s3528_a1_factory, &ts->client->dev);
-				ts->fw_flag = S3528_A1;
-			} else if (!(strncmp(ts->fw_info.fw_product_id, "PLG391", 6))) {
-				rc = request_firmware(&fw_entry, ts->pdata->inbuilt_fw_name_s3528_a1_suntel, &ts->client->dev);
-				ts->fw_flag = S3528_A1_SUN;
+						rc = request_firmware(&fw_entry, ts->pdata->inbuilt_fw_name_s3320_a1_factory, &ts->client->dev);
+						ts->fw_flag = S3320_A1;
 			} else {
-				rc = request_firmware(&fw_entry, ts->pdata->inbuilt_fw_name_s3528_a1, &ts->client->dev);
-				ts->fw_flag = S3528_A1;
+						rc = request_firmware(&fw_entry, ts->pdata->inbuilt_fw_name_s3320_a0, &ts->client->dev);
+						ts->fw_flag = S3320_A1;
 		} 
-		}*/
 		if (rc != 0) {
 			TOUCH_ERR_MSG("request_firmware() failed %d\n", rc);
 			goto error;
 		} 
-	}/* else if (!(strncmp(ts->fw_info.fw_product_id, "PLG298", 6))) {
-		rc = request_firmware(&fw_entry, ts->pdata->inbuilt_fw_name_s3621, &ts->client->dev);
-		ts->fw_flag = S3621;
-		if (rc != 0) {
-			TOUCH_ERR_MSG("request_firmware() failed %d\n", rc);
-			goto error;
-		}
-	}*/ else {
+			} else {
 		TOUCH_ERR_MSG("fw_product_id compare fail %d\n", rc);
 		goto error;
 	}
@@ -2585,18 +2569,14 @@ static int get_ic_info(struct synaptics_ts_data *ts)
 	TOUCH_DEBUG(DEBUG_BASE_INFO, "ts->fw_flag = %d\n", ts->fw_flag);
 	fw = fw_entry->data;
 
-	//memcpy(ts->fw_info.fw_image_product_id, &fw[0x0040], 5);
-	sprintf(ts->fw_info.fw_image_product_id,"%s", "s3320");
+	memcpy(ts->fw_info.fw_image_product_id, &fw[0x0040], 6);
 	memcpy(ts->fw_info.fw_image_version, &fw[0x16d00], 4);
-	ts->fw_info.fw_start = (unsigned char *)&fw[0];
-	ts->fw_info.fw_size = sizeof(fw);
 
-	//because s3621 doesn't support knock-on
-	if(!strncmp(ts->fw_info.fw_product_id, "s3320" , 6))
-		ts->pdata->role->use_sleep_mode = 0;
+	release_firmware(fw_entry);
 	return 0;
 error:
-	memset(&fw_entry, 0, sizeof(fw_entry));
+	if(fw_entry)
+		release_firmware(fw_entry);
 	return -1;
 }
 
@@ -2707,15 +2687,14 @@ static int lpwg_update_all(struct synaptics_ts_data *ts, bool irqctrl)
 				disable_irq_wake(ts->client->irq);
 		}
 		atomic_set(&ts->lpwg_ctrl.is_suspend, 0);
-		TOUCH_INFO_MSG("%s : disable, irqctrl=%d", __func__, irqctrl);
-		set_doze_param(ts,1);
+		TOUCH_INFO_MSG("%s : disable, irqctrl=%d\n", __func__, irqctrl);
 	} else {
 		if(atomic_read(&ts->lpwg_ctrl.is_suspend) == 0) {
 			atomic_set(&ts->lpwg_ctrl.is_suspend, 1);
 			if (irqctrl)
 				enable_irq_wake(ts->client->irq);
-			TOUCH_INFO_MSG("%s : enable, irqctrl=%d", __func__, irqctrl);
-			set_doze_param(ts,0);
+			TOUCH_INFO_MSG("%s : enable, irqctrl=%d\n", __func__, irqctrl);
+			set_doze_param(ts);
 		}
 	}
 
@@ -2723,14 +2702,18 @@ static int lpwg_update_all(struct synaptics_ts_data *ts, bool irqctrl)
 		sleep_status = 1;
 		lpwg_status = 0;
 	} else if(!ts->lpwg_ctrl.screen && ts->lpwg_ctrl.qcover) {				// off(0), closed(0),   --
-		sleep_status = 1;
-		lpwg_status = 1;
-		set_knockOn_param(ts,0);
+		if(ts->pdata->role->quickcover_filter->cover_proxi || ts->lpwg_ctrl.sensor) {
+			sleep_status = 1;
+			lpwg_status = 1;
+		} else {
+			sleep_status = 0;
+			req_lpwg_param = true;
+		}
 	} else if(!ts->lpwg_ctrl.screen && !ts->lpwg_ctrl.qcover && ts->lpwg_ctrl.sensor) {	// off(0),   open(1),  far(1)
 		sleep_status = 1;
 		lpwg_status = ts->lpwg_ctrl.lpwg_mode;
 	} else if(!ts->lpwg_ctrl.screen && !ts->lpwg_ctrl.qcover && !ts->lpwg_ctrl.sensor) {	// off(0),   open(1), near(0)
-		if(!after_crack_check){
+		if(ts->pdata->role->crack_detection->use_crack_mode && !after_crack_check){
 			TOUCH_DEBUG(DEBUG_BASE_INFO, "%s : Crack check not done...use nonsleep mode to check Crack!!\n", __func__);
 			sleep_status = 1;
 			lpwg_status = ts->lpwg_ctrl.lpwg_mode;
@@ -2742,10 +2725,14 @@ static int lpwg_update_all(struct synaptics_ts_data *ts, bool irqctrl)
 	}
 
 	DO_SAFE(sleep_control(ts, sleep_status, 0), error);
-	if(req_lpwg_param == false)
+	if(req_lpwg_param == false) {
 		DO_SAFE(lpwg_control(ts, lpwg_status), error);
-	else
-		set_knockOn_param(ts,0);
+	} else {
+		if(ts->pdata->role->use_jdi_incell) {
+			tci_control(ts, TCI_ENABLE_CTRL, 0);
+			tci_control(ts, TCI_ENABLE_CTRL2, 0);
+		}
+	}
 
 	return NO_ERROR;
 error:
@@ -2756,7 +2743,7 @@ enum error_type synaptics_ts_init(struct i2c_client *client)
 {
 	struct synaptics_ts_data *ts = (struct synaptics_ts_data *)get_touch_handle(client);
 	u8 buf = 0;
-	u8 buf_array[2] = {0};
+	u8 buf_array[9] = {0};
 	int prox_retval;
 	u8 motion_suppression_reg_addr;
 	int rc = 0;
@@ -2779,6 +2766,10 @@ enum error_type synaptics_ts_init(struct i2c_client *client)
 		ts->is_probed = 1;
 	}
 
+	TOUCH_DEBUG(DEBUG_BASE_INFO, "ic_fw_version[V%d.%02d(0x%02X 0x%02X 0x%02X 0x%02X)] ",
+		(ts->fw_info.fw_version[3] & 0x80 ? 1 : 0), ts->fw_info.fw_version[3] & 0x7F,
+		ts->fw_info.fw_version[0], ts->fw_info.fw_version[1], ts->fw_info.fw_version[2], ts->fw_info.fw_version[3]);
+
 	if (prox_fhandler.prox_inserted)
 	{
 		if (!prox_fhandler.prox_initialized) {
@@ -2794,19 +2785,23 @@ enum error_type synaptics_ts_init(struct i2c_client *client)
 		}
 	}
 
-	DO_SAFE(touch_i2c_write_byte(client, DEVICE_CONTROL_REG,
+	if(ts->pdata->role->use_jdi_incell) {
+		DO_SAFE(touch_i2c_write_byte(client, DEVICE_CONTROL_REG,
 			DEVICE_CONTROL_NOSLEEP | DEVICE_CONTROL_CONFIGURED), error);
 
+		DO_SAFE(touch_i2c_write_byte(client, DEVICE_CONTROL_REG+5, 0x14), error);
+		DO_SAFE(touch_i2c_read(client, DEVICE_CONTROL_REG+5, 1, &buf), error);
+		TOUCH_INFO_MSG("Init Doze Recalibration Interval :0x%x \n", buf);
+	} else {
+		DO_SAFE(touch_i2c_write_byte(client, DEVICE_CONTROL_REG,
+			DEVICE_CONTROL_NORMAL_OP | DEVICE_CONTROL_CONFIGURED), error);
+	}
+
 	DO_SAFE(touch_i2c_read(client, INTERRUPT_ENABLE_REG, 1, &buf), error);
-	if (!(strncmp(ts->fw_info.fw_product_id, "PLG313", 6)) || !(strncmp(ts->fw_info.fw_product_id, "PLG352", 6)) || !(strncmp(ts->fw_info.fw_product_id, "PLG391", 6))) {
+	if (!(strncmp(ts->fw_info.fw_product_id, S3320_PRODUCT_ID, 6)) || !(strncmp(ts->fw_info.fw_product_id, "s3320", 6))) {
 		DO_SAFE(touch_i2c_write_byte(client, INTERRUPT_ENABLE_REG,
 			buf | INTERRUPT_MASK_ABS0 | int_mask_cust), error);
-		TOUCH_INFO_MSG(" %s : !INTERRUPT_ENABLE_REG -> INTERRUPT_MASK_ABS0 | int_mask_cust(%d) \n", __func__, int_mask_cust);
-	} else if (!(strncmp(ts->fw_info.fw_product_id, S3320_PRODUCT_ID, strlen(S3320_PRODUCT_ID)))) {
-		TOUCH_INFO_MSG(" %s : !!INTERRUPT_ENABLE_REG -> INTERRUPT_MASK_ABS0\n", __func__);
-		DO_SAFE(touch_i2c_write_byte(client, INTERRUPT_ENABLE_REG, buf | INTERRUPT_MASK_ABS0), error);
 	} else {
-		TOUCH_INFO_MSG(" %s : !!!INTERRUPT_ENABLE_REG -> INTERRUPT_MASK_ABS0\n", __func__);
 		DO_SAFE(touch_i2c_write_byte(client, INTERRUPT_ENABLE_REG, buf | INTERRUPT_MASK_ABS0), error);
 	}
 
@@ -2821,7 +2816,7 @@ enum error_type synaptics_ts_init(struct i2c_client *client)
 	motion_suppression_reg_addr = f12_info.ctrl_reg_addr[20];
 	DO_SAFE(touch_i2c_write(client, motion_suppression_reg_addr, 2, buf_array), error);
 
-	//DO_SAFE(touch_i2c_read(client, f12_info.ctrl_reg_addr[15], 2, default_finger_amplitude), error);
+	DO_SAFE(touch_i2c_read(client, f12_info.ctrl_reg_addr[15], 2, default_finger_amplitude), error);
 
 	if (ts->pdata->role->palm_ctrl_mode > PALM_REPORT) {
 		TOUCH_INFO_MSG("Invalid palm_ctrl_mode:%u (palm_ctrl_mode -> PALM_REJECT_FW)\n", ts->pdata->role->palm_ctrl_mode);
@@ -2847,14 +2842,14 @@ enum error_type synaptics_ts_init(struct i2c_client *client)
 		}
 	}
 
-	/*                                                   
-                                                                                                   
-                                                           
-                                                           
-                                                                                    
-  
- */
-	if (!(strncmp(ts->fw_info.fw_product_id, "PLG313", 6)) || !(strncmp(ts->fw_info.fw_product_id, "PLG352", 6)) || !(strncmp(ts->fw_info.fw_product_id, "PLG391", 6))) {
+	/*if (lge_get_boot_mode() == LGE_BOOT_MODE_QEM_56K) {
+		TOUCH_INFO_MSG("mini_os_finger_amplitude = 0x%02X\n", ts->pdata->role->mini_os_finger_amplitude);
+		buf_array[0] = ts->pdata->role->mini_os_finger_amplitude;
+		buf_array[1] = ts->pdata->role->mini_os_finger_amplitude;
+		DO_SAFE(touch_i2c_write(client, f12_info.ctrl_reg_addr[15], 2, buf_array), error);
+	}
+	*/
+	if (!(strncmp(ts->fw_info.fw_product_id, S3320_PRODUCT_ID, 6)) || !(strncmp(ts->fw_info.fw_product_id, "PLG352", 6)) || !(strncmp(ts->fw_info.fw_product_id, "PLG391", 6))) {
 		if(ts->pdata->role->use_lpwg_all) {
 			DO_SAFE(lpwg_update_all(ts, 0), error);
 		} else {
@@ -2885,12 +2880,19 @@ static int synaptics_ts_noise_log(struct i2c_client *client, struct touch_data* 
 
 	DO_SAFE((synaptics_ts_page_data_read(client, ANALOG_PAGE, 0x08, 1, &cns) < 0), error);
 	cns_sum += cns;
-
+#ifdef CONFIG_MACH_MSM8926_AKA_CN
 	DO_SAFE((synaptics_ts_page_data_read(client, ANALOG_PAGE, 0x09, 2, buffer) < 0), error);
+#else
+	DO_SAFE((synaptics_ts_page_data_read(client, ANALOG_PAGE, 0x0A, 2, buffer) < 0), error);
+#endif
 	cid_im = (buffer[1]<<8)|buffer[0];
 	cid_im_sum += cid_im;
 
-	DO_SAFE((synaptics_ts_page_data_read(client, ANALOG_PAGE, 0x0A, 2, buffer) < 0), error);
+#ifdef CONFIG_MACH_MSM8926_AKA_CN
+        DO_SAFE((synaptics_ts_page_data_read(client, ANALOG_PAGE, 0x0A, 2, buffer) < 0), error);
+#else
+	DO_SAFE((synaptics_ts_page_data_read(client, ANALOG_PAGE, 0x0B, 2, buffer) < 0), error);
+#endif
 	freq_scan_im = (buffer[1]<<8)|buffer[0];
 	freq_scan_im_sum += freq_scan_im;
 
@@ -2989,7 +2991,8 @@ enum error_type synaptics_ts_get_data(struct i2c_client *client, struct touch_da
 				TOUCH_DEBUG(DEBUG_BASE_INFO || DEBUG_LPWG, "LPWG Multi-Tap mode\n");
 				get_tci_data(ts, ts->pw_data.tap_count);
 				wake_lock(&ts->timer_wake_lock);
-				tci_control(ts, REPORT_MODE_CTRL, 0);
+				if(!ts->pdata->role->use_jdi_incell)
+					tci_control(ts, REPORT_MODE_CTRL, 0);
 				queue_delayed_work(touch_wq, &ts->work_timer, msecs_to_jiffies(UEVENT_DELAY-I2C_DELAY));
 		    }
 		} else {
@@ -3183,8 +3186,14 @@ enum error_type synaptics_ts_power(struct i2c_client *client, int power_ctrl)
             if ((ts->pdata->int_pin > 0) && (ts->pdata->reset_pin > 0))  {
 			gpio_tlmm_config(GPIO_CFG(ts->pdata->int_pin, 0, GPIO_CFG_INPUT,
 				GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-			gpio_tlmm_config(GPIO_CFG(ts->pdata->reset_pin, 0, GPIO_CFG_INPUT,
-				GPIO_CFG_PULL_DOWN, GPIO_CFG_6MA), GPIO_CFG_ENABLE);
+				if(ts->pdata->role->use_jdi_incell) {
+					gpio_tlmm_config(GPIO_CFG(ts->pdata->reset_pin, 0, GPIO_CFG_OUTPUT,
+						GPIO_CFG_PULL_UP, GPIO_CFG_6MA), GPIO_CFG_ENABLE);
+					gpio_direction_output(ts->pdata->reset_pin, 1);
+				} else {
+					gpio_tlmm_config(GPIO_CFG(ts->pdata->reset_pin, 0, GPIO_CFG_INPUT,
+						GPIO_CFG_PULL_DOWN, GPIO_CFG_6MA), GPIO_CFG_ENABLE);
+				}
             }
 
 			if (ts->pdata->pwr->use_regulator) {
@@ -3192,34 +3201,63 @@ enum error_type synaptics_ts_power(struct i2c_client *client, int power_ctrl)
 					regulator_disable(ts->regulator_vio);
 				if (regulator_is_enabled(ts->regulator_vdd))
 					regulator_disable(ts->regulator_vdd);
-			} else
-				//AKA Power_Off : Not using any Regulator
-				//ts->pdata->pwr->power(0);
+			} else {
+				if(!ts->pdata->role->use_jdi_incell)
+					ts->pdata->pwr->power(0);
+			}
 			break;
 	case POWER_ON:
 			ts->is_init = 0;
-			if (ts->pdata->pwr->use_regulator) {
-				if (!regulator_is_enabled(ts->regulator_vdd))
-					regulator_enable(ts->regulator_vdd);
-				if (!regulator_is_enabled(ts->regulator_vio))
-					regulator_enable(ts->regulator_vio);
-			} else
-				//AKA Power_On : Not using any Regulator
-				//ts->pdata->pwr->power(1);
+			if(ts->pdata->role->use_jdi_incell) {
+				gpio_tlmm_config(GPIO_CFG(ts->pdata->reset_pin, 0, GPIO_CFG_OUTPUT,
+			        GPIO_CFG_PULL_UP, GPIO_CFG_6MA), GPIO_CFG_ENABLE);
+				gpio_direction_output(ts->pdata->reset_pin, 1);
 
-			gpio_tlmm_config(GPIO_CFG(ts->pdata->reset_pin, 0, GPIO_CFG_OUTPUT,
-		        GPIO_CFG_PULL_UP, GPIO_CFG_6MA), GPIO_CFG_ENABLE);
-			gpio_direction_output(ts->pdata->reset_pin, 1);
-				break;
+				gpio_tlmm_config(GPIO_CFG(ts->pdata->int_pin, 0, GPIO_CFG_INPUT,
+					GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+
+				if(ts->pdata->reset_pin > 0){
+					gpio_set_value(ts->pdata->reset_pin, 0);
+					msleep(ts->pdata->role->reset_delay);
+					gpio_set_value(ts->pdata->reset_pin, 1);
+					TOUCH_DEBUG(DEBUG_BASE_INFO, "%s : pin reset\n", __func__);
+				} else {
+					if (unlikely(touch_i2c_write_byte(client, DEVICE_COMMAND_REG, 0x01) < 0)) {
+						TOUCH_ERR_MSG("DEVICE_COMMAND_REG write fail\n");
+						return ERROR;
+					}
+					TOUCH_DEBUG(DEBUG_BASE_INFO, "%s : SW reset\n", __func__);
+				}
+			} else {
+				if (ts->pdata->pwr->use_regulator) {
+					if (!regulator_is_enabled(ts->regulator_vdd))
+						regulator_enable(ts->regulator_vdd);
+					if (!regulator_is_enabled(ts->regulator_vio))
+						regulator_enable(ts->regulator_vio);
+				} else
+					ts->pdata->pwr->power(1);
+
+				gpio_tlmm_config(GPIO_CFG(ts->pdata->reset_pin, 0, GPIO_CFG_OUTPUT,
+			        GPIO_CFG_PULL_UP, GPIO_CFG_6MA), GPIO_CFG_ENABLE);
+				gpio_direction_output(ts->pdata->reset_pin, 1);
+			}
+			break;
 	case POWER_SLEEP:
 			if (mfts_enable) {
 				break;
 			}
 			if ((ts->pdata->reset_pin > 0))  {
-				   gpio_tlmm_config(GPIO_CFG(ts->pdata->reset_pin, 0, GPIO_CFG_INPUT,
-					   GPIO_CFG_PULL_DOWN, GPIO_CFG_6MA), GPIO_CFG_ENABLE);
-				   gpio_direction_input(ts->pdata->reset_pin);
-				   }
+				if(ts->pdata->role->use_jdi_incell) {
+					gpio_tlmm_config(GPIO_CFG(ts->pdata->reset_pin, 0, GPIO_CFG_OUTPUT,
+						GPIO_CFG_PULL_UP, GPIO_CFG_6MA), GPIO_CFG_ENABLE);
+					gpio_direction_output(ts->pdata->reset_pin, 1);
+				} else {
+					gpio_tlmm_config(GPIO_CFG(ts->pdata->reset_pin, 0, GPIO_CFG_INPUT,
+						GPIO_CFG_PULL_DOWN, GPIO_CFG_6MA), GPIO_CFG_ENABLE);
+					gpio_direction_input(ts->pdata->reset_pin);
+				}
+			}
+
 			if (!ts->lpwg_ctrl.lpwg_is_enabled)
 				sleep_control(ts, 0, 1);
 			break;
@@ -3231,6 +3269,22 @@ enum error_type synaptics_ts_power(struct i2c_client *client, int power_ctrl)
 			gpio_tlmm_config(GPIO_CFG(ts->pdata->reset_pin, 0, GPIO_CFG_OUTPUT,
 				GPIO_CFG_PULL_UP, GPIO_CFG_6MA), GPIO_CFG_ENABLE);
 			gpio_direction_output(ts->pdata->reset_pin, 1);
+			break;
+	case SAFETY_RESET:
+			power_ctrl = POWER_ON;
+
+			if(ts->pdata->reset_pin > 0){
+				gpio_set_value(ts->pdata->reset_pin, 0);
+				msleep(ts->pdata->role->reset_delay);
+				gpio_set_value(ts->pdata->reset_pin, 1);
+				TOUCH_DEBUG(DEBUG_BASE_INFO, "%s SAFETY_RESET : pin reset\n", __func__);
+			} else {
+				if (unlikely(touch_i2c_write_byte(client, DEVICE_COMMAND_REG, 0x01) < 0)) {
+					TOUCH_ERR_MSG("DEVICE_COMMAND_REG write fail\n");
+					return ERROR;
+				}
+				TOUCH_DEBUG(DEBUG_BASE_INFO, "%s SAFETY_RESET : SW reset\n", __func__);
+			}
 			break;
 	default:
 			break;
@@ -3294,8 +3348,10 @@ enum error_type synaptics_ts_ic_ctrl(struct i2c_client *client, u8 code, u32 val
 		TOUCH_INFO_MSG("High Temp Control(0x%02X), Finger Amplitude Threshold(0x%02X), Small Finger Amplitude Threshold(0x%02X)\n",
 				buf, buf_array[0], buf_array[1]);
 
-		DO_SAFE(synaptics_ts_page_data_write_byte(client, LPWG_PAGE, MISC_HOST_CONTROL_REG, buf), error);
-		DO_SAFE(touch_i2c_write(client, f12_info.ctrl_reg_addr[15], 2, buf_array), error);
+		if(!ts->pdata->role->use_jdi_incell) {
+			DO_SAFE(synaptics_ts_page_data_write_byte(client, LPWG_PAGE, MISC_HOST_CONTROL_REG, buf), error);
+			DO_SAFE(touch_i2c_write(client, f12_info.ctrl_reg_addr[15], 2, buf_array), error);
+		}
 		break;
 	default:
 		break;
@@ -3311,77 +3367,51 @@ int compare_fw_version(struct i2c_client* client, struct touch_fw_info* fw_info)
 			(struct synaptics_ts_data*)get_touch_handle(client);
 	int i= 0;
 
-	if (ts->fw_info.fw_version[0] > 0x40) {
-		if (ts->fw_info.fw_image_version[0] > 0x40) {
-			TOUCH_DEBUG(DEBUG_BASE_INFO, "product_id[%s(ic):%s(fw)] fw_version[%s(ic):%s(fw)]\n",
-				ts->fw_info.fw_product_id, ts->fw_info.fw_image_product_id, ts->fw_info.fw_version, ts->fw_info.fw_image_version);
-			if (strncmp(ts->fw_info.fw_version, ts->fw_info.fw_image_version, 4)) {
-				TOUCH_DEBUG(DEBUG_BASE_INFO, "fw_version mismatch.\n");
-				return 1;
-			} else {
-				goto matched;
-			}
-		} else {
-			TOUCH_DEBUG(DEBUG_BASE_INFO, "product_id[%s(ic):%s(fw)] fw_version[%s(ic):V%d.%02d(fw)]\n",
-					ts->fw_info.fw_product_id, ts->fw_info.fw_image_product_id, ts->fw_info.fw_version,
-					(ts->fw_info.fw_image_version[3] & 0x80 ? 1:0), ts->fw_info.fw_image_version[3] & 0x7F);
-			if (strncmp(ts->fw_info.fw_version, ts->fw_info.fw_image_version, 4)) {
-				TOUCH_DEBUG(DEBUG_BASE_INFO, "fw_version mismatch.\n");
-				return 1;
-			} else {
-				goto matched;
-			}
-		}
-	} else {
-		if(!(ts->fw_info.fw_version[3] & 0x80)) {//temporary code to support HW team if FW in IC is Test Ver., no update FW.
-			if((ts->fw_info.fw_version[3] & 0x7F) > 7) {
-				TOUCH_DEBUG(DEBUG_BASE_INFO, "%s : FW version is Test Version.\n",__func__);
-				goto matched;
-			}
-			else { //Possible to upgrade FW below v0.07
-				TOUCH_DEBUG(DEBUG_BASE_INFO, "%s : FW version is Test Version which is below v0.07\n",__func__);
-				return 1;
-			}
-		}
-		if (ts->fw_info.fw_image_version[0] > 0x40) {
-			TOUCH_DEBUG(DEBUG_BASE_INFO, "product_id[%s(ic):%s(fw)] fw_version[V%d.%02d(ic):%s(fw)]\n",
-					ts->fw_info.fw_product_id, ts->fw_info.fw_image_product_id,
-					(ts->fw_info.fw_version[3] & 0x80 ? 1 : 0), ts->fw_info.fw_version[3] & 0x7F, ts->fw_info.fw_image_version);
-			if(strncmp(ts->fw_info.fw_version, ts->fw_info.fw_image_version, 4)) {
-				TOUCH_DEBUG(DEBUG_BASE_INFO, "fw_version mismatch.\n");
-				return 1;
-			} else {
-				goto matched;
-			}
-		} else {
-			TOUCH_DEBUG(DEBUG_BASE_INFO, "product_id[%s(ic):%s(fw)] ",
-					ts->fw_info.fw_product_id, ts->fw_info.fw_image_product_id);
+	if(!(ts->fw_info.fw_version[3] & 0x80)) {//temporary code to support HW team if FW in IC is Test Ver., no update FW.
+		if((ts->fw_info.fw_version[3] & 0x7F) > 21) {
+			TOUCH_DEBUG(DEBUG_BASE_INFO, "%s : FW version is Test Version.\n",__func__);
 			TOUCH_DEBUG(DEBUG_BASE_INFO, "ic_fw_version[V%d.%02d(0x%02X 0x%02X 0x%02X 0x%02X)] ",
-					(ts->fw_info.fw_version[3] & 0x80 ? 1 : 0), ts->fw_info.fw_version[3] & 0x7F,
-					ts->fw_info.fw_version[0], ts->fw_info.fw_version[1], ts->fw_info.fw_version[2], ts->fw_info.fw_version[3]);
-			TOUCH_DEBUG(DEBUG_BASE_INFO, "fw_version[V%d.%02d(0x%02X 0x%02X 0x%02X 0x%02X)]\n",
-					(ts->fw_info.fw_image_version[3] & 0x80 ? 1:0), ts->fw_info.fw_image_version[3] & 0x7F,
-					ts->fw_info.fw_image_version[0], ts->fw_info.fw_image_version[1], ts->fw_info.fw_image_version[2], ts->fw_info.fw_image_version[3]);
-			if (mfts_mode) {
-				if ((ts->fw_info.fw_version[3] & 0x7F) < (ts->fw_info.fw_image_version[3] & 0x7F)) {
-					TOUCH_DEBUG(DEBUG_BASE_INFO, "fw_version mismatch(mfts_mode).\n");
-					return 1;
-				} else {
-					mfts_mode = 0;
-					goto matched;
-				}
-			} else {
-				for (i = 0 ; i < FW_VER_INFO_NUM ; i++) {
-					if (ts->fw_info.fw_version[i] != ts->fw_info.fw_image_version[i]) {
-						TOUCH_DEBUG(DEBUG_BASE_INFO, "fw_version mismatch. ic_fw_version[%d]:0x%02X != fw_version[%d]:0x%02X\n",
-							i, ts->fw_info.fw_version[i], i, ts->fw_info.fw_image_version[i]);
-						return 1;
-					}
-				}
-				goto matched;
-			}
+			(ts->fw_info.fw_version[3] & 0x80 ? 1 : 0), ts->fw_info.fw_version[3] & 0x7F,
+			ts->fw_info.fw_version[0], ts->fw_info.fw_version[1], ts->fw_info.fw_version[2], ts->fw_info.fw_version[3]);
+			goto matched;
+		}
+		else { //Possible to upgrade FW below v0.21
+			TOUCH_DEBUG(DEBUG_BASE_INFO, "%s : FW version is Test Version which is below v0.21\n",__func__);
+			TOUCH_DEBUG(DEBUG_BASE_INFO, "ic_fw_version[V%d.%02d(0x%02X 0x%02X 0x%02X 0x%02X)] ",
+			(ts->fw_info.fw_version[3] & 0x80 ? 1 : 0), ts->fw_info.fw_version[3] & 0x7F,
+			ts->fw_info.fw_version[0], ts->fw_info.fw_version[1], ts->fw_info.fw_version[2], ts->fw_info.fw_version[3]);
+			return 1;
 		}
 	}
+
+	TOUCH_DEBUG(DEBUG_BASE_INFO, "product_id[%s(ic):%s(fw)] ",
+		ts->fw_info.fw_product_id, ts->fw_info.fw_image_product_id);
+	TOUCH_DEBUG(DEBUG_BASE_INFO, "ic_fw_version[V%d.%02d(0x%02X 0x%02X 0x%02X 0x%02X)] ",
+		(ts->fw_info.fw_version[3] & 0x80 ? 1 : 0), ts->fw_info.fw_version[3] & 0x7F,
+		ts->fw_info.fw_version[0], ts->fw_info.fw_version[1], ts->fw_info.fw_version[2], ts->fw_info.fw_version[3]);
+	TOUCH_DEBUG(DEBUG_BASE_INFO, "fw_version[V%d.%02d(0x%02X 0x%02X 0x%02X 0x%02X)]\n",
+		(ts->fw_info.fw_image_version[3] & 0x80 ? 1:0), ts->fw_info.fw_image_version[3] & 0x7F,
+		ts->fw_info.fw_image_version[0], ts->fw_info.fw_image_version[1], ts->fw_info.fw_image_version[2], ts->fw_info.fw_image_version[3]);
+
+	if (mfts_mode) {
+		if ((ts->fw_info.fw_version[3] & 0x7F) < (ts->fw_info.fw_image_version[3] & 0x7F)) {
+			TOUCH_DEBUG(DEBUG_BASE_INFO, "fw_version mismatch(mfts_mode).\n");
+			return 1;
+		} else {
+			mfts_mode = 0;
+			goto matched;
+		}
+	} else {
+		for (i = 0 ; i < FW_VER_INFO_NUM ; i++) {
+			if (ts->fw_info.fw_version[i] != ts->fw_info.fw_image_version[i]) {
+				TOUCH_DEBUG(DEBUG_BASE_INFO, "fw_version mismatch. ic_fw_version[%d]:0x%02X != fw_version[%d]:0x%02X\n",
+					i, ts->fw_info.fw_version[i], i, ts->fw_info.fw_image_version[i]);
+				return 1;
+			}
+		}
+		goto matched;
+	}
+			
 matched:
 	return 0;
 }
@@ -3400,39 +3430,33 @@ enum error_type synaptics_ts_fw_upgrade(struct i2c_client *client, struct touch_
 	}
 
 	if (info->fw_force_upgrade_cat) {
-		/*
 		if (mfts_mode) {
 			get_ic_info(ts);
 			goto compare;
-		} else */{
+		} else {
 			if (ts->fw_flag == S3320_A0) {
 				memcpy(path, info->fw_path, sizeof(path));
 				TOUCH_DEBUG(DEBUG_BASE_INFO | DEBUG_FW_UPGRADE, "FW: need_upgrade[%d] force_cat[%d] file[%s]\n",
 					fw->need_upgrade, info->fw_force_upgrade_cat, path);
 				goto firmware;
 			}
-			/* else if (ts->fw_flag == S3528_A1) {
-				memcpy(path, info->fw_path_s3528_a1, sizeof(path));
+			else if (ts->fw_flag == S3320_A1) {
+				memcpy(path, info->fw_path_s3320_a0, sizeof(path));
 				TOUCH_DEBUG(DEBUG_BASE_INFO | DEBUG_FW_UPGRADE, "FW: need_upgrade[%d] force_cat[%d] file[%s]\n",
 					fw->need_upgrade, info->fw_force_upgrade_cat, path);
 				goto firmware;
-			} else if (ts->fw_flag == S3528_A1_SUN) {
-				memcpy(path, info->fw_path_s3528_a1_suntel, sizeof(path));
-				TOUCH_DEBUG(DEBUG_BASE_INFO | DEBUG_FW_UPGRADE, "FW: need_upgrade[%d] force_cat[%d] file[%s]\n",
-					fw->need_upgrade, info->fw_force_upgrade_cat, path);
-				goto firmware;
-			} else {
-				memcpy(path, info->fw_path_s3621, sizeof(path));
-				TOUCH_DEBUG(DEBUG_BASE_INFO | DEBUG_FW_UPGRADE, "FW: need_upgrade[%d] force_cat[%d] file[%s]\n",
-					fw->need_upgrade, info->fw_force_upgrade_cat, path);
-				goto firmware;
-			}*/
+			}
 		}
 	}
 
-//compare :
-	need_upgrade = !strncmp(ts->fw_info.fw_product_id,
+compare :
+	if(!strncmp(ts->fw_info.fw_product_id, "s3320", sizeof(ts->fw_info.fw_product_id))){
+		TOUCH_DEBUG(DEBUG_BASE_INFO | DEBUG_FW_UPGRADE, "FW: Base FW need to upgrade \n");
+		need_upgrade = 1;
+	} else {		
+		need_upgrade = !strncmp(ts->fw_info.fw_product_id,
 				ts->fw_info.fw_image_product_id, sizeof(ts->fw_info.fw_product_id));
+	}
 
 	rc = compare_fw_version(client, info);
 	if (fw->need_upgrade) {
@@ -3450,31 +3474,21 @@ enum error_type synaptics_ts_fw_upgrade(struct i2c_client *client, struct touch_
 			TOUCH_DEBUG(DEBUG_BASE_INFO | DEBUG_FW_UPGRADE, "FW: need_upgrade[%d] force[%d] force_cat[%d] file[%s]\n",
 				fw->need_upgrade, info->fw_force_upgrade, info->fw_force_upgrade_cat, path);
 			goto firmware;
-		}/* else if (ts->fw_flag == S3528_A1){
+		} else if (ts->fw_flag == S3320_A1){
 			if (mfts_mode) {
-				memcpy(path, info->fw_path_s3528_a1_factory, sizeof(path));
+				memcpy(path, info->fw_path_s3320_a1_factory, sizeof(path));
 				mfts_mode = 0;
 			} else {
-				memcpy(path, info->fw_path_s3528_a1, sizeof(path));
+				memcpy(path, info->fw_path_s3320_a0, sizeof(path));
 			}
 			TOUCH_DEBUG(DEBUG_BASE_INFO | DEBUG_FW_UPGRADE, "FW: need_upgrade[%d] force[%d] force_cat[%d] file[%s]\n",
 				fw->need_upgrade, info->fw_force_upgrade, info->fw_force_upgrade_cat, path);
 			goto firmware;
-		} else if (ts->fw_flag == S3528_A1_SUN){
-			memcpy(path, info->fw_path_s3528_a1_suntel, sizeof(path));
-			TOUCH_DEBUG(DEBUG_BASE_INFO | DEBUG_FW_UPGRADE, "FW: need_upgrade[%d] force[%d] force_cat[%d] file[%s]\n",
-				fw->need_upgrade, info->fw_force_upgrade, info->fw_force_upgrade_cat, path);
-			goto firmware;
-		} else {
-			memcpy(path, info->fw_path_s3621, sizeof(path));
-			TOUCH_DEBUG(DEBUG_BASE_INFO | DEBUG_FW_UPGRADE, "FW: need_upgrade[%d] force[%d] force_cat[%d] file[%s]\n",
-				fw->need_upgrade, info->fw_force_upgrade, info->fw_force_upgrade_cat, path);
-			goto firmware;
-		}*/
-		/* it will be reset and initialized automatically by lge_touch_core. */
-	} else {
+		} /* it will be reset and initialized automatically by lge_touch_core. */
+		 else {
 		TOUCH_DEBUG(DEBUG_BASE_INFO | DEBUG_FW_UPGRADE, "FW: do not start-upgrade - need[%d] rewrite[%d]\n",
 				need_upgrade, ts->fw_info.need_rewrite_firmware);
+	}
 	}
 	return NO_ERROR;
 
@@ -3517,15 +3531,14 @@ enum error_type synaptics_ts_suspend(struct i2c_client *client)
 	struct synaptics_ts_data *ts = (struct synaptics_ts_data*)get_touch_handle(client);
 
 	//because s3621 doesn't support knock-on
-	if(!(strncmp(ts->fw_info.fw_product_id, "PLG298",6)) || !(strncmp(ts->fw_info.fw_product_id, S3320_PRODUCT_ID, strlen(S3320_PRODUCT_ID))))
-	{
-		TOUCH_DEBUG(DEBUG_BASE_INFO, "synaptics_ts_suspend return , because s3320 doesn't support knock-on\n");
+	if(!(strncmp(ts->fw_info.fw_product_id, "PLG298",6)))
 		return NO_ERROR;
-	}
 
-	if (!atomic_read(&ts->lpwg_ctrl.is_suspend)) {
-		DO_SAFE(lpwg_control(ts, ts->lpwg_ctrl.lpwg_mode), error);
-		atomic_set(&ts->lpwg_ctrl.is_suspend, 1);
+	if(!ts->pdata->role->use_jdi_incell) {
+		if (!atomic_read(&ts->lpwg_ctrl.is_suspend)) {
+			DO_SAFE(lpwg_control(ts, ts->lpwg_ctrl.lpwg_mode), error);
+			atomic_set(&ts->lpwg_ctrl.is_suspend, 1);
+		}
 	}
 	return NO_ERROR;
 error:
@@ -3538,8 +3551,6 @@ enum error_type synaptics_ts_resume(struct i2c_client *client)
 
 	cancel_delayed_work_sync(&ts->work_timer);
 
-	if(ts->lpwg_ctrl.lpwg_mode)
-		set_knockOn_param(ts,1);
 
 	if (wake_lock_active(&ts->timer_wake_lock))
 		wake_unlock(&ts->timer_wake_lock);
@@ -3560,13 +3571,6 @@ enum error_type synaptics_ts_lpwg(struct i2c_client* client, u32 code, u32 value
 		goto error;
 	}
 
-	//because s3621 doesn't support knock-on
-	if (!(strncmp(ts->fw_info.fw_product_id, "PLG298",6)) || !(strncmp(ts->fw_info.fw_product_id, S3320_PRODUCT_ID, strlen(S3320_PRODUCT_ID))))
-	{
-		TOUCH_DEBUG(DEBUG_BASE_INFO, "synaptics_ts_lpwg return");
-		return NO_ERROR;
-	}
-
 	switch (code) {
 	case LPWG_READ:
 		memcpy(data, ts->pw_data.data, sizeof(struct point)*ts->pw_data.data_num);
@@ -3579,8 +3583,7 @@ enum error_type synaptics_ts_lpwg(struct i2c_client* client, u32 code, u32 value
 		break;
 	case LPWG_ENABLE:
 		if (!atomic_read(&ts->lpwg_ctrl.is_suspend)) {
-			//ts->lpwg_ctrl.lpwg_mode = value;
-			ts->lpwg_ctrl.lpwg_mode = value ? 1 : 0;
+			ts->lpwg_ctrl.lpwg_mode = value;
 		}
 		break;
 	case LPWG_LCD_X:
@@ -3649,7 +3652,7 @@ enum error_type synaptics_ts_lpwg(struct i2c_client* client, u32 code, u32 value
 				DO_SAFE(lpwg_control(ts, 0), error);
 				atomic_set(&ts->lpwg_ctrl.is_suspend, 0);
 			} else {
-				set_doze_param(ts,0);
+				set_doze_param(ts);
 				sleep_control(ts, 1, 0);
 				DO_SAFE(lpwg_control(ts, ts->lpwg_ctrl.lpwg_mode), error);
 				atomic_set(&ts->lpwg_ctrl.is_suspend, 1);
@@ -3675,7 +3678,6 @@ enum error_type synaptics_ts_lpwg(struct i2c_client* client, u32 code, u32 value
 					tci_control(ts, REPORT_MODE_CTRL, 1);		// wakeup_gesture_only
 					wake_unlock(&ts->timer_wake_lock);
 				}
-				set_knockOn_param(ts,0);
 			}
 		}
 		break;
@@ -3709,8 +3711,7 @@ enum error_type synaptics_ts_lpwg(struct i2c_client* client, u32 code, u32 value
 		int sensor = *(v + 2);
 		int qcover = *(v + 3);
 
-		//ts->lpwg_ctrl.lpwg_mode = mode;
-		ts->lpwg_ctrl.lpwg_mode = mode ? 1 : 0;
+		ts->lpwg_ctrl.lpwg_mode = mode;
 		ts->lpwg_ctrl.screen = screen;
 		ts->lpwg_ctrl.sensor = sensor;
 		ts->lpwg_ctrl.qcover = qcover;
@@ -3721,6 +3722,10 @@ enum error_type synaptics_ts_lpwg(struct i2c_client* client, u32 code, u32 value
 		DO_SAFE(lpwg_update_all(ts, 1), error);
 		break;
 	}
+	case LPWG_INCELL_LPWG_ON:
+		if(!(ts->lpwg_ctrl.screen))
+			tci_control(ts, REPORT_MODE_CTRL, 1);		// wakeup_gesture_only
+		break;
 	default:
 		break;
 	}
@@ -3756,59 +3761,49 @@ static void synapitcs_change_ime_status(struct i2c_client *client, int ime_statu
 	 }
 	 return;
 }
-static void set_knockOn_param(struct synaptics_ts_data *ts, int mode) //0: pocket,  1: origianl
+
+static int set_doze_param(struct synaptics_ts_data *ts)
 {
-	u8 udata[7] = {0};
-	u8 wakeup_address = f12_info.ctrl_reg_addr[27];
-
-	if (mfts_enable) {
-		return;
-	}
-
-	touch_i2c_read(ts->client, wakeup_address, 7, udata);
-
-	if (mode) {
-		udata[2] = 0x0C;
-		udata[4] = 0x0A;
-		udata[5] = 0x0A;
-		if(touch_i2c_write(ts->client, wakeup_address, 7, udata) < 0) {
-			TOUCH_ERR_MSG("%s : Touch i2c write fail !! \n", __func__);
-		}
-	} else {
-		//false activation threshold
-		if (ts->lpwg_ctrl.qcover)
-			udata[2] = 0x0C;
-		else
-			udata[2] = 0x06;
-		udata[4] = 0x00; //timer1
-		udata[5] = 0x0A; //max activation timeout
-		if(touch_i2c_write(ts->client, wakeup_address, 7, udata) < 0) {
-			TOUCH_ERR_MSG("%s : Touch i2c write fail !! \n", __func__);
-		}
-	}
-	TOUCH_DEBUG(DEBUG_BASE_INFO, "%s : state:[%d], [%d] [%d] [%d]\n", __func__, mode, udata[2], udata[4], udata[5]);
-}
-
-static int set_doze_param(struct synaptics_ts_data *ts, int value)
-{
-	int interval = 0;
-	int wakeup = 0;
+	int interval = 3;
+	int wakeup = 50;
+	u8 buf[6] = {0};
 
 	if (mfts_enable) {
 		goto error;
 	}
 
-	if (value == 1) {
-		interval = 1;
-		wakeup = 60;
-	} else {
-		interval = 3;
-		wakeup = 30;
-	}
-	TOUCH_DEBUG(DEBUG_BASE_INFO, "%s: state:[%d], [%d] [%d]\n", __func__, value, interval, wakeup);
+	if(ts->pdata->role->use_jdi_incell) {
+		DO_SAFE(touch_i2c_read(ts->client, DEVICE_CONTROL_REG+5, 1, buf), error);
+		TOUCH_INFO_MSG("Doze Recalibration Interval : %x -> 0x63(10s)\n", buf[0]);
+		buf[0] = 0x63;
+		DO_SAFE(touch_i2c_write_byte(ts->client, DEVICE_CONTROL_REG+5, buf[0]), error);
 
-	DO_SAFE(touch_i2c_write_byte(ts->client, DOZE_INTERVAL_REG, interval), error);
-	DO_SAFE(touch_i2c_write_byte(ts->client, DOZE_WAKEUP_THRESHOLD_REG, wakeup), error);
+		DO_SAFE(touch_i2c_read(ts->client, f12_info.ctrl_reg_addr[27], 6, buf), error);
+		TOUCH_INFO_MSG("abs max spatial difference  : %d -> 20\n", buf[5]);
+		buf[5] = 20;
+		DO_SAFE(touch_i2c_write(ts->client, f12_info.ctrl_reg_addr[27], 6, buf), error);
+	} else {
+		DO_SAFE(touch_i2c_read(ts->client, f12_info.ctrl_reg_addr[27], 6, buf), error);
+
+		/* max active duration */
+		if (ts->pw_data.tap_count < 3)
+			buf[3] = 3;
+		else
+			buf[3] = 3 + ts->pw_data.tap_count;
+
+		buf[2] = 0x0C;	/* False Activation Threshold */
+		buf[4] = 0x01;	/* Timer 1 */
+		buf[5] = 0x01;	/* Max Active Duration Timeout */
+
+		DO_SAFE(touch_i2c_write(ts->client, f12_info.ctrl_reg_addr[27], 6, buf), error);
+		DO_SAFE(touch_i2c_write_byte(ts->client, DOZE_INTERVAL_REG, interval), error);
+		DO_SAFE(touch_i2c_write_byte(ts->client, DOZE_WAKEUP_THRESHOLD_REG, wakeup), error);
+
+		TOUCH_DEBUG(DEBUG_BASE_INFO, "%s: [%d] [%d] [%d] [%d] [%d]\n",
+						__func__, interval, wakeup, (int)buf[3], (int)buf[4], (int)buf[5]);
+		TOUCH_INFO_MSG("Set doze parameters\n");
+	}
+
 
 	return 0;
 error:

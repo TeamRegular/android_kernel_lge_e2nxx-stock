@@ -242,21 +242,6 @@
 					00	00		/* 	11 2 MVNULLRATE	 */
 					00	00		/* 	13 2 MVDTHR	 */
 					00		];	/* 	15 1 CFG	 */
-				atmel,config_t24 = [	18			/* 	[PROCI_ONETOUCHGESTUREPROCESSOR_T24 INSTANCE 0]	 */
-					02			/* 	0 1 CTRL	 */
-					01			/* 	1 1 NUMGEST	 */
-					08	00		/* 	2 2 GESTEN	 */
-					08			/* 	4 1 PROCESS	 */
-					7F			/* 	5 1 TAPTO	 */
-					00			/* 	6 1 FLICKTO	 */
-					00			/* 	7 1 DRAGTO	 */
-					00			/* 	8 1 SPRESSTO	 */
-					00			/* 	9 1 LPRESSTO	 */
-					00			/* 	10 1 REPPRESSTO	 */
-					00	00		/* 	11 2 FLICKTHR	 */
-					00	00		/* 	13 2 DRAGTHR	 */
-					D8	00		/* 	15 2 TAPTHR	 */
-					00	00	];	/* 	17 2 THROWTHR	 */
 				atmel,config_t25 = [	19			/* 	[SPT_SELFTEST_T25 INSTANCE 0]	 */
 					03			/* 	0 1 CTRL	 */
 					00			/* 	1 1 CMD	 */
@@ -289,7 +274,7 @@
 					00			/* 	9 1 DISTHYST	 */
 					00			/* 	10 1 MAXSCRNAREA	 */
 					04			/* 	11 1 CFG	 */
-					00		];	/* 	12 1 UNKNOWN[12]	 */
+					00		];	/* 	12 1 MAXFNGRSAREA	 */
 				atmel,config_t46 = [	2E			/* 	[SPT_CTECONFIG_T46 INSTANCE 0]	 */
 					04			/* 	0 1 CTRL	 */
 					00			/* 	1 1 MODE	 */
@@ -504,70 +489,70 @@
 					70			/* 	17 1 NLGAINSINGX	 */
 					78			/* 	18 1 BLKNLTHR	 */
 					00			/* 	19 1 CFG3	 */
-					00			/* 	20 1 STATE[0]_CTRL	 */
-					0E			/* 	21 1 STATE[0]_FREQ[0]	 */
-					0F			/* 	22 1 STATE[0]_FREQ[1]	 */
-					10			/* 	23 1 STATE[0]_FREQ[2]	 */
-					11			/* 	24 1 STATE[0]_FREQ[3]	 */
-					12			/* 	25 1 STATE[0]_FREQ[4]	 */
-					14			/* 	26 1 STATE[0]_TCHAPX[0]	 */
-					14			/* 	27 1 STATE[0]_TCHAPX[1]	 */
-					14			/* 	28 1 STATE[0]_TCHAPX[2]	 */
-					14			/* 	29 1 STATE[0]_TCHAPX[3]	 */
-					14			/* 	30 1 STATE[0]_TCHAPX[4]	 */
-					08			/* 	31 1 STATE[0]_NOTCHAPX[0]	 */
-					08			/* 	32 1 STATE[0]_NOTCHAPX[1]	 */
-					08			/* 	33 1 STATE[0]_NOTCHAPX[2]	 */
-					08			/* 	34 1 STATE[0]_NOTCHAPX[3]	 */
-					08			/* 	35 1 STATE[0]_NOTCHAPX[4]	 */
-					00			/* 	36 1 STATE[0]_PC	 */
-					00			/* 	37 1 STATE[0]_LOWNLTHR	 */
-					1B			/* 	38 1 STATE[0]_HIGHNLTHR	 */
-					12			/* 	39 1 STATE[0]_CNT	 */
-					01			/* 	40 1 STATE[1]_CTRL	 */
-					0E			/* 	41 1 STATE[1]_FREQ[0]	 */
-					0F			/* 	42 1 STATE[1]_FREQ[1]	 */
-					10			/* 	43 1 STATE[1]_FREQ[2]	 */
-					11			/* 	44 1 STATE[1]_FREQ[3]	 */
-					12			/* 	45 1 STATE[1]_FREQ[4]	 */
-					30			/* 	46 1 STATE[1]_TCHAPX[0]	 */
-					30			/* 	47 1 STATE[1]_TCHAPX[1]	 */
-					30			/* 	48 1 STATE[1]_TCHAPX[2]	 */
-					30			/* 	49 1 STATE[1]_TCHAPX[3]	 */
-					30			/* 	50 1 STATE[1]_TCHAPX[4]	 */
-					20			/* 	51 1 STATE[1]_NOTCHAPX[0]	 */
-					20			/* 	52 1 STATE[1]_NOTCHAPX[1]	 */
-					20			/* 	53 1 STATE[1]_NOTCHAPX[2]	 */
-					20			/* 	54 1 STATE[1]_NOTCHAPX[3]	 */
-					20			/* 	55 1 STATE[1]_NOTCHAPX[4]	 */
-					00			/* 	56 1 STATE[1]_PC	 */
-					11			/* 	57 1 STATE[1]_LOWNLTHR	 */
-					21			/* 	58 1 STATE[1]_HIGHNLTHR	 */
-					11			/* 	59 1 STATE[1]_CNT	 */
-					01			/* 	60 1 STATE[2]_CTRL	 */
-					0E			/* 	61 1 STATE[2]_FREQ[0]	 */
-					0F			/* 	62 1 STATE[2]_FREQ[1]	 */
-					10			/* 	63 1 STATE[2]_FREQ[2]	 */
-					11			/* 	64 1 STATE[2]_FREQ[3]	 */
-					12			/* 	65 1 STATE[2]_FREQ[4]	 */
-					38			/* 	66 1 STATE[2]_TCHAPX[0]	 */
-					38			/* 	67 1 STATE[2]_TCHAPX[1]	 */
-					38			/* 	68 1 STATE[2]_TCHAPX[2]	 */
-					38			/* 	69 1 STATE[2]_TCHAPX[3]	 */
-					38			/* 	70 1 STATE[2]_TCHAPX[4]	 */
-					20			/* 	71 1 STATE[2]_NOTCHAPX[0]	 */
-					20			/* 	72 1 STATE[2]_NOTCHAPX[1]	 */
-					20			/* 	73 1 STATE[2]_NOTCHAPX[2]	 */
-					20			/* 	74 1 STATE[2]_NOTCHAPX[3]	 */
-					20			/* 	75 1 STATE[2]_NOTCHAPX[4]	 */
-					00			/* 	76 1 STATE[2]_PC	 */
-					11			/* 	77 1 STATE[2]_LOWNLTHR	 */
-					00			/* 	78 1 STATE[2]_HIGHNLTHR	 */
-					11			/* 	79 1 STATE[2]_CNT	 */
-					0A			/*  80 1 UNKNOWN[80]     */
-					07			/*  81 1 UNKNOWN[81]     */
-					64			/*  82 1 UNKNOWN[82]     */
-					03		];	/*  83 1 UNKNOWN[83]     */
+					00			/* 	20 1 STABCTRL	 */
+					0E			/* 	21 1 STABFREQ[0]	 */
+					0F			/* 	22 1 STABFREQ[1]	 */
+					10			/* 	23 1 STABFREQ[2]	 */
+					11			/* 	24 1 STABFREQ[3]	 */
+					12			/* 	25 1 STABFREQ[4]	 */
+					14			/* 	26 1 STABTCHAPX[0]	 */
+					14			/* 	27 1 STABTCHAPX[1]	 */
+					14			/* 	28 1 STABTCHAPX[2]	 */
+					14			/* 	29 1 STABTCHAPX[3]	 */
+					14			/* 	30 1 STABTCHAPX[4]	 */
+					08			/* 	31 1 STABNOTCHAPX[0]	 */
+					08			/* 	32 1 STABNOTCHAPX[1]	 */
+					08			/* 	33 1 STABNOTCHAPX[2]	 */
+					08			/* 	34 1 STABNOTCHAPX[3]	 */
+					08			/* 	35 1 STABNOTCHAPX[4]	 */
+					00			/* 	36 1 STABPC	 */
+					00			/* 	37 1 RESERVED[0]	 */
+					1B			/* 	38 1 STABHIGHNLTHR	 */
+					12			/* 	39 1 STABCNT	 */
+					01			/* 	40 1 NOISCTRL	 */
+					0E			/* 	41 1 NOISFREQ[0]	 */
+					0F			/* 	42 1 NOISFREQ[1]	 */
+					10			/* 	43 1 NOISFREQ[2]	 */
+					11			/* 	44 1 NOISFREQ[3]	 */
+					12			/* 	45 1 NOISFREQ[4]	 */
+					30			/* 	46 1 NOISTCHAPX[0]	 */
+					30			/* 	47 1 NOISTCHAPX[1]	 */
+					30			/* 	48 1 NOISTCHAPX[2]	 */
+					30			/* 	49 1 NOISTCHAPX[3]	 */
+					30			/* 	50 1 NOISTCHAPX[4]	 */
+					20			/* 	51 1 NOISNOTCHAPX[0]	 */
+					20			/* 	52 1 NOISNOTCHAPX[1]	 */
+					20			/* 	53 1 NOISNOTCHAPX[2]	 */
+					20			/* 	54 1 NOISNOTCHAPX[3]	 */
+					20			/* 	55 1 NOISNOTCHAPX[4]	 */
+					00			/* 	56 1 NOISPC	 */
+					11			/* 	57 1 NOISLOWNLTHR	 */
+					21			/* 	58 1 NOISHIGHNLTHR	 */
+					11			/* 	59 1 NOISCNT	 */
+					01			/* 	60 1 VNOICTRL	 */
+					0E			/* 	61 1 VNOIFREQ[0]	 */
+					0F			/* 	62 1 VNOIFREQ[1]	 */
+					10			/* 	63 1 VNOIFREQ[2]	 */
+					11			/* 	64 1 VNOIFREQ[3]	 */
+					12			/* 	65 1 VNOIFREQ[4]	 */
+					38			/* 	66 1 VNOITCHAPX[0]	 */
+					38			/* 	67 1 VNOITCHAPX[1]	 */
+					38			/* 	68 1 VNOITCHAPX[2]	 */
+					38			/* 	69 1 VNOITCHAPX[3]	 */
+					38			/* 	70 1 VNOITCHAPX[4]	 */
+					20			/* 	71 1 VNOINOTCHAPX[0]	 */
+					20			/* 	72 1 VNOINOTCHAPX[1]	 */
+					20			/* 	73 1 VNOINOTCHAPX[2]	 */
+					20			/* 	74 1 VNOINOTCHAPX[3]	 */
+					20			/* 	75 1 VNOINOTCHAPX[4]	 */
+					00			/* 	76 1 VNOIPC	 */
+					11			/* 	77 1 VNOILOWNLTHR	 */
+					00			/* 	78 1 RESERVED[1]	 */
+					11			/* 	79 1 VNOICNT	 */
+					0A			/*  80 1 RESERVED[2]     */
+					07			/*  81 1 NOTCHMINDIFF    */
+					64			/*  82 1 TCHMINDIFF     */
+					03		];	/*  83 1 NOTCHMINHOP     */
 				atmel,config_t78 = [	4E			/* 	[PROCI_GLOVEDETECTION_T78 INSTANCE 0]	 */
 					00			/* 	0 1 CTRL	 */
 					00			/* 	1 1 MINAREA	 */
@@ -576,8 +561,7 @@
 					00			/* 	4 1 GLOVEMODETO	 */
 					00			/* 	5 1 SUPTO	 */
 					00			/* 	6 1 SYNCSPERX	 */
-					00			/* 	7 1 HITHRMARGIN	 */
-					00		];	/* 	7 1 UNKNOWN[7]	 */
+					00		];	/* 	7 1 HITHRMARGIN	 */
 				atmel,config_t80 = [	50			/* 	[PROCI_RETRANSMISSIONCOMPENSATION_T80 INSTANCE 0]	 */
 					8D			/* 	0 1 CTRL	 */
 					1E			/* 	1 1 COMPGAIN	 */
@@ -586,116 +570,35 @@
 					0A			/* 	4 1 ATCHTHR	 */
 					CA			/* 	5 1 MOISTCFG	 */
 					00		];	/* 	6 1 MOISTDTO	 */
-				atmel,config_t92 = [	5C			/* 	[UNKNOWN_T92 INSTANCE 0]	 */
-					00			/* 	0 1 UNKNOWN[0]	 */
-					00			/* 	1 1 UNKNOWN[1]	 */
-					00			/* 	2 1 UNKNOWN[2]	 */
-					00			/* 	3 1 UNKNOWN[3]	 */
-					00			/* 	4 1 UNKNOWN[4]	 */
-					00			/* 	5 1 UNKNOWN[5]	 */
-					00			/* 	6 1 UNKNOWN[6]	 */
-					00			/* 	7 1 UNKNOWN[7]	 */
-					00			/* 	8 1 UNKNOWN[8]	 */
-					00			/* 	9 1 UNKNOWN[9]	 */
-					00			/* 	10 1 UNKNOWN[10]	 */
-					00			/* 	11 1 UNKNOWN[11]	 */
-					00			/* 	12 1 UNKNOWN[12]	 */
-					00			/* 	13 1 UNKNOWN[13]	 */
-					00			/* 	14 1 UNKNOWN[14]	 */
-					00			/* 	15 1 UNKNOWN[15]	 */
-					00			/* 	16 1 UNKNOWN[16]	 */
-					00			/* 	17 1 UNKNOWN[17]	 */
-					00			/* 	18 1 UNKNOWN[18]	 */
-					00			/* 	19 1 UNKNOWN[19]	 */
-					00			/* 	20 1 UNKNOWN[20]	 */
-					00			/* 	21 1 UNKNOWN[21]	 */
-					00			/* 	22 1 UNKNOWN[22]	 */
-					00			/* 	23 1 UNKNOWN[23]	 */
-					00			/* 	24 1 UNKNOWN[24]	 */
-					00			/* 	25 1 UNKNOWN[25]	 */
-					00			/* 	26 1 UNKNOWN[26]	 */
-					00			/* 	27 1 UNKNOWN[27]	 */
-					00			/* 	28 1 UNKNOWN[28]	 */
-					00			/* 	29 1 UNKNOWN[29]	 */
-					00			/* 	30 1 UNKNOWN[30]	 */
-					00			/* 	31 1 UNKNOWN[31]	 */
-					00			/* 	32 1 UNKNOWN[32]	 */
-					00			/* 	33 1 UNKNOWN[33]	 */
-					00			/* 	34 1 UNKNOWN[34]	 */
-					00			/* 	35 1 UNKNOWN[35]	 */
-					00			/* 	36 1 UNKNOWN[36]	 */
-					00			/* 	37 1 UNKNOWN[37]	 */
-					00			/* 	38 1 UNKNOWN[38]	 */
-					00			/* 	39 1 UNKNOWN[39]	 */
-					00			/* 	40 1 UNKNOWN[40]	 */
-					00			/* 	41 1 UNKNOWN[41]	 */
-					00			/* 	42 1 UNKNOWN[42]	 */
-					00			/* 	43 1 UNKNOWN[43]	 */
-					00			/* 	44 1 UNKNOWN[44]	 */
-					00			/* 	45 1 UNKNOWN[45]	 */
-					00			/* 	46 1 UNKNOWN[46]	 */
-					00			/* 	47 1 UNKNOWN[47]	 */
-					00			/* 	48 1 UNKNOWN[48]	 */
-					00			/* 	49 1 UNKNOWN[49]	 */
-					00			/* 	50 1 UNKNOWN[50]	 */
-					00			/* 	51 1 UNKNOWN[51]	 */
-					00			/* 	52 1 UNKNOWN[52]	 */
-					00			/* 	53 1 UNKNOWN[53]	 */
-					00			/* 	54 1 UNKNOWN[54]	 */
-					00			/* 	55 1 UNKNOWN[55]	 */
-					00			/* 	56 1 UNKNOWN[56]	 */
-					00			/* 	57 1 UNKNOWN[57]	 */
-					00			/* 	58 1 UNKNOWN[58]	 */
-					00			/* 	59 1 UNKNOWN[59]	 */
-					00			/* 	60 1 UNKNOWN[60]	 */
-					00			/* 	61 1 UNKNOWN[61]	 */
-					00			/* 	62 1 UNKNOWN[62]	 */
-					00			/* 	63 1 UNKNOWN[63]	 */
-					00			/* 	64 1 UNKNOWN[64]	 */
-					00			/* 	65 1 UNKNOWN[65]	 */
-					00			/* 	66 1 UNKNOWN[66]	 */
-					00			/* 	67 1 UNKNOWN[67]	 */
-					00			/* 	68 1 UNKNOWN[68]	 */
-					00			/* 	69 1 UNKNOWN[69]	 */
-					00			/* 	70 1 UNKNOWN[70]	 */
-					00			/* 	71 1 UNKNOWN[71]	 */
-					00			/* 	72 1 UNKNOWN[72]	 */
-					00			/* 	73 1 UNKNOWN[73]	 */
-					00			/* 	74 1 UNKNOWN[74]	 */
-					00			/* 	75 1 UNKNOWN[75]	 */
-					00			/* 	76 1 UNKNOWN[76]	 */
-					00			/* 	77 1 UNKNOWN[77]	 */
-					00			/* 	78 1 UNKNOWN[78]	 */
-					00			/* 	79 1 UNKNOWN[79]	 */
-					00			/* 	80 1 UNKNOWN[80]	 */
-					00			/* 	81 1 UNKNOWN[81]	 */
-					00			/* 	82 1 UNKNOWN[82]	 */
-					00			/* 	83 1 UNKNOWN[83]	 */
-					00			/* 	84 1 UNKNOWN[84]	 */
-					00			/* 	85 1 UNKNOWN[85]	 */
-					00			/* 	86 1 UNKNOWN[86]	 */
-					00			/* 	87 1 UNKNOWN[87]	 */
-					00			/* 	88 1 UNKNOWN[88]	 */
-					00		];	/* 	89 1 UNKNOWN[89]	 */
-				atmel,config_t93 = [	5D			/* 	[UNKNOWN_T93 INSTANCE 0]	 */
-					01			/* 	0 1 UNKNOWN[0]	 */
-					2B			/* 	1 1 UNKNOWN[1]	 */
-					00			/* 	2 1 UNKNOWN[2]	 */
-					0D			/* 	3 1 UNKNOWN[3]	 */
-					04			/* 	4 1 UNKNOWN[4]	 */
-					2B			/* 	5 1 UNKNOWN[5]	 */
-					00			/* 	6 1 UNKNOWN[6]	 */
-					56			/* 	7 1 UNKNOWN[7]	 */
-					07			/* 	8 1 UNKNOWN[8]	 */
-					90			/* 	9 1 UNKNOWN[9]	 */
-					00			/* 	10 1 UNKNOWN[10]	 */
-					00			/* 	11 1 UNKNOWN[11]	 */
-					18			/* 	12 1 UNKNOWN[12]	 */
-					00			/* 	13 1 UNKNOWN[13]	 */
-					41			/* 	14 1 UNKNOWN[14]	 */
-					00			/* 	15 1 UNKNOWN[15]	 */
-					2C			/* 	16 1 UNKNOWN[16]	 */
-					00		];	/* 	17 1 UNKNOWN[17]	 */
+				atmel,config_t93 = [	5D/* 	[UNKNOWN_T93 INSTANCE 0]	 */
+					01 			/* 	0 1 UNKNOWN[0]	 */
+					2B 			/* 	1 1 UNKNOWN[1]	 */
+					00 			/* 	2 1 UNKNOWN[2]	 */
+					0D 			/* 	3 1 UNKNOWN[3]	 */
+					04 			/* 	4 1 UNKNOWN[4]	 */
+					0D 			/* 	5 1 UNKNOWN[5]	 */
+					00 			/* 	6 1 UNKNOWN[6]	 */
+					56 			/* 	7 1 UNKNOWN[7]	 */
+					07 			/* 	8 1 UNKNOWN[8]	 */
+					90 			/* 	9 1 UNKNOWN[9]	 */
+					00 			/* 	10 1 UNKNOWN[10]	 */
+					F4 			/* 	11 1 UNKNOWN[11]	 */
+					10 			/* 	12 1 UNKNOWN[12]	 */
+					00 			/* 	13 1 UNKNOWN[13]	 */
+					41 			/* 	14 1 UNKNOWN[14]	 */
+					00 			/* 	15 1 UNKNOWN[15]	 */
+					2C 			/* 	16 1 UNKNOWN[16]	 */
+					04 			/* 	17 1 UNKNOWN[17]	 */
+					32 			/* 	18 1 UNKNOWN[17]	 */
+					32 			/* 	19 1 UNKNOWN[17]	 */
+					D8 			/* 	20 1 UNKNOWN[17]	 */
+					00 			/* 	21 1 UNKNOWN[17]	 */
+					D8 			/* 	22 1 UNKNOWN[17]	 */
+					00 			/* 	23 1 UNKNOWN[17]	 */
+					00 			/* 	24 1 UNKNOWN[17]	 */
+					41 			/* 	25 1 UNKNOWN[17]	 */
+					00 			/* 	26 1 UNKNOWN[17]	 */
+					2C 		];	/* 	27 1 UNKNOWN[17]	 */
 				atmel,config_t100 = [	64			/* 	[TOUCH_MULTITOUCHSCREEN_T100 INSTANCE 0]	 */
 					83			/* 	0 1 CTRL	 */
 					BC			/* 	1 1 CFG1	 */
@@ -798,38 +701,29 @@
 					00			/* 	25 1 DYNIIRTHRU	 */
 					00			/* 	26 1 DYNIIRTHRL	 */
 					00			/* 	27 1 DYNIIRCLMP	 */
-					CA			/* 	28 1 RECALCFG	 */
-					CA		];	/* 	28 1 UNKNOWN[28]	 */
+					CA		];	/* 	28 1 RECALCFG	 */
 				atmel,config_t103 = [	67			/* 	[UNKNOWN_T103 INSTANCE 0]	 */
-					00			/* 	0 1 UNKNOWN[0]	 */
-					00			/* 	1 1 UNKNOWN[1]	 */
-					00			/* 	2 1 UNKNOWN[2]	 */
-					00			/* 	3 1 UNKNOWN[3]	 */
-					00			/* 	4 1 UNKNOWN[4]	 */
-					00			/* 	5 1 UNKNOWN[5]	 */
-					00			/* 	6 1 UNKNOWN[6]	 */
-					00			/* 	7 1 UNKNOWN[7]	 */
-					00			/* 	8 1 UNKNOWN[8]	 */
-					00			/* 	9 1 UNKNOWN[9]	 */
-					00			/* 	10 1 UNKNOWN[10]	 */
-					00			/* 	11 1 UNKNOWN[11]	 */
-					00			/* 	12 1 UNKNOWN[12]	 */
-					00			/* 	13 1 UNKNOWN[13]	 */
+					00			/* 	0 1 CTRL	 */
+					00			/* 	1 1 CFG	 */
+					00			/* 	2 1 MSGRATE	 */
+					00			/* 	3 1 PROCST	 */
+					00			/* 	4 2 SCHSIGLOTHR	 */
+					00			/* 	6 2 SCHSIGHITHR	 */
+					00			/* 	8 1 NLXGAIN	 */
+					00			/* 	9 1 NLYGAIN	 */
+					00			/* 	10 2 NLLOTHR	 */
+					00			/* 	12 2 NLHITHR	 */
 								/* 	[UNKNOWN_T103 INSTANCE 1]	 */
-					00			/* 	0 1 UNKNOWN[0]	 */
-					00			/* 	1 1 UNKNOWN[1]	 */
-					00			/* 	2 1 UNKNOWN[2]	 */
-					00			/* 	3 1 UNKNOWN[3]	 */
-					00			/* 	4 1 UNKNOWN[4]	 */
-					00			/* 	5 1 UNKNOWN[5]	 */
-					00			/* 	6 1 UNKNOWN[6]	 */
-					00			/* 	7 1 UNKNOWN[7]	 */
-					00			/* 	8 1 UNKNOWN[8]	 */
-					00			/* 	9 1 UNKNOWN[9]	 */
-					00			/* 	10 1 UNKNOWN[10]	 */
-					00			/* 	11 1 UNKNOWN[11]	 */
-					00			/* 	12 1 UNKNOWN[12]	 */
-					00		];	/* 	13 1 UNKNOWN[13]	 */
+					00			/* 	0 1 CTRL 	 */
+					00			/* 	1 1 CFG	 */
+					00			/* 	2 1 MSGRATE	 */
+					00			/* 	3 1 PROCST	 */
+					00			/* 	4 2 SCHSIGLOTHR	 */
+					00			/* 	6 2 SCHSIGHITHR	 */
+					00			/* 	8 1 NLXGAIN	 */
+					00			/* 	9 1 NLYGAIN	 */
+					00			/* 	10 2 NLLOTHR	 */
+					00		];	/* 	12 2 NLHITHR	 */
 				atmel,config_t104 = [	68			/* 	[SPT_AUXTOUCHCONFIG_T104 INSTANCE 0]	 */
 					01			/* 	0 1 CTRL	 */
 					03			/* 	1 1 XGAIN	 */
@@ -861,6 +755,15 @@
 					00			/* 	15 1 DYNIIRTHRU	 */
 					00			/* 	16 1 DYNIIRTHRL	 */
 					00		];	/* 	17 1 DYNIIRCLMP	 */
+				atmel,config_t240 = [	F0   /* 	[T240]	 */
+					00 			/* 	0 1 UNKNOWN[0]	 */
+					00 			/* 	1 1 UNKNOWN[1]	 */
+					00 			/* 	2 1 UNKNOWN[2]	 */
+					00 			/* 	3 1 UNKNOWN[3]	 */
+					00 			/* 	4 1 UNKNOWN[4]	 */
+					00 			/* 	5 1 UNKNOWN[5]	 */
+					00 			/* 	6 1 UNKNOWN[6]	 */
+					00];		/* 	7 1 UNKNOWN[7]	 */
 			};
 		};
 		atmel_s540_rev_b@4a {
@@ -1052,21 +955,6 @@
 					00	00		/* 	11 2 MVNULLRATE	 */
 					00	00		/* 	13 2 MVDTHR	 */
 					00		];	/* 	15 1 CFG	 */
-				atmel,config_t24 = [	18			/* 	[PROCI_ONETOUCHGESTUREPROCESSOR_T24 INSTANCE 0]	 */
-					02			/* 	0 1 CTRL	 */
-					01			/* 	1 1 NUMGEST	 */
-					08	00		/* 	2 2 GESTEN	 */
-					08			/* 	4 1 PROCESS	 */
-					7F			/* 	5 1 TAPTO	 */
-					00			/* 	6 1 FLICKTO	 */
-					00			/* 	7 1 DRAGTO	 */
-					00			/* 	8 1 SPRESSTO	 */
-					00			/* 	9 1 LPRESSTO	 */
-					00			/* 	10 1 REPPRESSTO	 */
-					00	00		/* 	11 2 FLICKTHR	 */
-					00	00		/* 	13 2 DRAGTHR	 */
-					D8	00		/* 	15 2 TAPTHR	 */
-					00	00	];	/* 	17 2 THROWTHR	 */
 				atmel,config_t25 = [	19			/* 	[SPT_SELFTEST_T25 INSTANCE 0]	 */
 					03			/* 	0 1 CTRL	 */
 					00			/* 	1 1 CMD	 */
@@ -1099,7 +987,7 @@
 					00			/* 	9 1 DISTHYST	 */
 					00			/* 	10 1 MAXSCRNAREA	 */
 					04			/* 	11 1 CFG	 */
-					00		];	/* 	12 1 UNKNOWN[12]	 */
+					00		];	/* 	12 1 MAXFNGRSAREA	 */
 				atmel,config_t46 = [	2E			/* 	[SPT_CTECONFIG_T46 INSTANCE 0]	 */
 					04			/* 	0 1 CTRL	 */
 					00			/* 	1 1 MODE	 */
@@ -1314,70 +1202,70 @@
 					70			/* 	17 1 NLGAINSINGX	 */
 					78			/* 	18 1 BLKNLTHR	 */
 					00			/* 	19 1 CFG3	 */
-					00			/* 	20 1 STATE[0]_CTRL	 */
-					0E			/* 	21 1 STATE[0]_FREQ[0]	 */
-					0F			/* 	22 1 STATE[0]_FREQ[1]	 */
-					10			/* 	23 1 STATE[0]_FREQ[2]	 */
-					11			/* 	24 1 STATE[0]_FREQ[3]	 */
-					12			/* 	25 1 STATE[0]_FREQ[4]	 */
-					14			/* 	26 1 STATE[0]_TCHAPX[0]	 */
-					14			/* 	27 1 STATE[0]_TCHAPX[1]	 */
-					14			/* 	28 1 STATE[0]_TCHAPX[2]	 */
-					14			/* 	29 1 STATE[0]_TCHAPX[3]	 */
-					14			/* 	30 1 STATE[0]_TCHAPX[4]	 */
-					08			/* 	31 1 STATE[0]_NOTCHAPX[0]	 */
-					08			/* 	32 1 STATE[0]_NOTCHAPX[1]	 */
-					08			/* 	33 1 STATE[0]_NOTCHAPX[2]	 */
-					08			/* 	34 1 STATE[0]_NOTCHAPX[3]	 */
-					08			/* 	35 1 STATE[0]_NOTCHAPX[4]	 */
-					00			/* 	36 1 STATE[0]_PC	 */
-					00			/* 	37 1 STATE[0]_LOWNLTHR	 */
-					1B			/* 	38 1 STATE[0]_HIGHNLTHR	 */
-					12			/* 	39 1 STATE[0]_CNT	 */
-					01			/* 	40 1 STATE[1]_CTRL	 */
-					0E			/* 	41 1 STATE[1]_FREQ[0]	 */
-					0F			/* 	42 1 STATE[1]_FREQ[1]	 */
-					10			/* 	43 1 STATE[1]_FREQ[2]	 */
-					11			/* 	44 1 STATE[1]_FREQ[3]	 */
-					12			/* 	45 1 STATE[1]_FREQ[4]	 */
-					30			/* 	46 1 STATE[1]_TCHAPX[0]	 */
-					30			/* 	47 1 STATE[1]_TCHAPX[1]	 */
-					30			/* 	48 1 STATE[1]_TCHAPX[2]	 */
-					30			/* 	49 1 STATE[1]_TCHAPX[3]	 */
-					30			/* 	50 1 STATE[1]_TCHAPX[4]	 */
-					20			/* 	51 1 STATE[1]_NOTCHAPX[0]	 */
-					20			/* 	52 1 STATE[1]_NOTCHAPX[1]	 */
-					20			/* 	53 1 STATE[1]_NOTCHAPX[2]	 */
-					20			/* 	54 1 STATE[1]_NOTCHAPX[3]	 */
-					20			/* 	55 1 STATE[1]_NOTCHAPX[4]	 */
-					00			/* 	56 1 STATE[1]_PC	 */
-					11			/* 	57 1 STATE[1]_LOWNLTHR	 */
-					21			/* 	58 1 STATE[1]_HIGHNLTHR	 */
-					11			/* 	59 1 STATE[1]_CNT	 */
-					01			/* 	60 1 STATE[2]_CTRL	 */
-					0E			/* 	61 1 STATE[2]_FREQ[0]	 */
-					0F			/* 	62 1 STATE[2]_FREQ[1]	 */
-					10			/* 	63 1 STATE[2]_FREQ[2]	 */
-					11			/* 	64 1 STATE[2]_FREQ[3]	 */
-					12			/* 	65 1 STATE[2]_FREQ[4]	 */
-					38			/* 	66 1 STATE[2]_TCHAPX[0]	 */
-					38			/* 	67 1 STATE[2]_TCHAPX[1]	 */
-					38			/* 	68 1 STATE[2]_TCHAPX[2]	 */
-					38			/* 	69 1 STATE[2]_TCHAPX[3]	 */
-					38			/* 	70 1 STATE[2]_TCHAPX[4]	 */
-					20			/* 	71 1 STATE[2]_NOTCHAPX[0]	 */
-					20			/* 	72 1 STATE[2]_NOTCHAPX[1]	 */
-					20			/* 	73 1 STATE[2]_NOTCHAPX[2]	 */
-					20			/* 	74 1 STATE[2]_NOTCHAPX[3]	 */
-					20			/* 	75 1 STATE[2]_NOTCHAPX[4]	 */
-					00			/* 	76 1 STATE[2]_PC	 */
-					11			/* 	77 1 STATE[2]_LOWNLTHR	 */
-					00			/* 	78 1 STATE[2]_HIGHNLTHR	 */
-					11			/* 	79 1 STATE[2]_CNT	 */
-					0A			/*  80 1 UNKNOWN[80]     */
-					07			/*  81 1 UNKNOWN[81]     */
-					64			/*  82 1 UNKNOWN[82]     */
-					03		];	/*  83 1 UNKNOWN[83]     */
+					00			/* 	20 1 STABCTRL	 */
+					0E			/* 	21 1 STABFREQ[0]	 */
+					0F			/* 	22 1 STABFREQ[1]	 */
+					10			/* 	23 1 STABFREQ[2]	 */
+					11			/* 	24 1 STABFREQ[3]	 */
+					12			/* 	25 1 STABFREQ[4]	 */
+					14			/* 	26 1 STABTCHAPX[0]	 */
+					14			/* 	27 1 STABTCHAPX[1]	 */
+					14			/* 	28 1 STABTCHAPX[2]	 */
+					14			/* 	29 1 STABTCHAPX[3]	 */
+					14			/* 	30 1 STABTCHAPX[4]	 */
+					08			/* 	31 1 STABNOTCHAPX[0]	 */
+					08			/* 	32 1 STABNOTCHAPX[1]	 */
+					08			/* 	33 1 STABNOTCHAPX[2]	 */
+					08			/* 	34 1 STABNOTCHAPX[3]	 */
+					08			/* 	35 1 STABNOTCHAPX[4]	 */
+					00			/* 	36 1 STABPC	 */
+					00			/* 	37 1 RESERVED[0]	 */
+					1B			/* 	38 1 STABHIGHNLTHR	 */
+					12			/* 	39 1 STABCNT	 */
+					01			/* 	40 1 NOISCTRL	 */
+					0E			/* 	41 1 NOISFREQ[0]	 */
+					0F			/* 	42 1 NOISFREQ[1]	 */
+					10			/* 	43 1 NOISFREQ[2]	 */
+					11			/* 	44 1 NOISFREQ[3]	 */
+					12			/* 	45 1 NOISFREQ[4]	 */
+					30			/* 	46 1 NOISTCHAPX[0]	 */
+					30			/* 	47 1 NOISTCHAPX[1]	 */
+					30			/* 	48 1 NOISTCHAPX[2]	 */
+					30			/* 	49 1 NOISTCHAPX[3]	 */
+					30			/* 	50 1 NOISTCHAPX[4]	 */
+					20			/* 	51 1 NOISNOTCHAPX[0]	 */
+					20			/* 	52 1 NOISNOTCHAPX[1]	 */
+					20			/* 	53 1 NOISNOTCHAPX[2]	 */
+					20			/* 	54 1 NOISNOTCHAPX[3]	 */
+					20			/* 	55 1 NOISNOTCHAPX[4]	 */
+					00			/* 	56 1 NOISPC	 */
+					11			/* 	57 1 NOISLOWNLTHR	 */
+					21			/* 	58 1 NOISHIGHNLTHR	 */
+					11			/* 	59 1 NOISCNT	 */
+					01			/* 	60 1 VNOICTRL	 */
+					0E			/* 	61 1 VNOIFREQ[0]	 */
+					0F			/* 	62 1 VNOIFREQ[1]	 */
+					10			/* 	63 1 VNOIFREQ[2]	 */
+					11			/* 	64 1 VNOIFREQ[3]	 */
+					12			/* 	65 1 VNOIFREQ[4]	 */
+					38			/* 	66 1 VNOITCHAPX[0]	 */
+					38			/* 	67 1 VNOITCHAPX[1]	 */
+					38			/* 	68 1 VNOITCHAPX[2]	 */
+					38			/* 	69 1 VNOITCHAPX[3]	 */
+					38			/* 	70 1 VNOITCHAPX[4]	 */
+					20			/* 	71 1 VNOINOTCHAPX[0]	 */
+					20			/* 	72 1 VNOINOTCHAPX[1]	 */
+					20			/* 	73 1 VNOINOTCHAPX[2]	 */
+					20			/* 	74 1 VNOINOTCHAPX[3]	 */
+					20			/* 	75 1 VNOINOTCHAPX[4]	 */
+					00			/* 	76 1 VNOIPC	 */
+					11			/* 	77 1 VNOILOWNLTHR	 */
+					00			/* 	78 1 RESERVED[1]	 */
+					11			/* 	79 1 VNOICNT	 */
+					0A			/*  80 1 RESERVED[2]     */
+					07			/*  81 1 NOTCHMINDIFF    */
+					64			/*  82 1 TCHMINDIFF     */
+					03		];	/*  83 1 NOTCHMINHOP     */
 				atmel,config_t78 = [	4E			/* 	[PROCI_GLOVEDETECTION_T78 INSTANCE 0]	 */
 					00			/* 	0 1 CTRL	 */
 					00			/* 	1 1 MINAREA	 */
@@ -1386,8 +1274,7 @@
 					00			/* 	4 1 GLOVEMODETO	 */
 					00			/* 	5 1 SUPTO	 */
 					00			/* 	6 1 SYNCSPERX	 */
-					00			/* 	7 1 HITHRMARGIN	 */
-					00		];	/* 	7 1 UNKNOWN[7]	 */
+					00		];	/* 	7 1 HITHRMARGIN	 */
 				atmel,config_t80 = [	50			/* 	[PROCI_RETRANSMISSIONCOMPENSATION_T80 INSTANCE 0]	 */
 					8D			/* 	0 1 CTRL	 */
 					1E			/* 	1 1 COMPGAIN	 */
@@ -1396,116 +1283,35 @@
 					0A			/* 	4 1 ATCHTHR	 */
 					CA			/* 	5 1 MOISTCFG	 */
 					00		];	/* 	6 1 MOISTDTO	 */
-				atmel,config_t92 = [	5C			/* 	[UNKNOWN_T92 INSTANCE 0]	 */
-					00			/* 	0 1 UNKNOWN[0]	 */
-					00			/* 	1 1 UNKNOWN[1]	 */
-					00			/* 	2 1 UNKNOWN[2]	 */
-					00			/* 	3 1 UNKNOWN[3]	 */
-					00			/* 	4 1 UNKNOWN[4]	 */
-					00			/* 	5 1 UNKNOWN[5]	 */
-					00			/* 	6 1 UNKNOWN[6]	 */
-					00			/* 	7 1 UNKNOWN[7]	 */
-					00			/* 	8 1 UNKNOWN[8]	 */
-					00			/* 	9 1 UNKNOWN[9]	 */
-					00			/* 	10 1 UNKNOWN[10]	 */
-					00			/* 	11 1 UNKNOWN[11]	 */
-					00			/* 	12 1 UNKNOWN[12]	 */
-					00			/* 	13 1 UNKNOWN[13]	 */
-					00			/* 	14 1 UNKNOWN[14]	 */
-					00			/* 	15 1 UNKNOWN[15]	 */
-					00			/* 	16 1 UNKNOWN[16]	 */
-					00			/* 	17 1 UNKNOWN[17]	 */
-					00			/* 	18 1 UNKNOWN[18]	 */
-					00			/* 	19 1 UNKNOWN[19]	 */
-					00			/* 	20 1 UNKNOWN[20]	 */
-					00			/* 	21 1 UNKNOWN[21]	 */
-					00			/* 	22 1 UNKNOWN[22]	 */
-					00			/* 	23 1 UNKNOWN[23]	 */
-					00			/* 	24 1 UNKNOWN[24]	 */
-					00			/* 	25 1 UNKNOWN[25]	 */
-					00			/* 	26 1 UNKNOWN[26]	 */
-					00			/* 	27 1 UNKNOWN[27]	 */
-					00			/* 	28 1 UNKNOWN[28]	 */
-					00			/* 	29 1 UNKNOWN[29]	 */
-					00			/* 	30 1 UNKNOWN[30]	 */
-					00			/* 	31 1 UNKNOWN[31]	 */
-					00			/* 	32 1 UNKNOWN[32]	 */
-					00			/* 	33 1 UNKNOWN[33]	 */
-					00			/* 	34 1 UNKNOWN[34]	 */
-					00			/* 	35 1 UNKNOWN[35]	 */
-					00			/* 	36 1 UNKNOWN[36]	 */
-					00			/* 	37 1 UNKNOWN[37]	 */
-					00			/* 	38 1 UNKNOWN[38]	 */
-					00			/* 	39 1 UNKNOWN[39]	 */
-					00			/* 	40 1 UNKNOWN[40]	 */
-					00			/* 	41 1 UNKNOWN[41]	 */
-					00			/* 	42 1 UNKNOWN[42]	 */
-					00			/* 	43 1 UNKNOWN[43]	 */
-					00			/* 	44 1 UNKNOWN[44]	 */
-					00			/* 	45 1 UNKNOWN[45]	 */
-					00			/* 	46 1 UNKNOWN[46]	 */
-					00			/* 	47 1 UNKNOWN[47]	 */
-					00			/* 	48 1 UNKNOWN[48]	 */
-					00			/* 	49 1 UNKNOWN[49]	 */
-					00			/* 	50 1 UNKNOWN[50]	 */
-					00			/* 	51 1 UNKNOWN[51]	 */
-					00			/* 	52 1 UNKNOWN[52]	 */
-					00			/* 	53 1 UNKNOWN[53]	 */
-					00			/* 	54 1 UNKNOWN[54]	 */
-					00			/* 	55 1 UNKNOWN[55]	 */
-					00			/* 	56 1 UNKNOWN[56]	 */
-					00			/* 	57 1 UNKNOWN[57]	 */
-					00			/* 	58 1 UNKNOWN[58]	 */
-					00			/* 	59 1 UNKNOWN[59]	 */
-					00			/* 	60 1 UNKNOWN[60]	 */
-					00			/* 	61 1 UNKNOWN[61]	 */
-					00			/* 	62 1 UNKNOWN[62]	 */
-					00			/* 	63 1 UNKNOWN[63]	 */
-					00			/* 	64 1 UNKNOWN[64]	 */
-					00			/* 	65 1 UNKNOWN[65]	 */
-					00			/* 	66 1 UNKNOWN[66]	 */
-					00			/* 	67 1 UNKNOWN[67]	 */
-					00			/* 	68 1 UNKNOWN[68]	 */
-					00			/* 	69 1 UNKNOWN[69]	 */
-					00			/* 	70 1 UNKNOWN[70]	 */
-					00			/* 	71 1 UNKNOWN[71]	 */
-					00			/* 	72 1 UNKNOWN[72]	 */
-					00			/* 	73 1 UNKNOWN[73]	 */
-					00			/* 	74 1 UNKNOWN[74]	 */
-					00			/* 	75 1 UNKNOWN[75]	 */
-					00			/* 	76 1 UNKNOWN[76]	 */
-					00			/* 	77 1 UNKNOWN[77]	 */
-					00			/* 	78 1 UNKNOWN[78]	 */
-					00			/* 	79 1 UNKNOWN[79]	 */
-					00			/* 	80 1 UNKNOWN[80]	 */
-					00			/* 	81 1 UNKNOWN[81]	 */
-					00			/* 	82 1 UNKNOWN[82]	 */
-					00			/* 	83 1 UNKNOWN[83]	 */
-					00			/* 	84 1 UNKNOWN[84]	 */
-					00			/* 	85 1 UNKNOWN[85]	 */
-					00			/* 	86 1 UNKNOWN[86]	 */
-					00			/* 	87 1 UNKNOWN[87]	 */
-					00			/* 	88 1 UNKNOWN[88]	 */
-					00		];	/* 	89 1 UNKNOWN[89]	 */
-				atmel,config_t93 = [	5D			/* 	[UNKNOWN_T93 INSTANCE 0]	 */
-					01			/* 	0 1 UNKNOWN[0]	 */
-					2B			/* 	1 1 UNKNOWN[1]	 */
-					00			/* 	2 1 UNKNOWN[2]	 */
-					0D			/* 	3 1 UNKNOWN[3]	 */
-					04			/* 	4 1 UNKNOWN[4]	 */
-					2B			/* 	5 1 UNKNOWN[5]	 */
-					00			/* 	6 1 UNKNOWN[6]	 */
-					56			/* 	7 1 UNKNOWN[7]	 */
-					07			/* 	8 1 UNKNOWN[8]	 */
-					90			/* 	9 1 UNKNOWN[9]	 */
-					00			/* 	10 1 UNKNOWN[10]	 */
-					00			/* 	11 1 UNKNOWN[11]	 */
-					18			/* 	12 1 UNKNOWN[12]	 */
-					00			/* 	13 1 UNKNOWN[13]	 */
-					41			/* 	14 1 UNKNOWN[14]	 */
-					00			/* 	15 1 UNKNOWN[15]	 */
-					2C			/* 	16 1 UNKNOWN[16]	 */
-					00		];	/* 	17 1 UNKNOWN[17]	 */
+				atmel,config_t93 = [	5D/* 	[UNKNOWN_T93 INSTANCE 0]	 */
+					01 			/* 	0 1 UNKNOWN[0]	 */
+					2B 			/* 	1 1 UNKNOWN[1]	 */
+					00 			/* 	2 1 UNKNOWN[2]	 */
+					0D 			/* 	3 1 UNKNOWN[3]	 */
+					04 			/* 	4 1 UNKNOWN[4]	 */
+					0D 			/* 	5 1 UNKNOWN[5]	 */
+					00 			/* 	6 1 UNKNOWN[6]	 */
+					56 			/* 	7 1 UNKNOWN[7]	 */
+					07 			/* 	8 1 UNKNOWN[8]	 */
+					90 			/* 	9 1 UNKNOWN[9]	 */
+					00 			/* 	10 1 UNKNOWN[10]	 */
+					F4 			/* 	11 1 UNKNOWN[11]	 */
+					10 			/* 	12 1 UNKNOWN[12]	 */
+					00 			/* 	13 1 UNKNOWN[13]	 */
+					41 			/* 	14 1 UNKNOWN[14]	 */
+					00 			/* 	15 1 UNKNOWN[15]	 */
+					2C 			/* 	16 1 UNKNOWN[16]	 */
+					04 			/* 	17 1 UNKNOWN[17]	 */
+					32 			/* 	18 1 UNKNOWN[17]	 */
+					32 			/* 	19 1 UNKNOWN[17]	 */
+					D8 			/* 	20 1 UNKNOWN[17]	 */
+					00 			/* 	21 1 UNKNOWN[17]	 */
+					D8 			/* 	22 1 UNKNOWN[17]	 */
+					00 			/* 	23 1 UNKNOWN[17]	 */
+					00 			/* 	24 1 UNKNOWN[17]	 */
+					41 			/* 	25 1 UNKNOWN[17]	 */
+					00 			/* 	26 1 UNKNOWN[17]	 */
+					2C 		];	/* 	27 1 UNKNOWN[17]	 */
 				atmel,config_t100 = [	64			/* 	[TOUCH_MULTITOUCHSCREEN_T100 INSTANCE 0]	 */
 					83			/* 	0 1 CTRL	 */
 					BC			/* 	1 1 CFG1	 */
@@ -1608,38 +1414,29 @@
 					00			/* 	25 1 DYNIIRTHRU	 */
 					00			/* 	26 1 DYNIIRTHRL	 */
 					00			/* 	27 1 DYNIIRCLMP	 */
-					CA			/* 	28 1 RECALCFG	 */
-					CA		];	/* 	28 1 UNKNOWN[28]	 */
+					CA		];	/* 	28 1 RECALCFG	 */
 				atmel,config_t103 = [	67			/* 	[UNKNOWN_T103 INSTANCE 0]	 */
-					00			/* 	0 1 UNKNOWN[0]	 */
-					00			/* 	1 1 UNKNOWN[1]	 */
-					00			/* 	2 1 UNKNOWN[2]	 */
-					00			/* 	3 1 UNKNOWN[3]	 */
-					00			/* 	4 1 UNKNOWN[4]	 */
-					00			/* 	5 1 UNKNOWN[5]	 */
-					00			/* 	6 1 UNKNOWN[6]	 */
-					00			/* 	7 1 UNKNOWN[7]	 */
-					00			/* 	8 1 UNKNOWN[8]	 */
-					00			/* 	9 1 UNKNOWN[9]	 */
-					00			/* 	10 1 UNKNOWN[10]	 */
-					00			/* 	11 1 UNKNOWN[11]	 */
-					00			/* 	12 1 UNKNOWN[12]	 */
-					00			/* 	13 1 UNKNOWN[13]	 */
+					00			/* 	0 1 CTRL	 */
+					00			/* 	1 1 CFG	 */
+					00			/* 	2 1 MSGRATE	 */
+					00			/* 	3 1 PROCST	 */
+					00			/* 	4 2 SCHSIGLOTHR	 */
+					00			/* 	6 2 SCHSIGHITHR	 */
+					00			/* 	8 1 NLXGAIN	 */
+					00			/* 	9 1 NLYGAIN	 */
+					00			/* 	10 2 NLLOTHR	 */
+					00			/* 	12 2 NLHITHR	 */
 								/* 	[UNKNOWN_T103 INSTANCE 1]	 */
-					00			/* 	0 1 UNKNOWN[0]	 */
-					00			/* 	1 1 UNKNOWN[1]	 */
-					00			/* 	2 1 UNKNOWN[2]	 */
-					00			/* 	3 1 UNKNOWN[3]	 */
-					00			/* 	4 1 UNKNOWN[4]	 */
-					00			/* 	5 1 UNKNOWN[5]	 */
-					00			/* 	6 1 UNKNOWN[6]	 */
-					00			/* 	7 1 UNKNOWN[7]	 */
-					00			/* 	8 1 UNKNOWN[8]	 */
-					00			/* 	9 1 UNKNOWN[9]	 */
-					00			/* 	10 1 UNKNOWN[10]	 */
-					00			/* 	11 1 UNKNOWN[11]	 */
-					00			/* 	12 1 UNKNOWN[12]	 */
-					00		];	/* 	13 1 UNKNOWN[13]	 */
+					00			/* 	0 1 CTRL 	 */
+					00			/* 	1 1 CFG	 */
+					00			/* 	2 1 MSGRATE	 */
+					00			/* 	3 1 PROCST	 */
+					00			/* 	4 2 SCHSIGLOTHR	 */
+					00			/* 	6 2 SCHSIGHITHR	 */
+					00			/* 	8 1 NLXGAIN	 */
+					00			/* 	9 1 NLYGAIN	 */
+					00			/* 	10 2 NLLOTHR	 */
+					00		];	/* 	12 2 NLHITHR	 */
 				atmel,config_t104 = [	68			/* 	[SPT_AUXTOUCHCONFIG_T104 INSTANCE 0]	 */
 					01			/* 	0 1 CTRL	 */
 					03			/* 	1 1 XGAIN	 */
@@ -1671,6 +1468,15 @@
 					00			/* 	15 1 DYNIIRTHRU	 */
 					00			/* 	16 1 DYNIIRTHRL	 */
 					00		];	/* 	17 1 DYNIIRCLMP	 */
+				atmel,config_t240 = [	F0   /* 	[T240]	 */
+					00 			/* 	0 1 UNKNOWN[0]	 */
+					00 			/* 	1 1 UNKNOWN[1]	 */
+					00 			/* 	2 1 UNKNOWN[2]	 */
+					00 			/* 	3 1 UNKNOWN[3]	 */
+					00 			/* 	4 1 UNKNOWN[4]	 */
+					00 			/* 	5 1 UNKNOWN[5]	 */
+					00 			/* 	6 1 UNKNOWN[6]	 */
+					00];		/* 	7 1 UNKNOWN[7]	 */
 			};
 		};
 		atmel_s540_rev_c@4a {
@@ -1862,21 +1668,6 @@
 					00	00		/* 	11 2 MVNULLRATE	 */
 					00	00		/* 	13 2 MVDTHR	 */
 					00		];	/* 	15 1 CFG	 */
-				atmel,config_t24 = [	18			/* 	[PROCI_ONETOUCHGESTUREPROCESSOR_T24 INSTANCE 0]	 */
-					02			/* 	0 1 CTRL	 */
-					01			/* 	1 1 NUMGEST	 */
-					08	00		/* 	2 2 GESTEN	 */
-					08			/* 	4 1 PROCESS	 */
-					7F			/* 	5 1 TAPTO	 */
-					00			/* 	6 1 FLICKTO	 */
-					00			/* 	7 1 DRAGTO	 */
-					00			/* 	8 1 SPRESSTO	 */
-					00			/* 	9 1 LPRESSTO	 */
-					00			/* 	10 1 REPPRESSTO	 */
-					00	00		/* 	11 2 FLICKTHR	 */
-					00	00		/* 	13 2 DRAGTHR	 */
-					D8	00		/* 	15 2 TAPTHR	 */
-					00	00	];	/* 	17 2 THROWTHR	 */
 				atmel,config_t25 = [	19			/* 	[SPT_SELFTEST_T25 INSTANCE 0]	 */
 					03			/* 	0 1 CTRL	 */
 					00			/* 	1 1 CMD	 */
@@ -1909,7 +1700,7 @@
 					00			/* 	9 1 DISTHYST	 */
 					00			/* 	10 1 MAXSCRNAREA	 */
 					04			/* 	11 1 CFG	 */
-					00		];	/* 	12 1 UNKNOWN[12]	 */
+					00		];	/* 	12 1 MAXFNGRSAREA	 */
 				atmel,config_t46 = [	2E			/* 	[SPT_CTECONFIG_T46 INSTANCE 0]	 */
 					04			/* 	0 1 CTRL	 */
 					00			/* 	1 1 MODE	 */
@@ -2124,70 +1915,70 @@
 					70			/* 	17 1 NLGAINSINGX	 */
 					78			/* 	18 1 BLKNLTHR	 */
 					00			/* 	19 1 CFG3	 */
-					00			/* 	20 1 STATE[0]_CTRL	 */
-					0E			/* 	21 1 STATE[0]_FREQ[0]	 */
-					0F			/* 	22 1 STATE[0]_FREQ[1]	 */
-					10			/* 	23 1 STATE[0]_FREQ[2]	 */
-					11			/* 	24 1 STATE[0]_FREQ[3]	 */
-					12			/* 	25 1 STATE[0]_FREQ[4]	 */
-					14			/* 	26 1 STATE[0]_TCHAPX[0]	 */
-					14			/* 	27 1 STATE[0]_TCHAPX[1]	 */
-					14			/* 	28 1 STATE[0]_TCHAPX[2]	 */
-					14			/* 	29 1 STATE[0]_TCHAPX[3]	 */
-					14			/* 	30 1 STATE[0]_TCHAPX[4]	 */
-					08			/* 	31 1 STATE[0]_NOTCHAPX[0]	 */
-					08			/* 	32 1 STATE[0]_NOTCHAPX[1]	 */
-					08			/* 	33 1 STATE[0]_NOTCHAPX[2]	 */
-					08			/* 	34 1 STATE[0]_NOTCHAPX[3]	 */
-					08			/* 	35 1 STATE[0]_NOTCHAPX[4]	 */
-					00			/* 	36 1 STATE[0]_PC	 */
-					00			/* 	37 1 STATE[0]_LOWNLTHR	 */
-					1B			/* 	38 1 STATE[0]_HIGHNLTHR	 */
-					12			/* 	39 1 STATE[0]_CNT	 */
-					01			/* 	40 1 STATE[1]_CTRL	 */
-					0E			/* 	41 1 STATE[1]_FREQ[0]	 */
-					0F			/* 	42 1 STATE[1]_FREQ[1]	 */
-					10			/* 	43 1 STATE[1]_FREQ[2]	 */
-					11			/* 	44 1 STATE[1]_FREQ[3]	 */
-					12			/* 	45 1 STATE[1]_FREQ[4]	 */
-					30			/* 	46 1 STATE[1]_TCHAPX[0]	 */
-					30			/* 	47 1 STATE[1]_TCHAPX[1]	 */
-					30			/* 	48 1 STATE[1]_TCHAPX[2]	 */
-					30			/* 	49 1 STATE[1]_TCHAPX[3]	 */
-					30			/* 	50 1 STATE[1]_TCHAPX[4]	 */
-					20			/* 	51 1 STATE[1]_NOTCHAPX[0]	 */
-					20			/* 	52 1 STATE[1]_NOTCHAPX[1]	 */
-					20			/* 	53 1 STATE[1]_NOTCHAPX[2]	 */
-					20			/* 	54 1 STATE[1]_NOTCHAPX[3]	 */
-					20			/* 	55 1 STATE[1]_NOTCHAPX[4]	 */
-					00			/* 	56 1 STATE[1]_PC	 */
-					11			/* 	57 1 STATE[1]_LOWNLTHR	 */
-					21			/* 	58 1 STATE[1]_HIGHNLTHR	 */
-					11			/* 	59 1 STATE[1]_CNT	 */
-					01			/* 	60 1 STATE[2]_CTRL	 */
-					0E			/* 	61 1 STATE[2]_FREQ[0]	 */
-					0F			/* 	62 1 STATE[2]_FREQ[1]	 */
-					10			/* 	63 1 STATE[2]_FREQ[2]	 */
-					11			/* 	64 1 STATE[2]_FREQ[3]	 */
-					12			/* 	65 1 STATE[2]_FREQ[4]	 */
-					38			/* 	66 1 STATE[2]_TCHAPX[0]	 */
-					38			/* 	67 1 STATE[2]_TCHAPX[1]	 */
-					38			/* 	68 1 STATE[2]_TCHAPX[2]	 */
-					38			/* 	69 1 STATE[2]_TCHAPX[3]	 */
-					38			/* 	70 1 STATE[2]_TCHAPX[4]	 */
-					20			/* 	71 1 STATE[2]_NOTCHAPX[0]	 */
-					20			/* 	72 1 STATE[2]_NOTCHAPX[1]	 */
-					20			/* 	73 1 STATE[2]_NOTCHAPX[2]	 */
-					20			/* 	74 1 STATE[2]_NOTCHAPX[3]	 */
-					20			/* 	75 1 STATE[2]_NOTCHAPX[4]	 */
-					00			/* 	76 1 STATE[2]_PC	 */
-					11			/* 	77 1 STATE[2]_LOWNLTHR	 */
-					00			/* 	78 1 STATE[2]_HIGHNLTHR	 */
-					11			/* 	79 1 STATE[2]_CNT	 */
-					0A			/*  80 1 UNKNOWN[80]     */
-					07			/*  81 1 UNKNOWN[81]     */
-					64			/*  82 1 UNKNOWN[82]     */
-					03		];	/*  83 1 UNKNOWN[83]     */
+					00			/* 	20 1 STABCTRL	 */
+					0E			/* 	21 1 STABFREQ[0]	 */
+					0F			/* 	22 1 STABFREQ[1]	 */
+					10			/* 	23 1 STABFREQ[2]	 */
+					11			/* 	24 1 STABFREQ[3]	 */
+					12			/* 	25 1 STABFREQ[4]	 */
+					14			/* 	26 1 STABTCHAPX[0]	 */
+					14			/* 	27 1 STABTCHAPX[1]	 */
+					14			/* 	28 1 STABTCHAPX[2]	 */
+					14			/* 	29 1 STABTCHAPX[3]	 */
+					14			/* 	30 1 STABTCHAPX[4]	 */
+					08			/* 	31 1 STABNOTCHAPX[0]	 */
+					08			/* 	32 1 STABNOTCHAPX[1]	 */
+					08			/* 	33 1 STABNOTCHAPX[2]	 */
+					08			/* 	34 1 STABNOTCHAPX[3]	 */
+					08			/* 	35 1 STABNOTCHAPX[4]	 */
+					00			/* 	36 1 STABPC	 */
+					00			/* 	37 1 RESERVED[0]	 */
+					1B			/* 	38 1 STABHIGHNLTHR	 */
+					12			/* 	39 1 STABCNT	 */
+					01			/* 	40 1 NOISCTRL	 */
+					0E			/* 	41 1 NOISFREQ[0]	 */
+					0F			/* 	42 1 NOISFREQ[1]	 */
+					10			/* 	43 1 NOISFREQ[2]	 */
+					11			/* 	44 1 NOISFREQ[3]	 */
+					12			/* 	45 1 NOISFREQ[4]	 */
+					30			/* 	46 1 NOISTCHAPX[0]	 */
+					30			/* 	47 1 NOISTCHAPX[1]	 */
+					30			/* 	48 1 NOISTCHAPX[2]	 */
+					30			/* 	49 1 NOISTCHAPX[3]	 */
+					30			/* 	50 1 NOISTCHAPX[4]	 */
+					20			/* 	51 1 NOISNOTCHAPX[0]	 */
+					20			/* 	52 1 NOISNOTCHAPX[1]	 */
+					20			/* 	53 1 NOISNOTCHAPX[2]	 */
+					20			/* 	54 1 NOISNOTCHAPX[3]	 */
+					20			/* 	55 1 NOISNOTCHAPX[4]	 */
+					00			/* 	56 1 NOISPC	 */
+					11			/* 	57 1 NOISLOWNLTHR	 */
+					21			/* 	58 1 NOISHIGHNLTHR	 */
+					11			/* 	59 1 NOISCNT	 */
+					01			/* 	60 1 VNOICTRL	 */
+					0E			/* 	61 1 VNOIFREQ[0]	 */
+					0F			/* 	62 1 VNOIFREQ[1]	 */
+					10			/* 	63 1 VNOIFREQ[2]	 */
+					11			/* 	64 1 VNOIFREQ[3]	 */
+					12			/* 	65 1 VNOIFREQ[4]	 */
+					38			/* 	66 1 VNOITCHAPX[0]	 */
+					38			/* 	67 1 VNOITCHAPX[1]	 */
+					38			/* 	68 1 VNOITCHAPX[2]	 */
+					38			/* 	69 1 VNOITCHAPX[3]	 */
+					38			/* 	70 1 VNOITCHAPX[4]	 */
+					20			/* 	71 1 VNOINOTCHAPX[0]	 */
+					20			/* 	72 1 VNOINOTCHAPX[1]	 */
+					20			/* 	73 1 VNOINOTCHAPX[2]	 */
+					20			/* 	74 1 VNOINOTCHAPX[3]	 */
+					20			/* 	75 1 VNOINOTCHAPX[4]	 */
+					00			/* 	76 1 VNOIPC	 */
+					11			/* 	77 1 VNOILOWNLTHR	 */
+					00			/* 	78 1 RESERVED[1]	 */
+					11			/* 	79 1 VNOICNT	 */
+					0A			/*  80 1 RESERVED[2]     */
+					07			/*  81 1 NOTCHMINDIFF    */
+					64			/*  82 1 TCHMINDIFF     */
+					03		];	/*  83 1 NOTCHMINHOP     */
 				atmel,config_t78 = [	4E			/* 	[PROCI_GLOVEDETECTION_T78 INSTANCE 0]	 */
 					00			/* 	0 1 CTRL	 */
 					00			/* 	1 1 MINAREA	 */
@@ -2196,8 +1987,7 @@
 					00			/* 	4 1 GLOVEMODETO	 */
 					00			/* 	5 1 SUPTO	 */
 					00			/* 	6 1 SYNCSPERX	 */
-					00			/* 	7 1 HITHRMARGIN	 */
-					00		];	/* 	7 1 UNKNOWN[7]	 */
+					00		];	/* 	7 1 HITHRMARGIN	 */
 				atmel,config_t80 = [	50			/* 	[PROCI_RETRANSMISSIONCOMPENSATION_T80 INSTANCE 0]	 */
 					8D			/* 	0 1 CTRL	 */
 					1E			/* 	1 1 COMPGAIN	 */
@@ -2206,116 +1996,35 @@
 					0A			/* 	4 1 ATCHTHR	 */
 					CA			/* 	5 1 MOISTCFG	 */
 					00		];	/* 	6 1 MOISTDTO	 */
-				atmel,config_t92 = [	5C			/* 	[UNKNOWN_T92 INSTANCE 0]	 */
-					00			/* 	0 1 UNKNOWN[0]	 */
-					00			/* 	1 1 UNKNOWN[1]	 */
-					00			/* 	2 1 UNKNOWN[2]	 */
-					00			/* 	3 1 UNKNOWN[3]	 */
-					00			/* 	4 1 UNKNOWN[4]	 */
-					00			/* 	5 1 UNKNOWN[5]	 */
-					00			/* 	6 1 UNKNOWN[6]	 */
-					00			/* 	7 1 UNKNOWN[7]	 */
-					00			/* 	8 1 UNKNOWN[8]	 */
-					00			/* 	9 1 UNKNOWN[9]	 */
-					00			/* 	10 1 UNKNOWN[10]	 */
-					00			/* 	11 1 UNKNOWN[11]	 */
-					00			/* 	12 1 UNKNOWN[12]	 */
-					00			/* 	13 1 UNKNOWN[13]	 */
-					00			/* 	14 1 UNKNOWN[14]	 */
-					00			/* 	15 1 UNKNOWN[15]	 */
-					00			/* 	16 1 UNKNOWN[16]	 */
-					00			/* 	17 1 UNKNOWN[17]	 */
-					00			/* 	18 1 UNKNOWN[18]	 */
-					00			/* 	19 1 UNKNOWN[19]	 */
-					00			/* 	20 1 UNKNOWN[20]	 */
-					00			/* 	21 1 UNKNOWN[21]	 */
-					00			/* 	22 1 UNKNOWN[22]	 */
-					00			/* 	23 1 UNKNOWN[23]	 */
-					00			/* 	24 1 UNKNOWN[24]	 */
-					00			/* 	25 1 UNKNOWN[25]	 */
-					00			/* 	26 1 UNKNOWN[26]	 */
-					00			/* 	27 1 UNKNOWN[27]	 */
-					00			/* 	28 1 UNKNOWN[28]	 */
-					00			/* 	29 1 UNKNOWN[29]	 */
-					00			/* 	30 1 UNKNOWN[30]	 */
-					00			/* 	31 1 UNKNOWN[31]	 */
-					00			/* 	32 1 UNKNOWN[32]	 */
-					00			/* 	33 1 UNKNOWN[33]	 */
-					00			/* 	34 1 UNKNOWN[34]	 */
-					00			/* 	35 1 UNKNOWN[35]	 */
-					00			/* 	36 1 UNKNOWN[36]	 */
-					00			/* 	37 1 UNKNOWN[37]	 */
-					00			/* 	38 1 UNKNOWN[38]	 */
-					00			/* 	39 1 UNKNOWN[39]	 */
-					00			/* 	40 1 UNKNOWN[40]	 */
-					00			/* 	41 1 UNKNOWN[41]	 */
-					00			/* 	42 1 UNKNOWN[42]	 */
-					00			/* 	43 1 UNKNOWN[43]	 */
-					00			/* 	44 1 UNKNOWN[44]	 */
-					00			/* 	45 1 UNKNOWN[45]	 */
-					00			/* 	46 1 UNKNOWN[46]	 */
-					00			/* 	47 1 UNKNOWN[47]	 */
-					00			/* 	48 1 UNKNOWN[48]	 */
-					00			/* 	49 1 UNKNOWN[49]	 */
-					00			/* 	50 1 UNKNOWN[50]	 */
-					00			/* 	51 1 UNKNOWN[51]	 */
-					00			/* 	52 1 UNKNOWN[52]	 */
-					00			/* 	53 1 UNKNOWN[53]	 */
-					00			/* 	54 1 UNKNOWN[54]	 */
-					00			/* 	55 1 UNKNOWN[55]	 */
-					00			/* 	56 1 UNKNOWN[56]	 */
-					00			/* 	57 1 UNKNOWN[57]	 */
-					00			/* 	58 1 UNKNOWN[58]	 */
-					00			/* 	59 1 UNKNOWN[59]	 */
-					00			/* 	60 1 UNKNOWN[60]	 */
-					00			/* 	61 1 UNKNOWN[61]	 */
-					00			/* 	62 1 UNKNOWN[62]	 */
-					00			/* 	63 1 UNKNOWN[63]	 */
-					00			/* 	64 1 UNKNOWN[64]	 */
-					00			/* 	65 1 UNKNOWN[65]	 */
-					00			/* 	66 1 UNKNOWN[66]	 */
-					00			/* 	67 1 UNKNOWN[67]	 */
-					00			/* 	68 1 UNKNOWN[68]	 */
-					00			/* 	69 1 UNKNOWN[69]	 */
-					00			/* 	70 1 UNKNOWN[70]	 */
-					00			/* 	71 1 UNKNOWN[71]	 */
-					00			/* 	72 1 UNKNOWN[72]	 */
-					00			/* 	73 1 UNKNOWN[73]	 */
-					00			/* 	74 1 UNKNOWN[74]	 */
-					00			/* 	75 1 UNKNOWN[75]	 */
-					00			/* 	76 1 UNKNOWN[76]	 */
-					00			/* 	77 1 UNKNOWN[77]	 */
-					00			/* 	78 1 UNKNOWN[78]	 */
-					00			/* 	79 1 UNKNOWN[79]	 */
-					00			/* 	80 1 UNKNOWN[80]	 */
-					00			/* 	81 1 UNKNOWN[81]	 */
-					00			/* 	82 1 UNKNOWN[82]	 */
-					00			/* 	83 1 UNKNOWN[83]	 */
-					00			/* 	84 1 UNKNOWN[84]	 */
-					00			/* 	85 1 UNKNOWN[85]	 */
-					00			/* 	86 1 UNKNOWN[86]	 */
-					00			/* 	87 1 UNKNOWN[87]	 */
-					00			/* 	88 1 UNKNOWN[88]	 */
-					00		];	/* 	89 1 UNKNOWN[89]	 */
-				atmel,config_t93 = [	5D			/* 	[UNKNOWN_T93 INSTANCE 0]	 */
-					01			/* 	0 1 UNKNOWN[0]	 */
-					2B			/* 	1 1 UNKNOWN[1]	 */
-					00			/* 	2 1 UNKNOWN[2]	 */
-					0D			/* 	3 1 UNKNOWN[3]	 */
-					04			/* 	4 1 UNKNOWN[4]	 */
-					2B			/* 	5 1 UNKNOWN[5]	 */
-					00			/* 	6 1 UNKNOWN[6]	 */
-					56			/* 	7 1 UNKNOWN[7]	 */
-					07			/* 	8 1 UNKNOWN[8]	 */
-					90			/* 	9 1 UNKNOWN[9]	 */
-					00			/* 	10 1 UNKNOWN[10]	 */
-					00			/* 	11 1 UNKNOWN[11]	 */
-					18			/* 	12 1 UNKNOWN[12]	 */
-					00			/* 	13 1 UNKNOWN[13]	 */
-					41			/* 	14 1 UNKNOWN[14]	 */
-					00			/* 	15 1 UNKNOWN[15]	 */
-					2C			/* 	16 1 UNKNOWN[16]	 */
-					00		];	/* 	17 1 UNKNOWN[17]	 */
+				atmel,config_t93 = [	5D/* 	[UNKNOWN_T93 INSTANCE 0]	 */
+					01 			/* 	0 1 UNKNOWN[0]	 */
+					2B 			/* 	1 1 UNKNOWN[1]	 */
+					00 			/* 	2 1 UNKNOWN[2]	 */
+					0D 			/* 	3 1 UNKNOWN[3]	 */
+					04 			/* 	4 1 UNKNOWN[4]	 */
+					0D 			/* 	5 1 UNKNOWN[5]	 */
+					00 			/* 	6 1 UNKNOWN[6]	 */
+					56 			/* 	7 1 UNKNOWN[7]	 */
+					07 			/* 	8 1 UNKNOWN[8]	 */
+					90 			/* 	9 1 UNKNOWN[9]	 */
+					00 			/* 	10 1 UNKNOWN[10]	 */
+					F4 			/* 	11 1 UNKNOWN[11]	 */
+					10 			/* 	12 1 UNKNOWN[12]	 */
+					00 			/* 	13 1 UNKNOWN[13]	 */
+					41 			/* 	14 1 UNKNOWN[14]	 */
+					00 			/* 	15 1 UNKNOWN[15]	 */
+					2C 			/* 	16 1 UNKNOWN[16]	 */
+					04 			/* 	17 1 UNKNOWN[17]	 */
+					32 			/* 	18 1 UNKNOWN[17]	 */
+					32 			/* 	19 1 UNKNOWN[17]	 */
+					D8 			/* 	20 1 UNKNOWN[17]	 */
+					00 			/* 	21 1 UNKNOWN[17]	 */
+					D8 			/* 	22 1 UNKNOWN[17]	 */
+					00 			/* 	23 1 UNKNOWN[17]	 */
+					00 			/* 	24 1 UNKNOWN[17]	 */
+					41 			/* 	25 1 UNKNOWN[17]	 */
+					00 			/* 	26 1 UNKNOWN[17]	 */
+					2C 		];	/* 	27 1 UNKNOWN[17]	 */
 				atmel,config_t100 = [	64			/* 	[TOUCH_MULTITOUCHSCREEN_T100 INSTANCE 0]	 */
 					83			/* 	0 1 CTRL	 */
 					BC			/* 	1 1 CFG1	 */
@@ -2418,38 +2127,29 @@
 					00			/* 	25 1 DYNIIRTHRU	 */
 					00			/* 	26 1 DYNIIRTHRL	 */
 					00			/* 	27 1 DYNIIRCLMP	 */
-					CA			/* 	28 1 RECALCFG	 */
-					CA		];	/* 	28 1 UNKNOWN[28]	 */
+					CA		];	/* 	28 1 RECALCFG	 */
 				atmel,config_t103 = [	67			/* 	[UNKNOWN_T103 INSTANCE 0]	 */
-					00			/* 	0 1 UNKNOWN[0]	 */
-					00			/* 	1 1 UNKNOWN[1]	 */
-					00			/* 	2 1 UNKNOWN[2]	 */
-					00			/* 	3 1 UNKNOWN[3]	 */
-					00			/* 	4 1 UNKNOWN[4]	 */
-					00			/* 	5 1 UNKNOWN[5]	 */
-					00			/* 	6 1 UNKNOWN[6]	 */
-					00			/* 	7 1 UNKNOWN[7]	 */
-					00			/* 	8 1 UNKNOWN[8]	 */
-					00			/* 	9 1 UNKNOWN[9]	 */
-					00			/* 	10 1 UNKNOWN[10]	 */
-					00			/* 	11 1 UNKNOWN[11]	 */
-					00			/* 	12 1 UNKNOWN[12]	 */
-					00			/* 	13 1 UNKNOWN[13]	 */
+					00			/* 	0 1 CTRL	 */
+					00			/* 	1 1 CFG	 */
+					00			/* 	2 1 MSGRATE	 */
+					00			/* 	3 1 PROCST	 */
+					00			/* 	4 2 SCHSIGLOTHR	 */
+					00			/* 	6 2 SCHSIGHITHR	 */
+					00			/* 	8 1 NLXGAIN	 */
+					00			/* 	9 1 NLYGAIN	 */
+					00			/* 	10 2 NLLOTHR	 */
+					00			/* 	12 2 NLHITHR	 */
 								/* 	[UNKNOWN_T103 INSTANCE 1]	 */
-					00			/* 	0 1 UNKNOWN[0]	 */
-					00			/* 	1 1 UNKNOWN[1]	 */
-					00			/* 	2 1 UNKNOWN[2]	 */
-					00			/* 	3 1 UNKNOWN[3]	 */
-					00			/* 	4 1 UNKNOWN[4]	 */
-					00			/* 	5 1 UNKNOWN[5]	 */
-					00			/* 	6 1 UNKNOWN[6]	 */
-					00			/* 	7 1 UNKNOWN[7]	 */
-					00			/* 	8 1 UNKNOWN[8]	 */
-					00			/* 	9 1 UNKNOWN[9]	 */
-					00			/* 	10 1 UNKNOWN[10]	 */
-					00			/* 	11 1 UNKNOWN[11]	 */
-					00			/* 	12 1 UNKNOWN[12]	 */
-					00		];	/* 	13 1 UNKNOWN[13]	 */
+					00			/* 	0 1 CTRL 	 */
+					00			/* 	1 1 CFG	 */
+					00			/* 	2 1 MSGRATE	 */
+					00			/* 	3 1 PROCST	 */
+					00			/* 	4 2 SCHSIGLOTHR	 */
+					00			/* 	6 2 SCHSIGHITHR	 */
+					00			/* 	8 1 NLXGAIN	 */
+					00			/* 	9 1 NLYGAIN	 */
+					00			/* 	10 2 NLLOTHR	 */
+					00		];	/* 	12 2 NLHITHR	 */
 				atmel,config_t104 = [	68			/* 	[SPT_AUXTOUCHCONFIG_T104 INSTANCE 0]	 */
 					01			/* 	0 1 CTRL	 */
 					03			/* 	1 1 XGAIN	 */
@@ -2481,7 +2181,33 @@
 					00			/* 	15 1 DYNIIRTHRU	 */
 					00			/* 	16 1 DYNIIRTHRL	 */
 					00		];	/* 	17 1 DYNIIRCLMP	 */
+				atmel,config_t240 = [	F0   /* 	[T240]	 */
+					00 			/* 	0 1 UNKNOWN[0]	 */
+					00 			/* 	1 1 UNKNOWN[1]	 */
+					00 			/* 	2 1 UNKNOWN[2]	 */
+					00 			/* 	3 1 UNKNOWN[3]	 */
+					00 			/* 	4 1 UNKNOWN[4]	 */
+					00 			/* 	5 1 UNKNOWN[5]	 */
+					00 			/* 	6 1 UNKNOWN[6]	 */
+					00];		/* 	7 1 UNKNOWN[7]	 */
 			};
+		};
+		lge_ts_misc {
+			revision = "rev_a";
+			vdd_on = <1>;
+			vio_l19_on = <1>;
+			vio_lvs1_on = <1>;
+			irq_wake = <0>;
+			status ="ok";
+		};
+		lge_ts_misc_rev_0 {
+			compatible = "lge,ts_misc";
+			vdd_on = <1>;
+			vio_l19_on = <1>;
+			vio_lvs1_on = <1>;
+			irq_wake = <0>;
+			status ="okay";
+			revision = "rev_0";
 		};
 	};
 };

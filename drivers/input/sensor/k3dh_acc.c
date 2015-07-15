@@ -875,46 +875,6 @@ static int k3dh_read_Calibration_data(struct i2c_client *client)
 	return 0;
 }
 
-/* Store Reserved Regitser for chip defect */
-static int k3dh_store_reserved_reg(struct device *dev)
-{
-	struct k3dh_acc_data *k3dh = dev_get_drvdata(dev);
-	int err = -1;
-	int i = 0;
-	u8 rsvd_l[7] = {0,};
-	u8 rsvd_m[4]  = {0,};
-	u8 rsvd_h[15] = {0,};
-
-	rsvd_l[0] = (I2C_AUTO_INCREMENT | 0x00 );
-	err = k3dh_acc_i2c_read(k3dh,rsvd_l,sizeof(rsvd_l));
-	if(err < 0)
-		return err;
-
-	rsvd_m[0] = (I2C_AUTO_INCREMENT | 0x08 );
-	err = k3dh_acc_i2c_read(k3dh,rsvd_m,sizeof(rsvd_m));
-	if(err < 0)
-		return err;
-
-	rsvd_h[0] = (I2C_AUTO_INCREMENT | 0x10 );
-	err = k3dh_acc_i2c_read(k3dh,rsvd_h, sizeof(rsvd_h));
-	if(err < 0)
-		return err;
-
-	for(i = 0 ; i < sizeof(rsvd_l) ; i++)
-	{
-		dev_err(dev, "Reserved Regitser(0x0%x) %x", i, rsvd_l[i]);
-	}
-	for(i = 0 ; i < sizeof(rsvd_m) ; i++)
-	{
-		dev_err(dev, "Reserved Regitser(0x0%x) %x", i+8, rsvd_m[i]);
-	}
-	for(i = 0 ; i < sizeof(rsvd_h) ; i++)
-	{
-		dev_err(dev, "Reserved Regitser(0x%x) %x", i+16, rsvd_h[i]);
-	}
-	return err;
-}
-
 static int k3dh_store_Calibration_data(struct device *dev)
 {
 	unsigned char offset_x_src[5],offset_y_src[5],offset_z_src[5];
@@ -1983,9 +1943,6 @@ static int k3dh_do_calibration(struct device *dev, char *axis)
 			dev_err(dev, "Calibration zero-g offset check failed (%d, %d, %d)\n",
 					sum[K3DH_AXIS_X]/CALIBRATION_DATA_AMOUNT, sum[K3DH_AXIS_Y]/CALIBRATION_DATA_AMOUNT, sum[K3DH_AXIS_Z]/CALIBRATION_DATA_AMOUNT);
 			atomic_set(&k3dh->fast_calib_rslt, 0);
-			if(k3dh_store_reserved_reg(dev) < 0)
-				dev_err(dev,"Reserved register store error");
-
 			return -EINVAL;
 	}
 
@@ -2207,9 +2164,6 @@ static ssize_t k3dh_fast_calibration_store(struct device *dev, struct device_att
 			dev_err(dev, "Calibration zero-g offset check failed (%d, %d, %d)\n",
 					sum[K3DH_AXIS_X]/CALIBRATION_DATA_AMOUNT, sum[K3DH_AXIS_Y]/CALIBRATION_DATA_AMOUNT, sum[K3DH_AXIS_Z]/CALIBRATION_DATA_AMOUNT);
 			atomic_set(&k3dh->fast_calib_rslt, 0);
-			if(k3dh_store_reserved_reg(dev) < 0)
-				dev_err(dev,"Reserved register store error");
-
 			return -EINVAL;
 	}
 

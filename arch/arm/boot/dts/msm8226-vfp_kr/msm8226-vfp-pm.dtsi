@@ -16,15 +16,6 @@
 
 &spmi_bus {
 	qcom,pm8226@0 {
-		qcom,power-on@800 {
-			compatible = "qcom,qpnp-power-on";
-			qcom,s3-debounce = <128>;
-			qcom,system-reset;
-			reg = <0x800 0x100>;
-			qcom,pon_3 {
-				qcom,support-reset = <0>;
-			};
-		};
 		qcom,leds@a100 {
 			status = "okay";
 			qcom,led_mpp_2 {
@@ -70,7 +61,7 @@
 		qcom,vibrator@c000 {
                         status = "okay";
                         qcom,vib-timeout-ms = <15000>;
-                        qcom,vib-vtg-level-mV = <2400>;
+                        qcom,vib-vtg-level-mV = <3100>;
                 };
 		qcom,leds@d300 {
 			status = "okay";
@@ -318,7 +309,6 @@
 	qcom,ibatterm-ma = <150>;
 	qcom,vbatdet-delta-mv = <100>;
 	qcom,tchg-mins = <480>;
-	qcom,btc-disabled = <1>;
 };
 &pm8226_bms{
 
@@ -337,7 +327,7 @@
 	qcom,low-voltage-calculate-soc-ms=<1000>;
 	qcom,chg-term-ua = <100000>;
 	qcom,batt-type = <0>;
-	qcom,low-voltage-threshold = <3320000>;
+	qcom,low-voltage-threshold = <3420000>;
 	qcom,use-external-rsense = <1>;
 };
 
@@ -381,6 +371,7 @@
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1800000>;
 			qcom,init-voltage = <1800000>;
+			regulator-always-on;
 			status = "okay";
 		};
 	};

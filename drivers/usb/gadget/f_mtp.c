@@ -588,11 +588,10 @@ static struct mtp_dev *func_to_mtp(struct usb_function *f)
 {
 	struct mtp_dev *dev;
 	dev = container_of(f, struct mtp_dev, function);
-	if ((dev->function.name) && !strcmp(dev->function.name, "mtp")) {
+	if ((dev->function.name) && !strcmp(dev->function.name, "mtp"))
 		return dev;
-	} else {
+	else
 		return container_of(f, struct mtp_dev, function2);
-	}
 }
 #else
 static inline struct mtp_dev *func_to_mtp(struct usb_function *f)
@@ -1164,7 +1163,7 @@ static void send_file_work(struct work_struct *data)
 
 	DBG(cdev, "send_file_work(%lld %lld)\n", offset, count);
 #ifdef CONFIG_USB_G_LGE_MTP_PROFILING
-	if(!ktime_to_ms(dev->perf.first_start_rtime)) {
+	if (!ktime_to_ms(dev->perf.first_start_rtime)) {
 		dev->perf.first_start_rtime = ktime_get();
 		dev->perf.r_count = 0;
 	}
@@ -1300,7 +1299,7 @@ static void receive_file_work(struct work_struct *data)
 
 	DBG(cdev, "receive_file_work(%lld)\n", count);
 #ifdef CONFIG_USB_G_LGE_MTP_PROFILING
-	if(!ktime_to_ms(dev->perf.first_start_wtime)) {
+	if (!ktime_to_ms(dev->perf.first_start_wtime)) {
 		dev->perf.first_start_wtime = ktime_get();
 		dev->perf.w_count = 0;
 	}
@@ -1549,18 +1548,18 @@ static int mtp_open(struct inode *ip, struct file *fp)
 #if defined CONFIG_USB_G_LGE_ANDROID && defined CONFIG_LGE_PM
 	enum lge_boot_mode_type boot_mode;
 	boot_mode = lge_get_boot_mode();
-	switch(boot_mode){
-		case LGE_BOOT_MODE_QEM_56K:
-		case LGE_BOOT_MODE_QEM_130K:
-		case LGE_BOOT_MODE_QEM_910K:
-		case LGE_BOOT_MODE_PIF_56K:
-		case LGE_BOOT_MODE_PIF_130K:
-		case LGE_BOOT_MODE_PIF_910K:
-			pr_info("%s : pif cable is plugged, bind factory composition, skip mtp open\n",__func__);
-			return -ENODEV;
-		default :
-			pr_info("%s : not factory mode, mtp open\n",__func__);
-			break;
+	switch (boot_mode) {
+	case LGE_BOOT_MODE_QEM_56K:
+	case LGE_BOOT_MODE_QEM_130K:
+	case LGE_BOOT_MODE_QEM_910K:
+	case LGE_BOOT_MODE_PIF_56K:
+	case LGE_BOOT_MODE_PIF_130K:
+	case LGE_BOOT_MODE_PIF_910K:
+		pr_info("%s : pif cable is plugged, bind factory composition, skip mtp open\n", __func__);
+		return -ENODEV;
+	default:
+		pr_info("%s : not factory mode, mtp open\n", __func__);
+		break;
 	}
 #endif
 	printk(KERN_INFO "mtp_open\n");
@@ -1704,9 +1703,8 @@ static int mtp_ctrlrequest(struct usb_composite_dev *cdev,
 static int multi_mtp_bind(struct mtp_dev	*dev, struct usb_function *f, struct usb_configuration *c)
 {
 	struct usb_composite_dev *cdev = c->cdev;
-
-	int			id;
-	int 		ret;
+	int id;
+	int ret;
 
 	/* allocate interface ID(s) */
 	id = usb_interface_id(f->config, f);
@@ -1760,9 +1758,8 @@ mtp_function_bind(struct usb_configuration *c, struct usb_function *f)
 	if (dev->allocated_func)
 		return -1;
 
-	if (c->bConfigurationValue == 2) {
+	if (c->bConfigurationValue == 2)
 		return multi_mtp_bind(dev, f, c);
-	}
 #endif
 
 	dev->cdev = cdev;
@@ -1827,11 +1824,10 @@ mtp_function_unbind(struct usb_configuration *c, struct usb_function *f)
 		return;
 	}
 
-	if (dev->allocated_func == f->config->bConfigurationValue) {
+	if (dev->allocated_func == f->config->bConfigurationValue)
 		mtp_ep_swap(dev, dev->allocated_func);
-	} else {
+	else
 		return;
-	}
 #endif
 
 	while ((req = mtp_req_get(dev, &dev->tx_idle)))
@@ -1913,11 +1909,10 @@ static void mtp_function_disable(struct usb_function *f)
 	struct usb_composite_dev	*cdev = dev->cdev;
 
 #ifdef CONFIG_USB_G_LGE_MULTIPLE_CONFIGURATION
-	if (dev->allocated_func == f->config->bConfigurationValue) {
+	if (dev->allocated_func == f->config->bConfigurationValue)
 		mtp_ep_swap(dev, dev->allocated_func);
-	} else {
+	else
 		return;
-	}
 #endif
 
 	DBG(cdev, "mtp_function_disable\n");
@@ -2096,15 +2091,15 @@ static ssize_t debug_profile_read(struct file *file, char __user *ubuf,
 	file_ready_wtime = ktime_to_ms(ktime_sub(ktime_sub(dev->perf.last_end_wtime,
 					dev->perf.first_start_wtime), dev->perf.t_receive_time));
 	fr_avg_rtime = dev->perf.r_count ?
-		DIV_ROUND_UP_ULL(file_ready_rtime, dev->perf.r_count): 0;
+		DIV_ROUND_UP_ULL(file_ready_rtime, dev->perf.r_count) : 0;
 	fr_avg_wtime = dev->perf.w_count ?
-		DIV_ROUND_UP_ULL(file_ready_wtime, dev->perf.w_count): 0;
+		DIV_ROUND_UP_ULL(file_ready_wtime, dev->perf.w_count) : 0;
 
 	wtemp = receive_time ?
 		DIV_ROUND_UP_ULL(wbytes, receive_time) * 1000 / 1024 : 0;
 	rtemp = send_time + file_ready_rtime ?
 		DIV_ROUND_UP_ULL(rbytes, send_time) * 1000 / 1024 : 0;
-	t_wtemp = t_receive_time + file_ready_wtime?
+	t_wtemp = t_receive_time + file_ready_wtime ?
 		DIV_ROUND_UP_ULL(t_wbytes, t_receive_time + file_ready_wtime) * 1000 / 1024 : 0;
 	t_rtemp = t_send_time ?
 		DIV_ROUND_UP_ULL(t_rbytes, t_send_time + file_ready_rtime) * 1000 / 1024 : 0 ;
@@ -2167,7 +2162,7 @@ static void mtp_debugfs_init(struct mtp_dev *dev)
 
 	debugfs_create_file("profile", 0444, dent, dev, &debug_profile_ops);
 }
-#endif /*                                                   */
+#endif /* CONFIG_USB_G_LGE_MTP_PROFILING && CONFIG_DEBUG_FS */
 
 static int mtp_setup(void)
 {

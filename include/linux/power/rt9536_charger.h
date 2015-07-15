@@ -27,7 +27,7 @@ struct rt9536_chip {
 	int irq;
 	int chg_online;
 	int chg_done;
-#if 0 //                                      
+#if 0 //def CONFIG_LGE_WIRELESS_CHARGER_RT9536
 	struct msm_hardware_charger	adapter_hw_chg;
 #endif
 

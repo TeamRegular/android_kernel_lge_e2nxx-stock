@@ -667,7 +667,9 @@ static int mms_lpwg_event(struct i2c_client *client, struct touch_data *data, u8
 			id = i;
 			x = tmp[1] | ((tmp[0] & 0xf) << 8);
 			y = tmp[2] | (((tmp[0] >> 4 ) & 0xf) << 8);
+#if 0
 			TOUCH_INFO_MSG("LPWG %d TAP x[%3d] y[%3d] \n", (i+1)/MIT_LPWG_EVENT_SZ, x, y);
+#endif
 			ts->pdata->lpwg_x[((i + 1) / MIT_LPWG_EVENT_SZ) - 1] = x;
 			ts->pdata->lpwg_y[((i + 1) / MIT_LPWG_EVENT_SZ) - 1] = y;
 			ts->pdata->lpwg_size++;
@@ -1729,6 +1731,7 @@ static ssize_t mms_self_diagnostic_show(struct i2c_client *client, char *buf)
 	write_file(sd_path, buf, 1);
 	msleep(30);
 
+	ts->pdata->selfdiagnostic_state[SD_OPENSHORT] = 1;	// openshort
 	ret = mit_get_test_result(client, buf, OPENSHORT);
 	if (ret < 0) {
 		TOUCH_ERR_MSG("failed to get open short data\n");
@@ -1742,6 +1745,7 @@ static ssize_t mms_self_diagnostic_show(struct i2c_client *client, char *buf)
 	msleep(30);
 
 	memset(buf, 0, PAGE_SIZE);
+	ts->pdata->selfdiagnostic_state[SD_SLOPE] = 1;	// slope
 	ret = mit_get_test_result(client, buf, SLOPE);
 	if (ret < 0) {
 		TOUCH_ERR_MSG("failed to get slope data\n");
@@ -1755,6 +1759,7 @@ static ssize_t mms_self_diagnostic_show(struct i2c_client *client, char *buf)
 	msleep(30);
 
 	memset(buf, 0, PAGE_SIZE);
+	ts->pdata->selfdiagnostic_state[SD_RAWDATA] = 1;	// rawdata
 	ret = mit_get_test_result(client, buf, RAW_DATA_SHOW);
 	if (ret < 0) {
 		TOUCH_ERR_MSG("failed to get raw data\n");

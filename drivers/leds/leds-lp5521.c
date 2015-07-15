@@ -36,11 +36,6 @@
 #include <linux/slab.h>
 #include <linux/regulator/consumer.h>
 #include <linux/of_gpio.h>
-#if defined(CONFIG_MACH_MSM8926_VFP_KR)
-#include <linux/fb.h>
-#include <linux/notifier.h>
-#endif
-
 #ifdef CONFIG_LEDS_LP5521_GPIO_I2C_PULL_UP_CONTROL
 #include <linux/err.h>
 #endif
@@ -516,29 +511,7 @@ static struct lp5521_platform_data lp5521_pdata = {
 	.num_patterns = ARRAY_SIZE(board_led_patterns),
 	.enable = lp5521_enable
 };
-#if defined(CONFIG_MACH_MSM8926_VFP_KR)
-extern int on_mfts;
-static int lp5521_fb_suspend(struct i2c_client *client);
-static int lp5521_fb_resume(struct i2c_client *client);
-static int lp5521_notifier_callback(struct notifier_block *self, unsigned long event, void *data)
-{
-	struct fb_event *evdata = data;
-	int *blank;
-	if(on_mfts == 1){
-		struct lp5521_chip *chip = container_of(self, struct lp5521_chip, fb_notifier_block);
-		LP5521_INFO_MSG("[%s] lp5521_notifier_callback()\n", __func__);
-		if (evdata && evdata->data && event == FB_EVENT_BLANK && chip && chip->client) {
-			blank = evdata->data;
-			if (*blank == FB_BLANK_UNBLANK) {
-				lp5521_fb_resume(chip->client);
-			} else if (*blank == FB_BLANK_POWERDOWN) {
-				lp5521_fb_suspend(chip->client);
-			}
-		}
-	}
-	return 0;
-}
-#endif
+
 
 static inline struct lp5521_led *cdev_to_led(struct led_classdev *cdev)
 {
@@ -1522,9 +1495,8 @@ static int lp5521_probe(struct i2c_client *client,
 	else
 		dev_info(&client->dev, "vddio_i2c regulator power on\n");
 #endif
-#if !defined(CONFIG_MACH_MSM8926_VFP_KR)
+
 	gpio_tlmm_config(GPIO_CFG(chip->rgb_led_en, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_4MA), GPIO_CFG_ENABLE);
-#endif
 	usleep_range(1000, 2000);
 	gpio_set_value((chip->rgb_led_en), 0);
 	usleep_range(1000, 2000); /* Keep enable down at least 1ms */
@@ -1600,14 +1572,6 @@ static int lp5521_probe(struct i2c_client *client,
 		dev_err(&client->dev, "registering sysfs failed\n");
 		goto fail2;
 	}
-#if defined(CONFIG_MACH_MSM8926_VFP_KR)
-	chip->fb_notifier_block.notifier_call = lp5521_notifier_callback;
-	LP5521_INFO_MSG("[%s] fb_register_client()\n", __func__);
-	if ((ret = fb_register_client(&chip->fb_notifier_block))) {
-		LP5521_INFO_MSG("unable to register fb_notifier callback: %d\n", ret);
-		goto fail3;
-	}
-#endif
 
 	/*tempolary delete start pattern off because system UI does not working */
 #if defined(CONFIG_LGE_PM_FACTORY_TESTMODE) || defined(CONFIG_LAF_G_DRIVER)
@@ -1618,10 +1582,6 @@ static int lp5521_probe(struct i2c_client *client,
 	LP5521_INFO_MSG("[%s] complete\n", __func__);
 
 	return ret;
-#if defined(CONFIG_MACH_MSM8926_VFP_KR)
-fail3:
-	fb_unregister_client(&chip->fb_notifier_block);
-#endif
 fail2:
 	for (i = 0; i < chip->num_leds; i++) {
 		led_classdev_unregister(&chip->leds[i].cdev);
@@ -1660,9 +1620,7 @@ static int lp5521_remove(struct i2c_client *client)
 
 	if (chip->pdata->release_resources)
 		chip->pdata->release_resources();
-#if defined(CONFIG_MACH_MSM8926_VFP_KR)
-	fb_unregister_client(&chip->fb_notifier_block);
-#endif
+
 	devm_kfree(&client->dev, chip);
 	LP5521_INFO_MSG("[%s] complete\n", __func__);
 	return 0;
@@ -1698,9 +1656,7 @@ static void lp5521_shutdown(struct i2c_client *client)
 
 	if (chip->pdata->release_resources)
 		chip->pdata->release_resources();
-#if defined(CONFIG_MACH_MSM8926_VFP_KR)
-	fb_unregister_client(&chip->fb_notifier_block);
-#endif
+
 	devm_kfree(&client->dev, chip);
 	LP5521_INFO_MSG("[%s] complete\n", __func__);
 }
@@ -1756,61 +1712,6 @@ power_off:
 }
 #endif
 
-#if defined(CONFIG_MACH_MSM8926_VFP_KR)
-static int lp5521_fb_suspend(struct i2c_client *client)
-{
-	struct lp5521_chip *chip = i2c_get_clientdata(client);
-
-	if (!chip || !chip->pdata) {
-		LP5521_INFO_MSG("[%s] null pointer check!\n", __func__);
-		return 0;
-	}
-	LP5521_INFO_MSG("[%s] id_pattern_play = %d\n", __func__, chip->id_pattern_play);
-    {
-	    if (chip->pdata->enable && chip->id_pattern_play == PATTERN_OFF) {
-		    LP5521_INFO_MSG("[%s] RGB_EN set to LOW\n", __func__);
-		    chip->pdata->enable(0);
-	    }
-    }
-	return 0;
-}
-
-static int lp5521_fb_resume(struct i2c_client *client)
-{
-	struct lp5521_chip *chip = i2c_get_clientdata(client);
-	int ret = 0;
-	if (!chip || !chip->pdata) {
-		LP5521_INFO_MSG("[%s] null pointer check!\n", __func__);
-		return 0;
-	}
-    {
-	    if (chip->pdata->enable && chip->id_pattern_play == PATTERN_OFF) {
-		    LP5521_INFO_MSG("[%s] RGB_EN set to HIGH\n", __func__);
-#if 0  // modify for I2c fail when resume
-		    chip->pdata->enable(0);
-		    usleep_range(1000, 2000); /* Keep enable down at least 1ms */
-#endif
-		    chip->pdata->enable(1);
-		    usleep_range(1000, 2000); /* 500us abs min. */
-#if 0  // modify for I2c fail when resume
-		    lp5521_write(client, LP5521_REG_RESET, 0xff);
-		    usleep_range(10000, 20000);
-#endif
-#ifdef CONFIG_LEDS_LP5521_GPIO_I2C_PULL_UP_CONTROL
-			ret = lp5521_detect(client);
-			if (ret) {
-				dev_err(&client->dev, "Chip not found\n");
-			}
-#endif
-		    ret = lp5521_configure(client);
-		    if (ret < 0) {
-			    dev_err(&client->dev, "error configuring chip\n");
-		    }
-        }
-    }
-	return ret;
-}
-#endif
 static int lp5521_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	struct lp5521_chip *chip = i2c_get_clientdata(client);

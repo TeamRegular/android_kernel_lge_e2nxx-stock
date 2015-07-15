@@ -15,7 +15,7 @@
 #include "msm_camera_io_util.h"
 #include <mach/board_lge.h>		//to use lge_get_board_revno()
 
-/*                                                                     */
+/* LGE_CHANGE_S. To fast tune register. sujeong.kwon@lge.com 2014.03.22*/
 #include <linux/delay.h>
 #include <linux/types.h>
 #include <linux/i2c.h>
@@ -25,8 +25,8 @@
 #include <linux/kthread.h>
 #include <linux/syscalls.h>
 #include <linux/fs.h>
-/*                                                                     */
-#include "../../../../../base/base.h" /*                                                                        */
+/* LGE_CHANGE_E. To fast tune register. sujeong.kwon@lge.com 2014.03.22*/
+#include "../../../../../base/base.h" /* LGE_CHANGE . To read antibanding value. sujeong.kwon@lge.com 2014.04.23*/
 
 #if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI)
 #include "hi351_reg_LGIT.h"
@@ -35,7 +35,7 @@
 #endif
 
 #define CONFIG_MSMB_CAMERA_DEBUG
-//                                                                                                           
+//#define CONFIG_FAST_TUNE_REGISTER  /* LGE_CHANGE . To fast tune register. sujeong.kwon@lge.com 2014.03.22*/
 
 #undef CDBG
 #ifdef CONFIG_MSMB_CAMERA_DEBUG
@@ -51,11 +51,11 @@ DEFINE_MSM_MUTEX(hi351_mut);
 //static int PREV_ISO = -1;
 //static int PREV_WB = -1;
 //static int PREV_FPS = -1;
-static int INIT_DONE = 0;			//                                                                                                                           
+static int INIT_DONE = 0;			// LGE_CHANGE. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 static int PREV_BESTSHOT = -1;
 static int DELAY_START = 0;
 #if defined(CONFIG_FAST_TUNE_REGISTER)
-static int TUNING_REGISTER = 0 ;		/*                                                                    */
+static int TUNING_REGISTER = 0 ;		/* LGE_CHANGE . To fast tune register. sujeong.kwon@lge.com 2014.03.22*/
 #define BUF_SIZE	(256 * 1024)
 #endif
 
@@ -72,20 +72,20 @@ typedef enum {
   HI351_HZ_MAX_NUM,
 } HI351AntibandingType;
 
-//                                                                        
+//LGE_CHANGE_S sujeong.kwon@lge.com 2014-03-08. To know current resolution
 typedef enum {
   HI351_SENSOR_RES_FULL,  // 4:3 size, 2048x1536, for capture
   HI351_SENSOR_RES_QTR,  // 4:3 size, 1024x768, for preview
   HI351_SENSOR_RES_HD,   // 16:9 size, HD, for HD recording.
   HI351_SENSOR_RES_MAX_NUM,
 } HI351ResolutionType;
-//                                                                        
+//LGE_CHANGE_E sujeong.kwon@lge.com 2014-03-08. To know current resolution
 
-static int main_cam_id_value = HI351_COWELL;
-static int hi351_antibanding = HI351_50HZ;
+static int main_cam_id_value = HI351_LGIT;
+static int hi351_antibanding = HI351_60HZ;
 static int hi351_ab_mod = 0;
-static int hi351_cur_res = HI351_SENSOR_RES_QTR;  //                                                           
-static int hi351_prev_res = HI351_SENSOR_RES_QTR;  //                                                                                                                                       
+static int hi351_cur_res = HI351_SENSOR_RES_QTR;  //sujeong.kwon@lge.com 2014-03-08. To know current resolution
+static int hi351_prev_res = HI351_SENSOR_RES_QTR;  //sujeong.kwon@lge.com 2014-03-08. To know previous resolution. After 720P returns to QTR, you must set  hi351_recover_from720P_settings.
 
 
 static ssize_t hi351_antibanding_store(struct device* dev, struct device_attribute* attr, const char* buf, size_t n)
@@ -183,9 +183,9 @@ out_unlink:
 static struct msm_sensor_ctrl_t hi351_s_ctrl;
 
 static struct msm_sensor_power_setting hi351_power_setting[] = {
-/*                                                                                  */
+/* LGE_CHANGE_E, Power Setting for TIM_BR Model, youngwook.song@lge.com, 2013.08.26 */
 #if defined(CONFIG_MACH_MSM8X10_W3C_TRF_US) || \
-	defined(CONFIG_MACH_MSM8X10_W3C_VZW) || defined(CONFIG_MACH_MSM8X10_Y25C_TRF_US)
+	defined(CONFIG_MACH_MSM8X10_W3C_VZW)
 	{
 		.seq_type = SENSOR_GPIO,
 		.seq_val = SENSOR_GPIO_RESET,
@@ -241,7 +241,7 @@ static struct msm_sensor_power_setting hi351_power_setting[] = {
 		.delay = 20,
 	},
 
-/*                                                                                  */
+/* LGE_CHANGE_X, Power Setting for TIM_BR Model, youngwook.song@lge.com, 2013.08.26 */
 #else
 #if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI)
 	{ // mt9m114 digital
@@ -343,12 +343,12 @@ static struct msm_sensor_power_setting hi351_power_setting[] = {
 		.delay = 20,
 	},
 
-/*                                                                                  */
+/* LGE_CHANGE_E, Power Setting for VZW_US Model, youngwook.song@lge.com, 2013.08.26 */
 #endif
-/*                                                                                  */
+/* LGE_CHANGE_X, Power Setting for VZW_US Model, youngwook.song@lge.com, 2013.08.26 */
 };
 
-/*                                                                                                           */
+/* LGE_CHANGE_E, Power Setting for Rev1.0 : VT VIO seperate from MAIN VIO , sujeong.kwon@lge.com, 2014.03.18 */
 #if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI)
 static struct msm_sensor_power_setting hi351_power_setting_rev_10[] = {
 	{
@@ -407,7 +407,7 @@ static struct msm_sensor_power_setting hi351_power_setting_rev_10[] = {
 	},
 };
 #endif
-/*                                                                                                           */
+/* LGE_CHANGE_X, Power Setting for Rev1.0 : VT VIO seperate from MAIN VIO , sujeong.kwon@lge.com, 2014.03.18 */
 
 
 #if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI)
@@ -430,7 +430,7 @@ static struct msm_camera_i2c_conf_array hi351_init_conf[] = {
 };
 #endif
 
-//                                                                                                                             
+// LGE_CHANGE_S. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 // conf0 is with recommend setting right after.
 static struct msm_camera_i2c_conf_array hi351_prev_conf_in_case_of_init[] = {
 	{&hi351_prev_settings_in_case_of_init[HI351_60HZ][0],
@@ -446,7 +446,7 @@ static struct msm_camera_i2c_conf_array hi351_prev_conf[] = {
 	{&hi351_prev_settings[HI351_50HZ][0],
 	ARRAY_SIZE(hi351_prev_settings[HI351_50HZ]), 0, MSM_CAMERA_I2C_BYTE_DATA},
 };
-//                                                                                                                             
+// LGE_CHANGE_E. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 
 static struct msm_camera_i2c_conf_array hi351_snap_conf[] = {
 	{&hi351_snap_settings[HI351_60HZ][0],
@@ -455,7 +455,7 @@ static struct msm_camera_i2c_conf_array hi351_snap_conf[] = {
 	ARRAY_SIZE(hi351_snap_settings[HI351_50HZ]), 0, MSM_CAMERA_I2C_BYTE_DATA},
 };
 
-//                                                                                                                             
+// LGE_CHANGE_S. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 // conf0 is with recommend setting right after.
 static struct msm_camera_i2c_conf_array hi351_attached_fps_conf_in_case_of_init[] = {
 	{&hi351_attached_fps_settings_in_case_of_init[HI351_60HZ][0],
@@ -471,9 +471,9 @@ static struct msm_camera_i2c_conf_array hi351_attached_fps_conf[] = {
 	{&hi351_attached_fps_settings[HI351_50HZ][0],
 	ARRAY_SIZE(hi351_attached_fps_settings[HI351_50HZ]), 0, MSM_CAMERA_I2C_BYTE_DATA},
 };
-//                                                                                                                             
+// LGE_CHANGE_E. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 
-//                                                                                                                             
+// LGE_CHANGE_S. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 // conf0 is with recommend setting right after.
 static struct msm_camera_i2c_conf_array hi351_fixed_fps_conf_in_case_of_init[] = {
 	{&hi351_fixed_fps_settings_in_case_of_init[HI351_60HZ][0],
@@ -489,9 +489,7 @@ static struct msm_camera_i2c_conf_array hi351_fixed_fps_conf[] = {
 	{&hi351_fixed_fps_settings[HI351_50HZ][0],
 	ARRAY_SIZE(hi351_fixed_fps_settings[HI351_50HZ]), 0, MSM_CAMERA_I2C_BYTE_DATA},
 };
-//                                                                                                                             
-// ksmin compile error
-#if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI)
+// LGE_CHANGE_E. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 static struct msm_camera_i2c_conf_array hi351_720p_settings_conf_in_case_of_init[] = {
 	{&hi351_720p_settings_in_case_of_init[HI351_60HZ][0],
 	ARRAY_SIZE(hi351_720p_settings_in_case_of_init[HI351_60HZ]), 0, MSM_CAMERA_I2C_BYTE_DATA},
@@ -516,9 +514,7 @@ static struct msm_camera_i2c_conf_array hi351_recover_from720P_settings_conf[] =
 	{&hi351_recover_from720P_settings[HI351_50HZ][0],
 	ARRAY_SIZE(hi351_recover_from720P_settings[HI351_50HZ]), 0, MSM_CAMERA_I2C_BYTE_DATA},
 };
-#endif
-
-//                                                                                                                             
+// LGE_CHANGE_S. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 // conf0 is with recommend setting right after.
 static struct msm_camera_i2c_conf_array hi351_auto_fps_conf_in_case_of_init[] = {
 	{&hi351_auto_fps_settings_in_case_of_init[HI351_60HZ][0],
@@ -534,7 +530,7 @@ static struct msm_camera_i2c_conf_array hi351_auto_fps_conf[] = {
 	{&hi351_auto_fps_settings[HI351_50HZ][0],
 	ARRAY_SIZE(hi351_auto_fps_settings[HI351_50HZ]), 0, MSM_CAMERA_I2C_BYTE_DATA},
 };
-//                                                                                                                             
+// LGE_CHANGE_E. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 
 static struct msm_camera_i2c_conf_array hi351_scene_auto_conf[] = {
 	{&hi351_reg_scene_auto[HI351_60HZ][0],
@@ -643,8 +639,8 @@ static struct platform_driver hi351_platform_driver = {
 };
 
 #if !defined(CONFIG_MACH_MSM8226_E7WIFI) && !defined (CONFIG_MACH_MSM8226_E8WIFI)
-//                                                 
-/*                                                                                            */
+//sujeong.kwon@lge.com. 8x26 use cci_i2c. 2014.03.0
+/* LGE_CHANGE_E, To make short for init. register setting, youngwook.song@lge.com, 2013.08.29 */
 static int32_t msm_camera_qup_i2c_txdata(
 	struct msm_camera_i2c_client *dev_client, unsigned char *txdata,
 	int length)
@@ -690,7 +686,7 @@ static int32_t hi351_i2c_write_b_sensor(struct msm_camera_i2c_client *client, un
 			buf[1] = bdata;
 
 #if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI)
-//                                                  
+//sujeong.kwon@lge.com. 8x26 use cci_i2c. 2014.03.01
 			rc = client->i2c_func_tbl->i2c_write(client, baddr, bdata, MSM_CAMERA_I2C_BYTE_DATA);
 #else
 			rc = msm_camera_qup_i2c_txdata(client, buf, 2);
@@ -712,7 +708,7 @@ static int32_t hi351_sensor_write_init_settings(struct msm_camera_i2c_client *cl
 	u8 buf[301];
 	int bufIndex = 0;
 #if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI)
-//                                                  
+//sujeong.kwon@lge.com. 8x26 use cci_i2c. 2014.03.01
 	u8 buf_addr =0;
 #endif
 
@@ -724,7 +720,7 @@ static int32_t hi351_sensor_write_init_settings(struct msm_camera_i2c_client *cl
 		if ( conf->dt == MSM_CAMERA_I2C_BURST_DATA && bufIndex < 301 ) {
 			if(bufIndex == 0) {
 #if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI)
-//                                                  
+//sujeong.kwon@lge.com. 8x26 use cci_i2c. 2014.03.01
 				buf_addr = conf->reg_addr;
 #else
 				buf[bufIndex] = conf->reg_addr;
@@ -741,7 +737,7 @@ static int32_t hi351_sensor_write_init_settings(struct msm_camera_i2c_client *cl
 		else {
 			if (bufIndex > 0) {
 #if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI)
-//                                                  
+//sujeong.kwon@lge.com. 8x26 use cci_i2c. 2014.03.01
 				rc = client->i2c_func_tbl->i2c_write_seq(client, buf_addr, buf, bufIndex);
 #else
 				//pr_err("hi351_sensor_write_init_settings: Burst Mode: bufIndex: %d\n", bufIndex);
@@ -796,7 +792,7 @@ static void hi351_i2c_write_table(struct msm_sensor_ctrl_t *s_ctrl,
 }
 
 
-/*                                                                                            */
+/* LGE_CHANGE_X, To make short for init. register setting, youngwook.song@lge.com, 2013.08.29 */
 
 static int32_t hi351_platform_probe(struct platform_device *pdev)
 {
@@ -804,13 +800,13 @@ static int32_t hi351_platform_probe(struct platform_device *pdev)
 	const struct of_device_id *match;
 	printk("%s, E.\n", __func__);
 	match = of_match_device(hi351_dt_match, &pdev->dev);
-/*                                                    */
+/* LGE_CHANGE_S : WBT, 2013-5-31, jonghwan.ko@lge.com */
 		if(!match)
 		{
 			  pr_err(" %s failed\n",__func__);
 			  return -ENODEV;
 		 }
-/*                                                    */
+/* LGE_CHANGE_E : WBT, 2013-5-31, jonghwan.ko@lge.com */
 	rc = msm_sensor_platform_probe(pdev, match->data);
 
 	if(rc < 0){
@@ -828,7 +824,7 @@ static int __init hi351_init_module(void)
 	int32_t rc;
 
 	printk("%s:%d\n", __func__, __LINE__);
-/*                                                                                                      */
+/* LGE_CHANGE_E,  To separate power settings depending on HW revisions. 2014.03.18. sujeong.kwon@lge.com*/
 #if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI)
 	switch(lge_get_board_revno()) {
 		case HW_REV_A:
@@ -848,7 +844,7 @@ static int __init hi351_init_module(void)
 			hi351_s_ctrl.power_setting_array.size = ARRAY_SIZE(hi351_power_setting);
 			break;
 	}
-/*                                                                                                      */
+/* LGE_CHANGE_X,  To separate power settings depending on HW revisions. 2014.03.18. sujeong.kwon@lge.com*/
 #endif // defined(CONFIG_MACH_MSM8226_E7WIFI)
 
 	rc = platform_driver_probe(&hi351_platform_driver, hi351_platform_probe);
@@ -922,7 +918,7 @@ static void hi351_parsing_register(char* buf, int buf_size)
 	char data_type[25];
 	int rc = 0;
 
-	char scan_buf[40];	//                                                          
+	char scan_buf[40];	//suejong.kwon@lge.com addr, value, data_type's total length
 	int scan_buf_len = 0;
 	char subject = 0;
 
@@ -1256,7 +1252,7 @@ static void hi351_update_register(struct msm_sensor_ctrl_t *s_ctrl)
 ------------------------------------[END] To fast tune register of SOC type ---------------------------------------------
 ------------------------------------------------------------------------------------------------------------------*/
 
-/*                                                                                  */
+/* LGE_CHANGE_E, Kernel Driver Modifying on MR2, youngwook.song@lge.com, 2013.08.29 */
 static int32_t hi351_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 {
 	int32_t rc = 0;
@@ -1279,7 +1275,7 @@ static int32_t hi351_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 	}
 	return rc;
 }
-/*                                                                                  */
+/* LGE_CHANGE_X, Kernel Driver Modifying on MR2, youngwook.song@lge.com, 2013.08.29 */
 #if 0
 static void hi351_set_stauration(struct msm_sensor_ctrl_t *s_ctrl, int value)
 {
@@ -1314,7 +1310,7 @@ static void hi351_set_iso(struct msm_sensor_ctrl_t *s_ctrl, int value)
 static void hi351_set_exposure_compensation(struct msm_sensor_ctrl_t *s_ctrl,
 	int value)
 {
-	int val = value + ((12 - value)/2); //                                                                                      
+	int val = value + ((12 - value)/2); // LGE CHNAGE, for HI351 SoC Sensor Brightness Array. youngwook.song@lge.com, 2013-10-17
 	pr_debug("%s %d\n", __func__, val);
 	hi351_i2c_write_table(s_ctrl, &hi351_reg_exposure_compensation[val][0],
 		ARRAY_SIZE(hi351_reg_exposure_compensation[val]));
@@ -1466,14 +1462,14 @@ static void hi351_set_white_balance_mode(struct msm_sensor_ctrl_t *s_ctrl,
 }
 
 
-//                                                                                                                                     
+//LGE_CHANGE_E,  This Function has been added only for fps of VIDEO Recording from SoC Camera Module. youngwook.song@lge.com 2013-11-04
 static void hi351_set_framerate_for_soc(struct msm_sensor_ctrl_t *s_ctrl, struct msm_fps_range_setting *framerate)
 {
 	int32_t value = 0;
-	 //                                                                                                              
+	 // LGE_CHANGE, youngwook.song@lge.com, in case of MMS, fixed 15fps is in use. 1097859072 is 15.0 in float value.
 	if((framerate->min_fps == 1097859072) && (framerate->max_fps == 1097859072))
 		value = 0;
-	 //                                                                                                                                 
+	 // LGE_CHANGE, youngwook.song@lge.com, in case of Video(640x480 or over), fixed 30fps is in use. 1106247680 is 30.0 in float value.
 	else if((framerate->min_fps == 1103101952) && (framerate->max_fps == 1106247680))
 		value = 1;
 	else value = 2;
@@ -1483,7 +1479,7 @@ static void hi351_set_framerate_for_soc(struct msm_sensor_ctrl_t *s_ctrl, struct
 		case 0: { //attached MMS VIDEO 177x144, 384x288
 			pr_debug("%s %d\n", __func__, value);
 
-			//                                                                                                                             
+			// LGE_CHANGE_S. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 			// conf0 is with recommend setting right after. When INIT_DONE is 1, it means this is followed by right after Recommend Setting register set.
 			if(INIT_DONE == 1){
 				hi351_sensor_write_init_settings(s_ctrl->sensor_i2c_client,
@@ -1494,14 +1490,14 @@ static void hi351_set_framerate_for_soc(struct msm_sensor_ctrl_t *s_ctrl, struct
 				hi351_sensor_write_init_settings(s_ctrl->sensor_i2c_client,
 				(struct msm_camera_i2c_reg_conf *) hi351_attached_fps_conf[hi351_antibanding].conf, hi351_attached_fps_conf[hi351_antibanding].size);
 				}
-			//                                                                                                                             
+			// LGE_CHANGE_E. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 			}
 			break;
 
 		case 1: { //fixed for VIDEO 640x480 and more over.
 			pr_debug("%s %d\n", __func__, value);
 
-			//                                                                                                                             
+			// LGE_CHANGE_S. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 			// conf0 is with recommend setting right after. When INIT_DONE is 1, it means this is followed by right after Recommend Setting register set.
 			if(INIT_DONE == 1){
 				hi351_sensor_write_init_settings(s_ctrl->sensor_i2c_client,
@@ -1512,14 +1508,14 @@ static void hi351_set_framerate_for_soc(struct msm_sensor_ctrl_t *s_ctrl, struct
 				hi351_sensor_write_init_settings(s_ctrl->sensor_i2c_client,
 				(struct msm_camera_i2c_reg_conf *) hi351_fixed_fps_conf[hi351_antibanding].conf, hi351_fixed_fps_conf[hi351_antibanding].size);
 				}
-			//                                                                                                                             
+			// LGE_CHANGE_E. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 			}
 			break;
 
 		default:{  //default
 			pr_debug("%s %d\n", __func__, value);
 
-			//                                                                                                                             
+			// LGE_CHANGE_S. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 			// conf0 is with recommend setting right after. When INIT_DONE is 1, it means this is followed by right after Recommend Setting register set.
 			if(INIT_DONE == 1){
 				CDBG("%s 2. hi351_auto_fps_conf_in_case_of_init \n", __func__);
@@ -1554,12 +1550,12 @@ static void hi351_set_framerate_for_soc(struct msm_sensor_ctrl_t *s_ctrl, struct
 						(struct msm_camera_i2c_reg_conf *) hi351_auto_fps_conf[hi351_antibanding].conf, hi351_auto_fps_conf[hi351_antibanding].size);
 				#endif
 			}
-			//                                                                                                                             
+			// LGE_CHANGE_E. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 			}
 			break;
 	}
 }
-//                                                                                                                                     
+//LGE_CHANGE_X,  This Function has been added only for fps of VIDEO Recording from SoC Camera Module. youngwook.song@lge.com 2013-11-04
 
 int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 	void __user *argp)
@@ -1581,6 +1577,14 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		for (i = 0; i < SUB_MODULE_MAX; i++)
 			cdata->cfg.sensor_info.subdev_id[i] =
 				s_ctrl->sensordata->sensor_info->subdev_id[i];
+		cdata->cfg.sensor_info.is_mount_angle_valid =
+			s_ctrl->sensordata->sensor_info->is_mount_angle_valid;
+		cdata->cfg.sensor_info.sensor_mount_angle =
+			s_ctrl->sensordata->sensor_info->sensor_mount_angle;
+		cdata->cfg.sensor_info.position =
+			s_ctrl->sensordata->sensor_info->position;
+		cdata->cfg.sensor_info.modes_supported =
+			s_ctrl->sensordata->sensor_info->modes_supported;
 		CDBG("%s:%d sensor name %s\n", __func__, __LINE__,
 			cdata->cfg.sensor_info.sensor_name);
 		CDBG("%s:%d session id %d\n", __func__, __LINE__,
@@ -1588,6 +1592,9 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		for (i = 0; i < SUB_MODULE_MAX; i++)
 			CDBG("%s:%d subdev_id[%d] %d\n", __func__, __LINE__, i,
 				cdata->cfg.sensor_info.subdev_id[i]);
+		CDBG("%s:%d mount angle valid %d value %d\n", __func__,
+			__LINE__, cdata->cfg.sensor_info.is_mount_angle_valid,
+			cdata->cfg.sensor_info.sensor_mount_angle);
 
 		break;
 	case CFG_SET_INIT_SETTING: {
@@ -1597,16 +1604,16 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		pr_err("%s, CFG_SET_INIT_SETTING!!\n", __func__);
 
 //#if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI)
-//                                                                            
+//		hi351_antibanding = HI351_60HZ; 		//sujeong.kwon@lge.com. temp. 2014.03.25
 //#endif
 
-/*                                                                                                    */
+/* LGE_CHANGE_S, Kernel Driver Modifying for dual module setting , youngwook.song@lge.com, 2014.01.09 */
 		if(((main_cam_id_value == HI351_SUNNY)||(main_cam_id_value == HI351_LGIT))&&(hi351_antibanding == HI351_60HZ)) hi351_ab_mod = 0;
 		else if(((main_cam_id_value == HI351_SUNNY)||(main_cam_id_value == HI351_LGIT))&&(hi351_antibanding == HI351_50HZ)) hi351_ab_mod = 1;
 		else if((main_cam_id_value == HI351_COWELL)&&(hi351_antibanding == HI351_60HZ)) hi351_ab_mod = 2;
 		else if((main_cam_id_value == HI351_COWELL)&&(hi351_antibanding == HI351_50HZ)) hi351_ab_mod = 3;
 		pr_err("%s, hi351_ab_mod vaule : 01Sun,23Cow %d, antibanding = %d \n", __func__, hi351_ab_mod, hi351_antibanding);
-/*                                                                                                    */
+/* LGE_CHANGE_E, Kernel Driver Modifying for dual module setting , youngwook.song@lge.com, 2014.01.09 */
 		for (retry = 0; retry < 3; ++retry) {
 				#if defined(CONFIG_FAST_TUNE_REGISTER)
 				 if(TUNING_REGISTER){
@@ -1625,16 +1632,16 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 					pr_err(KERN_ERR "[ERROR]%s:Sensor Init Setting Fail\n", __func__);
 				else break;
 		}
-//                                                                                                                             
+// LGE_CHANGE_S. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 // We do nothing here except setting the Static variable INIT_DONE, we set the variable into 1.
 
 		if( INIT_DONE == 0 ) INIT_DONE = 1;
 		pr_err("%s, CFG_SET_INIT_SETTING!! done\n", __func__);
-//                                                                                                                             
+// LGE_CHANGE_E. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 		break;
 		}
 	case CFG_SET_RESOLUTION: {
-		/*                                                                                                                          */
+		/* LGE_CHANGE_E, Kernel Driver Modifying on MR2 for change resolution to take pictures , youngwook.song@lge.com, 2013.08.29 */
 		int val = 0;
 		pr_err("%s, CFG_SET_RESOLUTION!!\n", __func__);
 		if (copy_from_user(&val,
@@ -1643,12 +1650,10 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 			rc = -EFAULT;
 			break;
 		}
-		hi351_prev_res = hi351_cur_res;  //                                                            
-		hi351_cur_res = val ;  //                                                           
+		hi351_prev_res = hi351_cur_res;  //sujeong.kwon@lge.com 2014-03-08. To know previous resolution
+		hi351_cur_res = val ;  //sujeong.kwon@lge.com 2014-03-08. To know current resolution
 
 		if (val == 0){
-// ksmin compile error		
-#if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI)			
 			#if defined(CONFIG_FAST_TUNE_REGISTER)
 			 if(TUNING_REGISTER){
 				hi351_sensor_write_init_settings(s_ctrl->sensor_i2c_client,
@@ -1661,18 +1666,12 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 				hi351_sensor_write_init_settings(s_ctrl->sensor_i2c_client,
 								(struct msm_camera_i2c_reg_conf *) hi351_snap_conf[hi351_antibanding].conf, hi351_snap_conf[hi351_antibanding].size);
 			#endif
-#else
-			hi351_sensor_write_init_settings(s_ctrl->sensor_i2c_client,
-				(struct msm_camera_i2c_reg_conf *) hi351_snap_conf[hi351_antibanding].conf, hi351_snap_conf[hi351_antibanding].size);
-#endif			
 			pr_err("%s, snapsettings!!\n", __func__);
 		}
 		else if (val == 1){
-//                                                                                                                             
+// LGE_CHANGE_S. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 // conf0 is with recommend setting right after. When INIT_DONE is 1, it means this is followed by right after Recommend Setting register set.
 			if(INIT_DONE == 1){
-// ksmin compile error
-#if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI)			
 				if(hi351_prev_res == HI351_SENSOR_RES_HD){
 					#if defined(CONFIG_FAST_TUNE_REGISTER)
 						if(TUNING_REGISTER){
@@ -1704,16 +1703,9 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 					#endif
 					pr_err("%s, prevsettings followed by INIT!!\n", __func__);
 					}
-#else
-			hi351_sensor_write_init_settings(s_ctrl->sensor_i2c_client,
-								(struct msm_camera_i2c_reg_conf *) hi351_prev_conf_in_case_of_init[hi351_antibanding].conf, hi351_prev_conf_in_case_of_init[hi351_antibanding].size);
-			pr_err("%s, prevsettings followed by INIT!!\n", __func__);
-#endif					
 			}
 			// conf1 is normal situation.
 			else if(INIT_DONE == 0){
-// ksmin compile error			
-#if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI)				
 				if(hi351_prev_res == HI351_SENSOR_RES_HD){
 					#if defined(CONFIG_FAST_TUNE_REGISTER)
 					 if(TUNING_REGISTER){
@@ -1744,7 +1736,7 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 					pr_err("%s, prevsettings!!\n", __func__);
 				}
 			}
-//                                                                                                                             
+// LGE_CHANGE_E. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 		}
 		else if (val == 2){
 			if(INIT_DONE == 1){
@@ -1764,7 +1756,7 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 				#endif
 					pr_err("%s, recording HD setting followed by INIT !!\n", __func__);
 			}else{ //INIT_DONE == 0
-				//                                             
+				//sujeong.kwon@lge.com 2014-03-08. support 720P
 				#if defined(CONFIG_FAST_TUNE_REGISTER)
 				 if(TUNING_REGISTER){
 					hi351_sensor_write_init_settings(s_ctrl->sensor_i2c_client,
@@ -1779,16 +1771,9 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 				#endif
 				pr_err("%s, recording HD setting !!\n", __func__);
 			}
-#else
-			hi351_sensor_write_init_settings(s_ctrl->sensor_i2c_client,
-								(struct msm_camera_i2c_reg_conf *) hi351_prev_conf[hi351_antibanding].conf, hi351_prev_conf[hi351_antibanding].size);
-			pr_err("%s, prevsettings!!\n", __func__);
-		}
-#endif			
-// ksmin compile error
 		}
 		break;
-		/*                                                                                                                          */
+		/* LGE_CHANGE_X, Kernel Driver Modifying on MR2 for change resolution to take pictures , youngwook.song@lge.com, 2013.08.29 */
 		}
 	case CFG_SET_STOP_STREAM:
 		pr_err("%s, CFG_SET_STOP_STREAM!!\n", __func__);
@@ -1798,43 +1783,43 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		break;
 
 	case CFG_SET_START_STREAM:
-		pr_err("%s, CFG_SET_START_STREAM!!  hi351_prev_res = %d\n", __func__, hi351_prev_res);
-//                                                                                                                             
+		pr_err("%s, CFG_SET_START_STREAM!! hi351_prev_res = %d, hi351_cur_res =%d\n", __func__, hi351_prev_res, hi351_cur_res);
+// LGE_CHANGE_S. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 // settings0 is with recommend setting right after. When INIT_DONE is 1, it means this is followed by right after Recommend Setting register set.
 		if(INIT_DONE == 1){
-// ksmin compile error		
-#if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI)			
 			if(hi351_prev_res == HI351_SENSOR_RES_HD){
 				hi351_i2c_write_table(s_ctrl, &hi351_recover_from720P_start_settings_in_case_of_init[0], ARRAY_SIZE(hi351_recover_from720P_start_settings_in_case_of_init));
-			}else
-#else			
-			{
+			}else{
 				hi351_i2c_write_table(s_ctrl, &hi351_start_settings_in_case_of_init[0], ARRAY_SIZE(hi351_start_settings_in_case_of_init));
-#endif				
 			}
 			INIT_DONE = 0; // this is very important spot.
 		}
 		// settings1 is with recommend setting right after. When INIT_DONE is 1, it means this is followed by right after Recommend Setting register set.
 		else if(INIT_DONE == 0){
-// ksmin compile error		
-#if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI)			
 			if(hi351_prev_res == HI351_SENSOR_RES_HD){
 				hi351_i2c_write_table(s_ctrl, &hi351_recover_from720P_start_settings[0], ARRAY_SIZE(hi351_recover_from720P_start_settings));
-			}else
-#else			
-			{
+			}else{
 				hi351_i2c_write_table(s_ctrl, &hi351_start_settings[0], ARRAY_SIZE(hi351_start_settings));
 			}
-#endif			
 		}
-//                                                                                                                             
+// LGE_CHANGE_E. youngwook.song@lge.com, this code is for distinguishing Camera/Camcoder init. from other enterings. 2014-01-21
 		pr_err("%s, CFG_SET_START_STREAM End!!\n", __func__);
 
 		break;
 	case CFG_GET_SENSOR_INIT_PARAMS:
 		pr_err("%s, CFG_GET_SENSOR_INIT_PARAMS!!\n", __func__);
+#if 0
 		cdata->cfg.sensor_init_params =
 			*s_ctrl->sensordata->sensor_init_params;
+#else
+		cdata->cfg.sensor_init_params.modes_supported =
+			s_ctrl->sensordata->sensor_info->modes_supported;
+		cdata->cfg.sensor_init_params.position =
+			s_ctrl->sensordata->sensor_info->position;
+		cdata->cfg.sensor_init_params.sensor_mount_angle =
+			s_ctrl->sensordata->sensor_info->sensor_mount_angle;
+#endif
+
 		CDBG("%s:%d init params mode %d pos %d mount %d\n", __func__,
 			__LINE__,
 			cdata->cfg.sensor_init_params.modes_supported,
@@ -1980,7 +1965,7 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		break;
 	}
 
-/*                                                              */
+/*LGE_CHANGE_S, add soc exif, 2013-10-04, kwangsik83.kim@lge.com*/
 		case CFG_PAGE_MODE_READ_I2C_ARRAY:{
 			int16_t size=0;
 			uint16_t read_data_size = 0;
@@ -2002,7 +1987,7 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 			size = conf_array.size; 	//size for write(page_mode) and read
 			read_data_size = size - 1;	//size for read
 
-			pr_err("[WX] %s: size : %d rsize : %d\n", __func__, size, read_data_size);
+			CDBG("[WX] %s: size : %d rsize : %d\n", __func__, size, read_data_size);
 
 			if (!size || !read_data_size) {
 				pr_err("%s:%d failed\n", __func__, __LINE__);
@@ -2050,7 +2035,7 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 				}
 				else{
 					rc = s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_read(s_ctrl->sensor_i2c_client, conf_array.reg_setting->reg_addr, read_data, conf_array.data_type);
-					pr_err("[WX] %s read_data : %d\n", __func__, *read_data);
+					CDBG("[WX] %s read_data : %d\n", __func__, *read_data);
 					read_data++;
 				}
 				conf_array.reg_setting++;
@@ -2071,11 +2056,11 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 			read_data = NULL;
 			read_data_head = NULL;
 
-			pr_err("[WX] %s done\n", __func__);
+			CDBG("[WX] %s done\n", __func__);
 
 			break;
 		}
-/*                                                              */
+/*LGE_CHANGE_E, add soc exif, 2013-10-04, kwangsik83.kim@lge.com*/
 
 		case CFG_SET_REGISTER_UPDATE: {
 #if defined(CONFIG_FAST_TUNE_REGISTER)
@@ -2088,7 +2073,7 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		}
 
 
-/*                                                                                          */
+/*LGE_CHANGE_S, modified power-up/down status for recovery, 2013-12-27, hyungtae.lee@lge.com*/
 	case CFG_POWER_UP:{
 
 		if (s_ctrl->sensor_state != MSM_SENSOR_POWER_DOWN) {
@@ -2140,7 +2125,7 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		}
 		break;
 	}
-/*                                                                                          */
+/*LGE_CHANGE_E, modified power-up/down status for recovery, 2013-12-27, hyungtae.lee@lge.com*/
 	case CFG_SET_STOP_STREAM_SETTING: {
 		struct msm_camera_i2c_reg_setting *stop_setting =
 			&s_ctrl->stop_setting;
@@ -2324,14 +2309,14 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 
 		break;
 	}
-//                                                                                                          
+//LGE_CHANGE_E,  These options has beend added due to colour effect issue. youngwook.song@lge.com 2013-11-25
 	case CFG_SET_AEC_LOCK:
 	case CFG_SET_AWB_LOCK:
 	case CFG_SET_AEC_ROI:
 		pr_debug("%s: We do not support features value related to LOCK now\n", __func__);
 		break;
-//                                                                                                          
-//                                                                                                                                     
+//LGE_CHANGE_X,  These options has beend added due to colour effect issue. youngwook.song@lge.com 2013-11-25
+//LGE_CHANGE_E,  This Function has been added only for fps of VIDEO Recording from SoC Camera Module. youngwook.song@lge.com 2013-11-04
 	case CFG_SET_FRAMERATE_FOR_SOC: {
 		struct msm_fps_range_setting *framerate;
 #if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI)
@@ -2347,7 +2332,7 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		hi351_set_framerate_for_soc(s_ctrl, framerate);
 		break;
 	}
-//                                                                                                                                     
+//LGE_CHANGE_X,  This Function has been added only for fps of VIDEO Recording from SoC Camera Module. youngwook.song@lge.com 2013-11-04
 	default:
 		rc = -EFAULT;
 		break;
@@ -2367,12 +2352,12 @@ static struct msm_sensor_fn_t hi351_sensor_func_tbl = {
 
 static struct msm_sensor_ctrl_t hi351_s_ctrl = {
 	.sensor_i2c_client = &hi351_sensor_i2c_client,
-/*                                                                                                      */
+/* LGE_CHANGE_E,  To separate power settings depending on HW revisions. 2014.03.18. sujeong.kwon@lge.com*/
 #if !defined(CONFIG_MACH_MSM8226_E7WIFI) && !defined(CONFIG_MACH_MSM8226_E8WIFI)
 	.power_setting_array.power_setting = hi351_power_setting,
 	.power_setting_array.size = ARRAY_SIZE(hi351_power_setting),
 #endif
-/*                                                                                                      */
+/* LGE_CHANGE_X,  To separate power settings depending on HW revisions. 2014.03.18. sujeong.kwon@lge.com*/
 	.msm_sensor_mutex = &hi351_mut,
 	.sensor_v4l2_subdev_info = hi351_subdev_info,
 	.sensor_v4l2_subdev_info_size = ARRAY_SIZE(hi351_subdev_info),

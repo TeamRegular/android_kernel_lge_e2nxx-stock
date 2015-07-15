@@ -17,14 +17,22 @@ obj-$(CONFIG_MACH_MSM8226_E9WIFI) += board-8226-e9wifi.o board-8226-e9wifi-gpiom
 obj-$(CONFIG_MACH_MSM8226_E9WIFIN) += board-8226-e9wifin.o board-8226-e9wifin-gpiomux.o
 obj-$(CONFIG_MACH_MSM8226_E8WIFI) += board-8226-e8wifi.o board-8226-e8wifi-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_E8LTE) += board-8926-e8lte.o board-8926-e8lte-gpiomux.o
-obj-$(CONFIG_MACH_MSM8926_E8LTE_KR) += board-8926-e8lte-kr.o board-8926-e8lte-kr-gpiomux.o
 obj-$(CONFIG_MACH_MSM8226_E7WIFI) += board-8226-e7wifi.o board-8226-e7wifi-gpiomux.o
+obj-$(CONFIG_MACH_MSM8926_AKA_CN) += board-8926-aka-cn.o board-8926-aka-cn-gpiomux.o board-8926-aka-cn-rfkill.o
 obj-$(CONFIG_MACH_MSM8926_E7LTE_ATT_US) += board-8926-e7lte-att-us.o board-8926-e7lte-att-us-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_E7LTE_USC_US) += board-8926-e7lte-usc-us.o board-8926-e7lte-usc-us-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_E7LTE_VZW_US) += board-8926-e7lte-vzw.o board-8926-e7lte-vzw-gpiomux.o
+obj-$(CONFIG_MACH_MSM8926_T8LTE_ATT_US) += board-8926-t8lte-att-us.o board-8926-t8lte-att-us-gpiomux.o
+obj-$(CONFIG_MACH_MSM8926_T8LTE_TMO_US) += board-8926-t8lte-tmo-us.o board-8926-t8lte-tmo-us-gpiomux.o
+obj-$(CONFIG_MACH_MSM8926_T8LTE_USC_US) += board-8926-t8lte-usc-us.o board-8926-t8lte-usc-us-gpiomux.o
+obj-$(CONFIG_MACH_MSM8926_T8LTE_ACG_US) += board-8926-t8lte-acg-us.o board-8926-t8lte-acg-us-gpiomux.o
+obj-$(CONFIG_MACH_MSM8926_T8LTE_RGS_CA) += board-8926-t8lte-rgs-ca.o board-8926-t8lte-rgs-ca-gpiomux.o
+obj-$(CONFIG_MACH_MSM8926_E9LTE_VZW_US) += board-8926-e9lte-vzw.o board-8926-e9lte-vzw-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_X5_VZW) += board-8926-x5-vzw.o board-8926-x5-vzw-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_E2_SPR_US) += board-8926-e2-spr.o board-8926-e2-spr-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_E2_MPCS_US) += board-8926-e2-mpcs.o board-8926-e2-mpcs-gpiomux.o
+obj-$(CONFIG_MACH_MSM8926_E2_BELL_CA) += board-8926-e2-bell.o board-8926-e2-bell-gpiomux.o
+obj-$(CONFIG_MACH_MSM8926_E2_RGS_CA) += board-8926-e2-rgs.o board-8926-e2-rgs-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_E2_VTR_CA) += board-8926-e2-vtr.o board-8926-e2-vtr-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_E2_VZW) += board-8926-e2-vzw.o board-8926-e2-vzw-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_X5_LRA) += board-8926-x5-lra.o board-8926-x5-lra-gpiomux.o
@@ -50,15 +58,14 @@ obj-$(CONFIG_MACH_MSM8926_X10_VZW) += board-8926-x10-vzw.o board-8926-x10-vzw-gp
 obj-$(CONFIG_MACH_MSM8926_B2L_ATT) += board-8926-b2l-att_us.o board-8926-b2l-att_us-gpiomux.o board-8926-b2l-att_us-rfkill.o
 obj-$(CONFIG_MACH_MSM8926_B2LN_KR) += board-8926-b2ln-kr.o board-8926-b2ln-kr-gpiomux.o board-8926-b2ln-kr-rfkill.o
 obj-$(CONFIG_MACH_MSM8926_JAGNM_ATT) += board-8926-jagnm-att_us.o board-8926-jagnm-att_us-gpiomux.o board-8926-jagnm-att_us-rfkill.o
+obj-$(CONFIG_MACH_MSM8926_JAGNM_BELL) += board-8926-jagnm-bell_ca.o board-8926-jagnm-bell_ca-gpiomux.o board-8926-jagnm-bell_ca-rfkill.o
 obj-$(CONFIG_MACH_MSM8926_JAGNM_RGS) += board-8926-jagnm-rgs_ca.o board-8926-jagnm-rgs_ca-gpiomux.o board-8926-jagnm-rgs_ca-rfkill.o
 obj-$(CONFIG_MACH_MSM8926_JAGNM_TLS) += board-8926-jagnm-tls_ca.o board-8926-jagnm-tls_ca-gpiomux.o board-8926-jagnm-tls_ca-rfkill.o
 obj-$(CONFIG_MACH_MSM8926_JAGNM_VTR) += board-8926-jagnm-vtr_ca.o board-8926-jagnm-vtr_ca-gpiomux.o board-8926-jagnm-vtr_ca-rfkill.o
 obj-$(CONFIG_MACH_MSM8926_JAGN_KR) += board-8926-jagn-kr.o board-8926-jagn-kr-gpiomux.o board-8926-jagn-kr-rfkill.o
 obj-$(CONFIG_MACH_MSM8926_AKA_KR) += board-8926-aka-kr.o board-8926-aka-kr-gpiomux.o board-8926-aka-kr-rfkill.o
 obj-$(CONFIG_MACH_MSM8926_JAGNM_GLOBAL_COM) += board-8926-jagnm-global-com.o board-8926-jagnm-global-com-gpiomux.o bluetooth-pm.o
-obj-$(CONFIG_MACH_MSM8926_JAGNM_KDDI_JP) += board-8926-jagnm-kddi-jp.o board-8926-jagnm-kddi-jp-gpiomux.o bluetooth-pm.o
 obj-$(CONFIG_MACH_MSM8926_VFP_KR) += board-8926-vfp-kr.o board-8926-vfp-kr-gpiomux.o board-8926-vfp-kr-rfkill.o
-obj-$(CONFIG_MACH_MSM8926_E2JPS_JP) += board-8926-e2jps-jp.o board-8926-e2jps-jp-gpiomux.o board-8926-e2jps-jp-rfkill.o
 obj-$(CONFIG_MACH_MSM8X10_LGPS15) += board-8610-lgps15.o board-8610-lgps15-gpiomux.o
 obj-$(CONFIG_MACH_MSM8X10_W3C_VZW) += board-8610-w3c-vzw.o board-8610-w3c-vzw-gpiomux.o
 obj-$(CONFIG_MACH_MSM8X10_W3C_TRF_US) += board-8610-w3c-trf-us.o board-8610-w3c-trf-us-gpiomux.o
@@ -111,8 +118,6 @@ obj-$(CONFIG_MACH_MSM8X10_L70P_GLOBAL_COM) += board-8610-l70p-global-com.o board
 obj-$(CONFIG_MACH_MSM8X10_L70PN_GLOBAL_COM) += board-8610-l70pn-global-com.o board-8610-l70pn-global-com-gpiomux.o
 obj-$(CONFIG_MACH_MSM8X10_L70PDS_GLOBAL_COM) += board-8610-l70pds-global-com.o board-8610-l70pds-global-com-gpiomux.o
 
-obj-$(CONFIG_MACH_MSM8X10_Y25C_TRF_US) += board-8610-y25c-trf-us.o board-8610-y25c-trf-us-gpiomux.o
-
 obj-$(CONFIG_LGE_BOOTLOADER_LOG) += lge_bootloader_log.o
 obj-$(CONFIG_LGE_HANDLE_PANIC) += lge_handle_panic.o
 obj-$(CONFIG_LGE_BOOTLOADER_TIME_CHECKER) += lge_bootloader_time_checker.o
@@ -126,18 +131,12 @@ else
 ifdef CONFIG_MACH_MSM8926_JAGC_SPR
 obj-$(CONFIG_LGE_PM_CHARGING_TEMP_SCENARIO) += lge_charging_scenario_sprint.o
 else
-ifdef CONFIG_MACH_MSM8926_E2_SPR_US
-obj-$(CONFIG_LGE_PM_CHARGING_TEMP_SCENARIO) += lge_charging_scenario_sprint.o
-else
 obj-$(CONFIG_LGE_PM_CHARGING_TEMP_SCENARIO) += lge_charging_scenario.o
-endif
 endif
 endif
 endif
 
 obj-$(CONFIG_MACH_LGE) += lge_kcal_ctrl.o
-obj-$(CONFIG_LGE_LCD_TUNING) += lge_lcd_misc_ctrl.o
-
 obj-$(CONFIG_LGE_QSDL_SUPPORT) += lge_qsdl.o
 
 #[WiFi]_S[sangheon.shim@lge.com] BRCM WLAN

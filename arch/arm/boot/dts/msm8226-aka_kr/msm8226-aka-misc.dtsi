@@ -15,9 +15,16 @@
         status = "ok";
         hallic-top-irq-gpio = <&msmgpio 5 0x00>;
         hallic-bottom-irq-gpio = <&msmgpio 4 0x00>;
-        cover-detect-irq-gpio = <&msmgpio 67 0x00>;
-	cover-validation-gpio = <&msmgpio 54 0x00>;
-	cover-pullup-gpio = <&msmgpio 53 0x00>;
+    };
+
+	authic-sw3800 {
+        compatible = "sw,sw3800";
+        interrupt-parent = <&msmgpio>;
+        interrupts = <67 0x0>;
+		cover-detect-irq-gpio = <&msmgpio 67 0x00>;
+		cover-validation-gpio = <&msmgpio 54 0x00>;
+		cover-pullup-gpio = <&msmgpio 53 0x00>;
+        status = "ok";
     };
 
     hall-bu52033nvx-carkit {
@@ -25,9 +32,9 @@
     };
 
     i2c@f9925000 {
-    	lp5521@32 {
-    		status = "disable";
-    		ti,led_en = <&msmgpio 112 0x0>;
-    	};
+		lp5521@32 {
+			status = "disable";
+			ti,led_en = <&msmgpio 112 0x0>;
+		};
     };
 };

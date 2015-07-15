@@ -70,7 +70,7 @@ struct qfprom_blow_data {
     #define QFPROM_RD_PERMISSION        0xFC4B80A8
     #define QFPROM_WR_PERMISSION        0xFC4B80B0
     #define QFPROM_SECONDARY_HW_KEY     0xFC4B8398
-    #if defined(CONFIG_MACH_MSM8X10_W3C_TRF_US) || defined(CONFIG_MACH_MSM8X10_Y25C_TRF_US)
+    #if defined(CONFIG_MACH_MSM8X10_W3C_TRF_US)
         #define FUSING_COMPLETED_STATE 0x3F
         static struct qfprom_blow_data blow_data[] = {
                 /* Don't change array order !!!!!!!!!!!!!!*/
@@ -150,7 +150,18 @@ struct qfprom_blow_data {
             { QFPROM_CHECK_HW_KEY,      0x0,            0x0   },
             { QFPROM_RD_WR_PERMISSION,  0x00400000, 0x05C20200},        /* READ WRITE PERMISSION */
         };
-    #elif defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFIN) || defined(CONFIG_MACH_MSM8226_E9WIFI) || defined(CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined(CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined(CONFIG_MACH_MSM8926_E8LTE_KR) || defined(CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined(CONFIG_MACH_MSM8926_E2_SPR_US) || defined(CONFIG_MACH_MSM8926_E2_VTR_CA) || defined(CONFIG_MACH_MSM8926_E2_VZW)
+    #elif defined(CONFIG_MACH_MSM8926_T8LTE_TMO_US)
+	#define FUSING_COMPLETED_STATE 0x3F
+        static struct qfprom_blow_data blow_data[] = {
+            /* Don't change array order !!!!!!!!!!!!!!*/
+            /* addr              LSB        MSB*/
+            { QFPROM_OEM_CONFIG,        0x00310000, 0x00000264},        /* OEM ID + PRODUCT ID      */
+            { QFPROM_SECURE_BOOT_ENABLE,    0x00202020, 0x00000000},        /* SECURE ENABLE */
+            { QFPROM_DEBUG_DISABLE,     0x3FC00000, 0x040001FE},        /* JTAG DISABLE   */
+            { QFPROM_CHECK_HW_KEY,      0x0,            0x0   },
+            { QFPROM_RD_WR_PERMISSION,  0x00400000, 0x05C28204},        /* READ WRITE PERMISSION */
+        };
+    #elif defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFIN) || defined(CONFIG_MACH_MSM8226_E9WIFI) || defined(CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined(CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined(CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined(CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US) && !defined(CONFIG_MACH_MSM8926_T8LTE_TMO_US)
 	#define FUSING_COMPLETED_STATE 0x1F
         static struct qfprom_blow_data blow_data[] = {
             /* Don't change array order !!!!!!!!!!!!!!*/

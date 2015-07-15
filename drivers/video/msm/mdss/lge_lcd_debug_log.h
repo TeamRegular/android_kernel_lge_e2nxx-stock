@@ -32,8 +32,8 @@ extern uint32_t lcd_debug_level;
 #define pr_info(x...)					lcd_print(6, x)		/* informational		*/
 #define	pr_devel(x...)					pr_debug(x)
 #define pr_debug(x...)					pr_info(x)
-//#define pr_devel(x...)					mmc_print(7, x)		/* debug-level message	*/
+/*#define pr_devel(x...)				mmc_print(7, x)	*/	/* debug-level message	*/
 
-#endif	/*                     */
+#endif	/* end of LGE_CHANGE_E */
 
 #endif 	/* _LINUX_DEBUG_LOG_H */

@@ -466,8 +466,4 @@ config RADIO_IRIS_TRANSPORT
           To compile this driver as a module, choose M here: the
           module will be called radio-iris-transport.
 
-config LGE_ANT_SWITCH_FMRADIO_TDMB 
-          bool "fmradio ant switch "  
-          default n
-
 endif # RADIO_ADAPTERS

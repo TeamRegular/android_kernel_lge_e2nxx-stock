@@ -70,7 +70,7 @@ static struct memtype_reserve msm8226_reserve_table[] __initdata = {
 	},
 };
 
-#if defined ( CONFIG_BCMDHD ) 
+#if defined ( CONFIG_BCMDHD )
 extern void init_bcm_wifi(void);
 #endif
 
@@ -201,8 +201,8 @@ void __init msm8226_add_drivers(void)
 	 #if defined(CONFIG_LCD_KCAL)
 	 lge_add_lcd_kcal_devices();
 #endif
-#if defined ( CONFIG_BCMDHD ) 
-	init_bcm_wifi();
+#if defined ( CONFIG_BCMDHD )
+//	init_bcm_wifi();
 #endif
 
 #ifdef CONFIG_LGE_QFPROM_INTERFACE

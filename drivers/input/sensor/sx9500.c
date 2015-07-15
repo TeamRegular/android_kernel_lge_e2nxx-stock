@@ -57,6 +57,7 @@
 #define FILTER_NUM          2
 #define PATH_CAPSENSOR_CAL  "/sns/capsensor_cal.dat"
 #define PATH_CAPSENSOR_CAL2 "/sns/capsensor_cal2.dat"
+#define PATH_CAL_BACKUP     "/sns/capsensor_cal_backup.dat"
 #define SCANPERIOD_CAL      0x0
 #define PATH_XO_THERM       "/sys/class/hwmon/hwmon0/device/xo_therm_pu2"
 
@@ -75,6 +76,12 @@ struct sensor_dt_to_platformdata {
 };
 #endif
 
+struct smtc_cal_data {
+    s32 Calculate_CSx;
+    s16 Useful_CSx;
+    u16 Offset_CSx; /* fullbyte */
+};
+
 static struct _buttoninfo psmtcButtons[] = {
     { .keycode = KEY_0,    .mask = SX9500_TCHCMPSTAT_TCHSTAT0_FLAG, },
     { .keycode = KEY_1,    .mask = SX9500_TCHCMPSTAT_TCHSTAT1_FLAG, },
@@ -86,6 +93,8 @@ static bool running_cal_or_reset = false;
 static bool skip_startup = false;
 static bool check_allnear = false;
 static bool on_sensor = false;
+
+typedef int (*compfn)(const void*, const void*);
 
 static int initialize_device(struct sx86XX *this);
 
@@ -108,8 +117,10 @@ static int write_register(struct sx86XX *this, u8 address, u8 value)
     if (this && this->bus) {
         i2c = this->bus;
 
-        returnValue = i2c_master_send(i2c,buffer,2);
-        dev_dbg(&i2c->dev, "write reg Add=0x%02x Val=0x%02x Ret=%d\n", address, value, returnValue);
+        returnValue = i2c_master_send(i2c, buffer, 2);
+        dev_dbg(&i2c->dev,
+                "write reg Add=0x%02x Val=0x%02x Ret=%d\n",
+                address, value, returnValue);
     }
 
     return returnValue;
@@ -183,6 +194,11 @@ static void onoff_sensor(struct sx86XX *this, int onoff_mode)
                 pDevice->pButtonInformation->buttons[i].state = IDLE;
             }
 
+            // Clear flags because sensor is disabled.
+            this->inStartupTouch = false;
+            running_cal_or_reset = false;
+            check_allnear = false;
+
             write_register(this, SX9500_CPS_CTRL0_REG, ((val_regproxctrl0 >> 4) << 4) | 0x00);
 
             if (on_sensor)
@@ -222,7 +238,9 @@ static bool valid_multiple_input_pins(struct sx86XX *this)
     return false;
 }
 
-static int write_calibration_data(struct sx86XX *this, s32 val, u8 msByte, u8 lsByte, bool isMultiInput)
+static int write_calibration_data(struct sx86XX *this,
+                                s32 nMargin, u16 Offset_CSx, s32 TotalCap_CSx,
+                                bool isMultiInput)
 {
     int fd;
     int ret = 0;
@@ -238,7 +256,7 @@ static int write_calibration_data(struct sx86XX *this, s32 val, u8 msByte, u8 ls
     else
         strcpy(path_cal_file, PATH_CAPSENSOR_CAL);
 
-    sprintf(buf, "%d %02x %02x", val, msByte, lsByte);
+    sprintf(buf, "%d %d %d", nMargin, Offset_CSx, TotalCap_CSx);
 
     dev_info(this->pdev, "buf = %s\n", buf);
 
@@ -247,6 +265,7 @@ static int write_calibration_data(struct sx86XX *this, s32 val, u8 msByte, u8 ls
 
     if (fd >= 0) {
         sys_write(fd, buf, sizeof(buf));
+        sys_write(fd, "\n", 1);
         sys_fsync(fd); //ensure calibration data write to file system 
         sys_close(fd);
         sys_chmod(path_cal_file, 0664);
@@ -262,7 +281,50 @@ static int write_calibration_data(struct sx86XX *this, s32 val, u8 msByte, u8 ls
     return ret;
 }
 
-static void read_calibration_data(struct sx86XX *this, s32 *nMargin, u8 *msByte, u8 *lsByte, bool isMultiInput)
+static int write_calibration_backup_data(struct sx86XX *this,
+                                s32 TotalCap_CSx, s16 Useful_CSx, u16 Offset_CSx)
+{
+    int fd;
+    int ret = 0;
+    char buf[30];
+    char path_cal_backup_file[50];
+    mm_segment_t old_fs = get_fs();
+
+    memset(buf, 0, sizeof(buf));
+    memset(path_cal_backup_file, 0, sizeof(path_cal_backup_file));
+
+    strcpy(path_cal_backup_file, PATH_CAL_BACKUP);
+
+    sprintf(buf, "%d %d %d", TotalCap_CSx, Useful_CSx, Offset_CSx);
+
+    dev_info(this->pdev, "buf = %s\n", buf);
+
+    set_fs(KERNEL_DS);
+    fd = sys_open(path_cal_backup_file, O_WRONLY|O_CREAT|O_APPEND, 0664);
+
+    if (fd >= 0) {
+        sys_write(fd, buf, sizeof(buf));
+        sys_write(fd, "\n", 1);
+        sys_fsync(fd); //ensure calibration backup data write to file system 
+        sys_close(fd);
+        sys_chmod(path_cal_backup_file, 0664);
+        set_fs(old_fs);
+
+        
+    }
+    else {
+        ret++;
+        sys_close(fd);
+        set_fs(old_fs);
+        return ret;
+    }
+
+    return ret;
+}
+
+static void read_calibration_data(struct sx86XX *this,
+                                s32 *nMargin, u16 *Offset_CSx, s32 *TotalCap_CSx,
+                                bool isMultiInput)
 {
     int fd;
     //int ret = 0;
@@ -272,12 +334,12 @@ static void read_calibration_data(struct sx86XX *this, s32 *nMargin, u8 *msByte,
     mm_segment_t old_fs = get_fs();
 
     s32 nCalMargin = -1;
-    u32 msByte_Offset = 0;
-    u32 lsByte_Offset = 0;
+    s32 unOffset_CSx = 0;
+    s32 nTotalCap_CSx = 0;
 
     *nMargin = (s32) nCalMargin;
-    *msByte = (u8) msByte_Offset;
-    *lsByte = (u8) lsByte_Offset;
+    *Offset_CSx = (u16) unOffset_CSx;
+    *TotalCap_CSx = (s32) nTotalCap_CSx;
 
     memset(read_buf, 0, sizeof(read_buf));
     memset(path_cal_file, 0, sizeof(path_cal_file));
@@ -301,11 +363,11 @@ static void read_calibration_data(struct sx86XX *this, s32 *nMargin, u8 *msByte,
             return;
         }
 
-        sscanf(read_buf, "%d %02x %02x", &nCalMargin, &msByte_Offset, &lsByte_Offset);
+        sscanf(read_buf, "%d %d %d", &nCalMargin, &unOffset_CSx, &nTotalCap_CSx);
 
         *nMargin = (s32) nCalMargin;
-        *msByte = (u8) msByte_Offset;
-        *lsByte = (u8) lsByte_Offset;
+        *Offset_CSx = (u16) unOffset_CSx;
+        *TotalCap_CSx = (s32) nTotalCap_CSx;
 
         sys_close(fd);
         set_fs(old_fs);
@@ -409,7 +471,8 @@ static void read_sensor_regdata(struct sx86XX *this, unsigned char nSensorSel,
     return;
 }
 
-static s32 calculate_CSx_rawdata(struct sx86XX *this, unsigned char channel_num)
+static void calculate_CSx_rawdata(struct sx86XX *this, unsigned char channel_num,
+                                s16 *pUseful_CSx, u16 *pOffset_CSx, s32 *pCalculate_CSx)
 {
     struct sx9500 *pDevice = NULL;
     struct sx9500_platform_data *pdata = NULL;
@@ -452,7 +515,16 @@ static s32 calculate_CSx_rawdata(struct sx86XX *this, unsigned char channel_num)
     dev_info(this->pdev, "CS[%02x] Useful = %6d, Offset = %6d, Calculate = %6d\n", 
                             channel_num, Useful_CSx, Offset_CSx, Calculate_CSx);
 
-    return Calculate_CSx;
+    if (pUseful_CSx)
+        *pUseful_CSx = (s16) Useful_CSx;
+
+    if (pOffset_CSx)
+        *pOffset_CSx = (u16) Offset_CSx;
+
+    if (pCalculate_CSx)
+        *pCalculate_CSx = (s32) Calculate_CSx;
+
+    return;
 }
 
 /***********************************************************/
@@ -552,9 +624,15 @@ static unsigned char conv_sensorsel_to_sensoren(unsigned char csx_pin)
     return sensoren_csx;
 }
 
-static int cmp_rawdata(const void *a, const void *b)
+static int cmp_rawdata(struct smtc_cal_data *elem1, struct smtc_cal_data *elem2)
 {
-    return (*(s32 *) a) - (*(s32 *) b);
+    // Ascending sort by Capacitance value.
+    if (elem1->Calculate_CSx > elem2->Calculate_CSx)
+        return 1;
+    else if (elem1->Calculate_CSx < elem2->Calculate_CSx)
+        return -1;
+    else
+        return 0;
 }
 
 static ssize_t sx9500_show_skipstartup(struct device *dev,
@@ -615,24 +693,31 @@ static ssize_t sx9500_store_docalibration(struct device *dev,
     unsigned char main2Sensor = 0;
     unsigned char refSensor = 0;
 
-    u8 capMain_Offset_msByte = 0;
-    u8 capMain_Offset_lsByte = 0;
-    u8 capMain2_Offset_msByte = 0;
-    u8 capMain2_Offset_lsByte = 0;
+    struct smtc_cal_data capMain_cal_data[COLLECT_NUM];
+    struct smtc_cal_data capMain2_cal_data[COLLECT_NUM];
+    struct smtc_cal_data capRef_cal_data[COLLECT_NUM];
 
-    s32 capMain[COLLECT_NUM];
-    s32 capMain2[COLLECT_NUM];
-    s32 capRef[COLLECT_NUM];
+    s32 avg_Capacitance_Main = 0;
+    s32 avg_Useful_Main = 0;
+    s32 avg_Offset_Main = 0;
 
-    s32 avg_capMain = 0;
-    s32 avg_capMain2 = 0;
-    s32 avg_capRef = 0;
-    s32 avg_capRef_dynamicthreshold = 0;
+    s32 avg_Capacitance_Main2 = 0;
+    s32 avg_Useful_Main2 = 0;
+    s32 avg_Offset_Main2 = 0;
+
+    s32 avg_Capacitance_Ref = 0;
+    s32 avg_Useful_Ref = 0;
+    s32 avg_Offset_Ref = 0;
+    s32 avg_Capacitance_Ref_dynamicthreshold = 0;
 
     s32 nhysteresis = 0;
 
     s32 capMargin = 0;
     s32 capMargin2 = 0;
+
+    bool is_different_offset = false;
+    bool is_over_gap_useful = false;
+    bool is_over_useful = false;
 
     int ret = 0;
 
@@ -660,7 +745,8 @@ static ssize_t sx9500_store_docalibration(struct device *dev,
             conv_main2Sensor = conv_sensorsel_to_sensoren(main2Sensor);
         conv_refSensor = conv_sensorsel_to_sensoren(refSensor);
 
-        write_RegProxCtrl0 = (unsigned char) ((cal_scanperiod << 4) | (conv_mainSensor | conv_main2Sensor | conv_refSensor));
+        write_RegProxCtrl0 = (unsigned char) 
+                ((cal_scanperiod << 4) | (conv_mainSensor | conv_main2Sensor | conv_refSensor));
 
         // Backup RegIrqMask & RegProxCtrl0 value.
         // And, Change RegIrqMask & RegProxCtrl0(scanperiod) value for calibration.
@@ -669,70 +755,159 @@ static ssize_t sx9500_store_docalibration(struct device *dev,
 
         write_register(this, SX9500_IRQ_ENABLE_REG, 0x70);
         write_register(this, SX9500_CPS_CTRL0_REG, write_RegProxCtrl0);
+
         msleep(100); /* make sure everything is running */
+
         manual_offset_calibration(this);
 
-        // Calculate out the Main Cap information.
-        // To sort the collected value. 2 max & 2 min values are excluded.
+        // This should cover most of the scan periods, if extremely large may
+        // want to set this to 500 
+        msleep(500); /* make sure manual offset has been fully done */
+
+        // Clear flags because sensor is calibrationing.
+        this->inStartupTouch = false;
+        check_allnear = false;
+
+        // Calculate out the Cap information for Main/(Main2/)Ref Pins.
         for (i = 0; i < COLLECT_NUM; i++) {
-            capMain[i] = calculate_CSx_rawdata(this, mainSensor);
-            dev_dbg(this->pdev,"capMain[%d] = %d\n", i, capMain[i]);
-            msleep(30);
-        }
-        read_register(this, SX9500_OFFSETMSB_REG, &capMain_Offset_msByte);
-        read_register(this, SX9500_OFFSETLSB_REG, &capMain_Offset_lsByte);
+            calculate_CSx_rawdata(this, mainSensor,
+                                &capMain_cal_data[i].Useful_CSx,
+                                &capMain_cal_data[i].Offset_CSx,
+                                &capMain_cal_data[i].Calculate_CSx);
 
-        sort(capMain, COLLECT_NUM, sizeof(s32), cmp_rawdata, NULL);
-        for (i = FILTER_NUM; i < COLLECT_NUM - FILTER_NUM; i++)
-            avg_capMain += capMain[i];
-        avg_capMain = avg_capMain / (COLLECT_NUM - (FILTER_NUM * 2));
-
-        // Calculate out the Main2 Cap information.
-        // To sort the collected value. 2 max & 2 min values are excluded.
-        if (valid_multiple_input_pins(this)) {
-            for (i = 0; i < COLLECT_NUM; i++) {
-                capMain2[i] = calculate_CSx_rawdata(this, main2Sensor);
-                dev_dbg(this->pdev,"capMain2[%d] = %d\n", i, capMain2[i]);
-                msleep(30);
+            if (valid_multiple_input_pins(this)) {
+                calculate_CSx_rawdata(this, main2Sensor,
+                                    &capMain2_cal_data[i].Useful_CSx,
+                                    &capMain2_cal_data[i].Offset_CSx,
+                                    &capMain2_cal_data[i].Calculate_CSx);
             }
-            read_register(this, SX9500_OFFSETMSB_REG, &capMain2_Offset_msByte);
-            read_register(this, SX9500_OFFSETLSB_REG, &capMain2_Offset_lsByte);
 
-            sort(capMain2, COLLECT_NUM, sizeof(s32), cmp_rawdata, NULL);
-            for (i = FILTER_NUM; i < COLLECT_NUM - FILTER_NUM; i++)
-                avg_capMain2 += capMain2[i];
-            avg_capMain2 = avg_capMain2 / (COLLECT_NUM - (FILTER_NUM * 2));
-            dev_dbg(this->pdev,"avg_capMain2 = %d\n", avg_capMain2);
+            calculate_CSx_rawdata(this, refSensor,
+                                &capRef_cal_data[i].Useful_CSx,
+                                &capRef_cal_data[i].Offset_CSx,
+                                &capRef_cal_data[i].Calculate_CSx);
+
+            msleep(50);
         }
 
-        // Calculate out the Reference Cap information + Apply temperature Compensation
-        // To sort the collected value. 2 max & 2 min values are excluded.
-        for (i = 0; i < COLLECT_NUM; i++) {
-            capRef[i] = calculate_CSx_rawdata(this, refSensor);
-            dev_dbg(this->pdev, "capRef[%d] = %d\n", i, capRef[i]);
-            msleep(30);
-        }        
+        // To sort the collected value. 
+        sort((void *) &capMain_cal_data, COLLECT_NUM, sizeof(struct smtc_cal_data),
+                (compfn) cmp_rawdata, NULL);
+        if (valid_multiple_input_pins(this)) {
+            sort((void *) &capMain2_cal_data, COLLECT_NUM, sizeof(struct smtc_cal_data),
+                    (compfn) cmp_rawdata, NULL);
+        }
+        sort((void *) &capRef_cal_data, COLLECT_NUM, sizeof(struct smtc_cal_data),
+                (compfn) cmp_rawdata, NULL);
 
-        sort(capRef, COLLECT_NUM, sizeof(s32), cmp_rawdata, NULL);
-        for (i = FILTER_NUM; i < COLLECT_NUM - FILTER_NUM; i++)
-            avg_capRef += capRef[i];
-        avg_capRef = avg_capRef / (COLLECT_NUM - (FILTER_NUM * 2));
-        dev_dbg(this->pdev,"avg_capRef = %d\n", avg_capRef);
+        // Check readback sensor raw data.
+        // 1. Check Offset value.(is equal values?)
+        // 2. Check Useful value.(is over min/max gap? is over init range?)
+        for (i = 0; i < COLLECT_NUM; i++) {
+            if (capMain_cal_data[i].Offset_CSx != capMain_cal_data[COLLECT_NUM/2].Offset_CSx) {
+                is_different_offset = true;
+                dev_info(this->pdev, "Calibration Fail! different(offset)! [%d] %d\n",
+                            i, capMain_cal_data[i].Offset_CSx);
+            }
+        }
+
+        if (is_different_offset == false) {
+            if ((capMain_cal_data[COLLECT_NUM-1].Useful_CSx - capMain_cal_data[0].Useful_CSx) > 2000) {
+                is_over_gap_useful = true;
+                dev_info(this->pdev, "Calibration Fail! over gap(useful)! [gap = %d(%d - %d)]\n", 
+                        ((capMain_cal_data[COLLECT_NUM-1].Useful_CSx) - (capMain_cal_data[0].Useful_CSx)),
+                        capMain_cal_data[COLLECT_NUM-1].Useful_CSx, capMain_cal_data[0].Useful_CSx);
+            }
+
+            for (i = 0; i < COLLECT_NUM; i++) {
+                if ((capMain_cal_data[i].Useful_CSx < -8000) || (capMain_cal_data[i].Useful_CSx > 8000)) {
+                    is_over_useful = true;
+                    dev_info(this->pdev, "Calibration Fail! over range(useful)! [%d] %d\n",
+                                i, capMain_cal_data[i].Useful_CSx);
+                }
+            }
+        }
+
+        if (is_different_offset || is_over_gap_useful || is_over_useful) {
+            ret = write_calibration_data(this, 0, 0, 0, false);
+            //if (valid_multiple_input_pins(this))
+            //    ret = write_calibration_data(this, 0, 0, 0, true);
+            running_cal_or_reset = false;
+
+            return count;
+        }
+
+        // Calculate the average capacitance value about the Main/(Main2/)Ref Pins.
+        // 2 max & 2 min values are excluded.
+        for (i = FILTER_NUM; i < COLLECT_NUM - FILTER_NUM; i++) {
+            avg_Capacitance_Main += capMain_cal_data[i].Calculate_CSx;
+            avg_Useful_Main += capMain_cal_data[i].Useful_CSx;
+            avg_Offset_Main += capMain_cal_data[i].Offset_CSx;
+        }
+        avg_Capacitance_Main = avg_Capacitance_Main / (COLLECT_NUM - (FILTER_NUM * 2));
+        avg_Useful_Main = avg_Useful_Main / (COLLECT_NUM - (FILTER_NUM * 2));
+        avg_Offset_Main = avg_Offset_Main / (COLLECT_NUM - (FILTER_NUM * 2));
+        dev_info(this->pdev, 
+                    "avg_Capacitance_Main = %d, avg_Useful_Main = %d, avg_Offset_Main = %d\n", 
+                    avg_Capacitance_Main, avg_Useful_Main, avg_Offset_Main);
+
+        if (valid_multiple_input_pins(this)) {
+            for (i = FILTER_NUM; i < COLLECT_NUM - FILTER_NUM; i++) {
+                avg_Capacitance_Main2 += capMain2_cal_data[i].Calculate_CSx;
+                avg_Useful_Main2 += capMain2_cal_data[i].Useful_CSx;
+                avg_Offset_Main2 += capMain2_cal_data[i].Offset_CSx;
+            }
+            avg_Capacitance_Main2 = avg_Capacitance_Main2 / (COLLECT_NUM - (FILTER_NUM * 2));
+            avg_Useful_Main2 = avg_Useful_Main2 / (COLLECT_NUM - (FILTER_NUM * 2));
+            avg_Offset_Main2 = avg_Offset_Main2 / (COLLECT_NUM - (FILTER_NUM * 2));
+            dev_info(this->pdev,
+                    "avg_Capacitance_Main2 = %d, avg_Useful_Main2 = %d, avg_Offset_Main2 = %d\n",
+                    avg_Capacitance_Main2, avg_Useful_Main2, avg_Offset_Main2);
+        }
+
+        for (i = FILTER_NUM; i < COLLECT_NUM - FILTER_NUM; i++) {
+            avg_Capacitance_Ref += capRef_cal_data[i].Calculate_CSx;
+            avg_Useful_Ref += capRef_cal_data[i].Useful_CSx;
+            avg_Offset_Ref += capRef_cal_data[i].Offset_CSx;
+        }
+        avg_Capacitance_Ref = avg_Capacitance_Ref / (COLLECT_NUM - (FILTER_NUM * 2));
+        avg_Useful_Ref = avg_Useful_Ref / (COLLECT_NUM - (FILTER_NUM * 2));
+        avg_Offset_Ref = avg_Offset_Ref / (COLLECT_NUM - (FILTER_NUM * 2));
+        dev_info(this->pdev, 
+                    "avg_Capacitance_Ref = %d, avg_Useful_Ref = %d, avg_Offset_Ref = %d\n",
+                    avg_Capacitance_Ref, avg_Useful_Ref, avg_Offset_Ref);
 
         // Calculate the dynamic thershold through the ref sensor.
-        avg_capRef_dynamicthreshold = pDevice->pStartupCheckParameters->dynamicthreshold_offset + 
-                ((pDevice->pStartupCheckParameters->dynamicthreshold_temp_slope * avg_capRef) / 10);
+        avg_Capacitance_Ref_dynamicthreshold = pDevice->pStartupCheckParameters->dynamicthreshold_offset + 
+                ((pDevice->pStartupCheckParameters->dynamicthreshold_temp_slope * avg_Capacitance_Ref) / 10);
 
         // Calculate capacitance margin value.
         // And, Save margin & offset values.
         nhysteresis = pDevice->pStartupCheckParameters->dynamicthreshold_hysteresis;
-        capMargin = avg_capMain - avg_capRef_dynamicthreshold + nhysteresis;
-        ret = write_calibration_data(this, capMargin, capMain_Offset_msByte, capMain_Offset_lsByte, false);
+        capMargin = avg_Capacitance_Main - avg_Capacitance_Ref_dynamicthreshold + nhysteresis;
+        ret = write_calibration_data(this,
+                                    capMargin,
+                                    capMain_cal_data[COLLECT_NUM/2].Offset_CSx,
+                                    avg_Capacitance_Main,
+                                    false);
 
         if (valid_multiple_input_pins(this)) {
-            capMargin2 = avg_capMain2 - avg_capRef_dynamicthreshold + nhysteresis;
-            ret = write_calibration_data(this, capMargin2, capMain2_Offset_msByte, capMain2_Offset_lsByte, true);
+            capMargin2 = avg_Capacitance_Main2 - avg_Capacitance_Ref_dynamicthreshold + nhysteresis;
+            ret = write_calibration_data(this,
+                                        capMargin2,
+                                        capMain2_cal_data[COLLECT_NUM/2].Offset_CSx,
+                                        avg_Capacitance_Main2,
+                                        true);
         }
+
+        write_calibration_backup_data(this, 
+                            avg_Capacitance_Main, (s16) avg_Useful_Main, (u16) avg_Offset_Main);
+        if (valid_multiple_input_pins(this)) {
+            write_calibration_backup_data(this, 
+                            avg_Capacitance_Main2, (s16)avg_Useful_Main2, (u16) avg_Offset_Main2);
+        }
+        write_calibration_backup_data(this,
+                            avg_Capacitance_Ref, (s16) avg_Useful_Ref, (u16) avg_Offset_Ref);
 
         // Restore RegIrqMask & RegProxCtrl0(scanperiod) value.
         write_register(this, SX9500_IRQ_ENABLE_REG, old_RegIrqMsk_val);
@@ -1343,7 +1518,9 @@ static void hw_init(struct sx86XX *this)
     if (this && (pDevice = this->pDevice) && (pdata = pDevice->hw)) {
         while ( i < pdata->i2c_reg_num) {
             /* Write all registers/values contained in i2c_reg */
-            dev_dbg(this->pdev, "Write Reg: 0x%02x, Value: 0x%02x\n", pdata->pi2c_reg[i].reg,pdata->pi2c_reg[i].val);
+            dev_dbg(this->pdev,
+                    "Write Reg: 0x%02x, Value: 0x%02x\n",
+                    pdata->pi2c_reg[i].reg,pdata->pi2c_reg[i].val);
             //msleep(3);        
             write_register(this, pdata->pi2c_reg[i].reg,pdata->pi2c_reg[i].val);
             i++;
@@ -1385,7 +1562,8 @@ static int initialize_device(struct sx86XX *this)
         /* perform a reset */
         write_register(this, SX9500_SOFTRESET_REG, SX9500_SOFTRESET);
         /* wait until the reset has finished by monitoring NIRQ */
-        dev_info(this->pdev, "Sent Software Reset. Waiting until device is back from reset to continue.\n");
+        dev_info(this->pdev,
+                "Sent Software Reset. Waiting until device is back from reset to continue.\n");
 
         /* just sleep for awhile instead of using a loop with reading irq status */
     #if defined(CONFIG_MACH_MSM8926_E8LTE)
@@ -1420,20 +1598,21 @@ static int initialize_device(struct sx86XX *this)
 
             for (i = 0; i < 5 ; i++) {
                 read_sensor_regdata(this, mainSensor, &Useful_CSx, &Avg_CSx, &Diff_CSx, &Offset_CSx);
-                dev_info(this->pdev,"[startup] capMain[%d] = %6d %6d %6d %6d\n", 
-                                                    i, Useful_CSx, Avg_CSx, Diff_CSx, Offset_CSx);
+                dev_info(this->pdev,
+                            "[startup] capMain[%d] = %6d %6d %6d %6d\n",
+                            i, Useful_CSx, Avg_CSx, Diff_CSx, Offset_CSx);
             }
 
             if (valid_multiple_input_pins(this)) {
                 Useful_CSx = 0, Avg_CSx = 0, Diff_CSx = 0; Offset_CSx = 0;
                 for (i = 0; i < 5 ; i++) {
                     read_sensor_regdata(this, main2Sensor, &Useful_CSx, &Avg_CSx, &Diff_CSx, &Offset_CSx);
-                    dev_info(this->pdev,"[startup] capMain2[%d] = %6d %6d %6d %6d\n", 
-                                                    i, Useful_CSx, Avg_CSx, Diff_CSx, Offset_CSx);
+                    dev_info(this->pdev,
+                                "[startup] capMain2[%d] = %6d %6d %6d %6d\n",
+                                i, Useful_CSx, Avg_CSx, Diff_CSx, Offset_CSx);
                 }
             }
 
-            
             StartupTouchCheckWithReferenceSensor(this, mainSensor, refSensor);
             /* Howevet use multiple inputs, the startup is only one input is used.
                (Temporary Exception Handling) */
@@ -1441,7 +1620,8 @@ static int initialize_device(struct sx86XX *this)
             //    StartupTouchCheckWithReferenceSensor(this, main2Sensor, refSensor);
         }
         else {
-            dev_err(this->pdev, "Couldn't open platform data containing main and ref sensors, using fallback\n");
+            dev_err(this->pdev,
+                "Couldn't open platform data containing main and ref sensors, using fallback\n");
 
             return -ENOMEM;
         }
@@ -1475,10 +1655,9 @@ void StartupTouchCheckWithReferenceSensor(struct sx86XX *this,
                                         unsigned char mainSensor,
                                         unsigned char refSensor) 
 {
-    s32 cal_Margin = -1;
-    u8 cal_Offset_msByte = 0;
-    u8 cal_Offset_lsByte = 0;
+    s32 cal_Margin = -65535;
     u16 cal_Offset = 0; /* fullbyte */
+    s32 cal_TotalCap = 0;
 
     s32 capMain = 0;
     s32 capRef = 0;
@@ -1500,36 +1679,38 @@ void StartupTouchCheckWithReferenceSensor(struct sx86XX *this,
         return; // ERROR!!
 
     if (mainSensor == (pDevice->hw->input_mainsensor))
-        read_calibration_data(this, &cal_Margin, &cal_Offset_msByte, &cal_Offset_lsByte, false);
+        read_calibration_data(this, &cal_Margin, &cal_Offset, &cal_TotalCap, false);
     else if (mainSensor == (pDevice->hw->input_main2sensor))
-        read_calibration_data(this, &cal_Margin, &cal_Offset_msByte, &cal_Offset_lsByte, true);
+        read_calibration_data(this, &cal_Margin, &cal_Offset, &cal_TotalCap, true);
 
-    cal_Offset = (u16)((cal_Offset_msByte << 8) | cal_Offset_lsByte);
-    dev_info(this->pdev, "read_calibration_data : %d, %02x, %02x\n", cal_Margin, cal_Offset_msByte, cal_Offset_lsByte);
+    dev_info(this->pdev,
+                "read_calibration_data : %d, %d, %d\n",
+                cal_Margin, cal_Offset, cal_TotalCap);
 
     if (skip_startup == true)
         return;
 
-    if (cal_Margin == -1 || cal_Offset < 500 || cal_Offset > 4000) {
-        dev_err(this->pdev, "Fail!!! Check Calibratoin Data!!!\n");
+    if (cal_Margin == -65535/* || cal_Offset < 500 || cal_Offset > 4000*/) {
+        dev_err(this->pdev, "Fail!!! Check Calibration Data!!!\n");
         return;
     }
 
-    pDevice->pStartupCheckParameters->calibratoin_margin = cal_Margin;
+    pDevice->pStartupCheckParameters->calibration_margin = cal_Margin;
 
     // Calculate out the Main Cap information //
-    capMain = calculate_CSx_rawdata(this, mainSensor);
+    calculate_CSx_rawdata(this, mainSensor, NULL, NULL, &capMain);
 
     // Calculate out the Reference Cap information //
-    capRef = calculate_CSx_rawdata(this, refSensor);
+    calculate_CSx_rawdata(this, refSensor, NULL, NULL, &capRef);
 
     // Calculate Dynamic Threshold value.
     capStartup = pDevice->pStartupCheckParameters->dynamicthreshold_offset + 
                 ((pDevice->pStartupCheckParameters->dynamicthreshold_temp_slope * capRef) / 10) +
-                       pDevice->pStartupCheckParameters->calibratoin_margin;
+                       pDevice->pStartupCheckParameters->calibration_margin;
 
-    dev_info(this->pdev, "Main[%ld] - Startup[%ld] = %ld",
-                    (long int) capMain, (long int) capStartup, (long int) (capMain - capStartup));
+    dev_info(this->pdev,
+                "Main[%ld] - Startup[%ld] = %ld",
+                (long int) capMain, (long int) capStartup, (long int) (capMain - capStartup));
 
     // Must be sure to set the Main CS pin.
     write_register(this, SX9500_SENSORSEL_REG, mainSensor);
@@ -1674,7 +1855,8 @@ static void Irq_Process_Close_Far(struct sx86XX *this)
                         dev_info(this->pdev, "cap button %d touched\n", counter);
                         /*input_report_key(input, pCurrentButton->keycode, 1);*/
                         if (valid_multiple_input_pins(this)) {
-                            if ((buttons[mainSensor].state == ACTIVE) || (buttons[main2Sensor].state == ACTIVE)) {
+                            if ((buttons[mainSensor].state == ACTIVE) || 
+                                    (buttons[main2Sensor].state == ACTIVE)) {
                                 pCurrentButton->state = ACTIVE;
                                 dev_info(this->pdev, "active set only\n");
                             }
@@ -1703,7 +1885,8 @@ static void Irq_Process_Close_Far(struct sx86XX *this)
                         /*input_report_key(input, pCurrentButton->keycode, 0);*/
                         if (valid_multiple_input_pins(this)) {
                             pCurrentButton->state = IDLE;
-                            if ((buttons[mainSensor].state == IDLE) && (buttons[main2Sensor].state == IDLE)) {
+                            if ((buttons[mainSensor].state == IDLE) && 
+                                    (buttons[main2Sensor].state == IDLE)) {
                                 input_report_abs(input, ABS_DISTANCE, PROX_STATUS_FAR);
                                 input_sync(input);
                                 dev_info(this->pdev, "idle set and PROX_STATUS_FAR\n");
@@ -1742,28 +1925,33 @@ static int sx9500_regulator_configure(struct sx86XX *this, bool bonoff)
             pdata->vdd_regulator = regulator_get(this->pdev, "Semtech,vdd");
             if (IS_ERR(pdata->vdd_regulator)) {
                 rc = PTR_ERR(pdata->vdd_regulator);
-                dev_err(this->pdev, "Lookup and obtain a reference to a vdd_regulator. Fail![%d]\n", rc);
+                dev_err(this->pdev,
+                        "Lookup and obtain a reference to a vdd_regulator. Fail![%d]\n", rc);
                 return rc;
             }
 
             if (regulator_count_voltages(pdata->vdd_regulator) > 0) {
-                rc = regulator_set_voltage(pdata->vdd_regulator, pdata->vdd_supply_min, pdata->vdd_supply_max);
+                rc = regulator_set_voltage(pdata->vdd_regulator, 
+                                            pdata->vdd_supply_min, pdata->vdd_supply_max);
                 if (rc < 0) {
-                    dev_err(this->pdev, "Set vdd_regulator output voltage. Fail![%d]\n", rc);
+                    dev_err(this->pdev,
+                            "Set vdd_regulator output voltage. Fail![%d]\n", rc);
                     regulator_put(pdata->vdd_regulator);
                     return rc;
                 }
 
                 rc = regulator_set_optimum_mode(pdata->vdd_regulator, pdata->vdd_load_ua);
                 if (rc < 0) {
-                    dev_err(this->pdev, "Set vdd_regulator optimum operating mode. Fail![%d]\n", rc);
+                    dev_err(this->pdev,
+                            "Set vdd_regulator optimum operating mode. Fail![%d]\n", rc);
                     regulator_put(pdata->vdd_regulator);
                     return rc;
                 }
 
                 rc = regulator_enable(pdata->vdd_regulator);
                 if (rc) {
-                    dev_err(this->pdev, "Enable vdd_regulator output. Fail![%d]\n", rc);
+                    dev_err(this->pdev,
+                            "Enable vdd_regulator output. Fail![%d]\n", rc);
                     regulator_set_optimum_mode(pdata->vdd_regulator, 0);
                     regulator_put(pdata->vdd_regulator);
                     return rc;
@@ -1773,12 +1961,14 @@ static int sx9500_regulator_configure(struct sx86XX *this, bool bonoff)
             pdata->svdd_regulator = regulator_get(this->pdev, "Semtech,svdd");
             if (IS_ERR(pdata->svdd_regulator)) {
                 rc = PTR_ERR(pdata->svdd_regulator);
-                dev_err(this->pdev, "Lookup and obtain a reference to a svdd regulator, Fail![%d]\n", rc);
+                dev_err(this->pdev,
+                        "Lookup and obtain a reference to a svdd regulator, Fail![%d]\n", rc);
                 return rc;
             }
 
             if (regulator_count_voltages(pdata->svdd_regulator) > 0) {
-                rc = regulator_set_voltage(pdata->svdd_regulator, pdata->svdd_supply_min, pdata->svdd_supply_max);
+                rc = regulator_set_voltage(pdata->svdd_regulator,
+                                            pdata->svdd_supply_min, pdata->svdd_supply_max);
                 if (rc < 0) {
                     dev_err(this->pdev, "Set svdd regulator output voltage, Fail![%d]\n", rc);
                     regulator_put(pdata->svdd_regulator);
@@ -1787,7 +1977,8 @@ static int sx9500_regulator_configure(struct sx86XX *this, bool bonoff)
 
                 rc = regulator_set_optimum_mode(pdata->svdd_regulator, pdata->vdd_load_ua);
                 if (rc < 0) {
-                    dev_err(this->pdev, "Set svdd_regulator optimum operating mode. Fail![%d]\n", rc);
+                    dev_err(this->pdev,
+                            "Set svdd_regulator optimum operating mode. Fail![%d]\n", rc);
                     regulator_put(pdata->svdd_regulator);
                     return rc;
                 }
@@ -1906,33 +2097,47 @@ static int parse_devicetree(struct device *dev, struct sx9500_platform_data *pda
       {"Semtech,InputMainSensor",  &pdata->input_mainsensor,  DT_U8},
       {"Semtech,InputMainSensor2", &pdata->input_main2sensor, DT_U8},
       {"Semtech,InputRefSensor",   &pdata->input_refsensor,   DT_U8},
-      {"Semtech,DynamicThres_Offset",     &pdata->pStartupCheckParameters->dynamicthreshold_offset,     DT_U32},
-      {"Semtech,DynamicThres_Temp_Slope", &pdata->pStartupCheckParameters->dynamicthreshold_temp_slope, DT_U32},
-      {"Semtech,DynamicThres_Hysteresis", &pdata->pStartupCheckParameters->dynamicthreshold_hysteresis, DT_U32},
-      {"Semtech,Calibratoin_Margin",          &pdata->pStartupCheckParameters->calibratoin_margin,           DT_U32},
-      {"Semtech,Startup_Touch_RegAvgThres",   &pdata->pStartupCheckParameters->startup_touch_regavgthresh,   DT_U8},
-      {"Semtech,Startup_Release_RegAvgThres", &pdata->pStartupCheckParameters->startup_release_regavgthresh, DT_U8},
+      {"Semtech,DynamicThres_Offset",
+                            &pdata->pStartupCheckParameters->dynamicthreshold_offset,     DT_U32},
+      {"Semtech,DynamicThres_Temp_Slope",
+                            &pdata->pStartupCheckParameters->dynamicthreshold_temp_slope, DT_U32},
+      {"Semtech,DynamicThres_Hysteresis",
+                            &pdata->pStartupCheckParameters->dynamicthreshold_hysteresis, DT_U32},
+      {"Semtech,Calibration_Margin",
+                            &pdata->pStartupCheckParameters->calibration_margin,          DT_U32},
+      {"Semtech,Startup_Touch_RegAvgThres",
+                            &pdata->pStartupCheckParameters->startup_touch_regavgthresh,   DT_U8},
+      {"Semtech,Startup_Release_RegAvgThres",
+                            &pdata->pStartupCheckParameters->startup_release_regavgthresh, DT_U8},
       {NULL,                       NULL,                      0},
     };
 
     for (pdtentry = ar_dt_entry_data; pdtentry->dt_name ; ++pdtentry) {
         switch (pdtentry->type) {
             case DT_GPIO:
-                if ((ret = of_get_named_gpio(np, pdtentry->dt_name, 0)) >= 0) {
+                ret = of_get_named_gpio(np, pdtentry->dt_name, 0);
+                if (ret >= 0) {
                     *((int *) pdtentry->ptr_data) = ret;
                     ret = 0;
-                    dev_dbg(dev, "[%s] is [%d]. ret=%d\n", pdtentry->dt_name, *((int *)pdtentry->ptr_data), ret);
+                    dev_dbg(dev, "[%s] is [%d]. ret=%d\n",
+                            pdtentry->dt_name, *((int *)pdtentry->ptr_data), ret);
                 }
                 break;
 
             case DT_U32:
-                if ((ret = of_property_read_u32(np, pdtentry->dt_name, (u32 *) pdtentry->ptr_data)) == 0)
-                    dev_dbg(dev, "[%s] is [%d]. ret=%d\n", pdtentry->dt_name, *((int *)pdtentry->ptr_data), ret);
+                ret = of_property_read_u32(np, pdtentry->dt_name, (u32 *) pdtentry->ptr_data);
+                if (ret == 0) {
+                    dev_dbg(dev, "[%s] is [%d]. ret=%d\n",
+                            pdtentry->dt_name, *((int *)pdtentry->ptr_data), ret);
+                }
                 break;
 
             case DT_U8_ARRAY:
                 temp_array_u32[0] = 0; temp_array_u32[1] = 0;
-                if ((ret = of_property_read_u32_array(np, pdtentry->dt_name, (u32 *) pdtentry->ptr_data, 2)) == 0) {
+                ret = of_property_read_u32_array(np,
+                                                pdtentry->dt_name,
+                                                (u32 *) pdtentry->ptr_data, 2);
+                if (ret == 0) {
                     pdata->pi2c_reg[i].reg = (unsigned char) temp_array_u32[0];
                     pdata->pi2c_reg[i].val = (unsigned char) temp_array_u32[1];
                     pdata->i2c_reg_num = i;
@@ -1944,9 +2149,11 @@ static int parse_devicetree(struct device *dev, struct sx9500_platform_data *pda
 
             case DT_U8:
                 temp_u32 = 0;
-                if ((ret = of_property_read_u32(np, pdtentry->dt_name, (u32 *) &temp_u32)) == 0) {
+                ret = of_property_read_u32(np, pdtentry->dt_name, (u32 *) &temp_u32);
+                if (ret == 0) {
                     *((u8 *) pdtentry->ptr_data) = (u8) temp_u32;
-                    dev_dbg(dev, "[%s] is [0x%02x]. ret=%d\n", pdtentry->dt_name, *((u8 *)pdtentry->ptr_data), ret);
+                    dev_dbg(dev, "[%s] is [0x%02x]. ret=%d\n",
+                            pdtentry->dt_name, *((u8 *)pdtentry->ptr_data), ret);
                 }
                 break;
 
@@ -2001,7 +2208,8 @@ static int sx9500_probe(struct i2c_client *client, const struct i2c_device_id *i
         goto exit;
     }
 
-    pButtonInformationData = devm_kzalloc(&client->dev, sizeof(struct _totalbuttoninformation), GFP_KERNEL);
+    pButtonInformationData = devm_kzalloc(&client->dev,
+                                            sizeof(struct _totalbuttoninformation), GFP_KERNEL);
     if (!pButtonInformationData) {
         dev_err(&client->dev, "Failed to allocate memory(_totalButtonInformation)\n");
         err = -ENOMEM;
@@ -2011,7 +2219,8 @@ static int sx9500_probe(struct i2c_client *client, const struct i2c_device_id *i
     pButtonInformationData->buttons = psmtcButtons;
     pButtonInformationData->buttonSize = ARRAY_SIZE(psmtcButtons),
 
-    pStartupCheckParameters = devm_kzalloc(&client->dev, sizeof(struct _startupcheckparameters), GFP_KERNEL);
+    pStartupCheckParameters = devm_kzalloc(&client->dev,
+                                            sizeof(struct _startupcheckparameters), GFP_KERNEL);
     if (!pStartupCheckParameters) {
         dev_err(&client->dev, "Failed to allocate memory(_startupCheckParameters)\n");
         err = -ENOMEM;

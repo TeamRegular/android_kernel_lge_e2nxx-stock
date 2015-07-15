@@ -21,6 +21,9 @@
 			qcom,s3-debounce = <128>;
 			qcom,system-reset;
 			reg = <0x800 0x100>;
+			qcom,pon_1 {
+				qcom,support-reset = <0>;
+			};
 			qcom,pon_3 {
 				qcom,support-reset = <0>;
 			};
@@ -301,9 +304,6 @@
 			lge,cable-none = <1900000 1200  500>;
 		};
 	};
-	qcom,msm-thermal {
-		qcom,sensor-id = <1>;
-	};
 };
 
 
@@ -408,6 +408,8 @@
 	rpm-regulator-ldoa28 {
 		status = "okay";
 		pm8226_l28: regulator-l28 {
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <3050000>;
 			qcom,init-voltage = <3050000>;
 			status = "okay";
 		};

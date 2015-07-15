@@ -193,7 +193,7 @@ static struct msm_gpiomux_config msm_blsp_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_spi_config,
 		},
 	},
-#ifdef CONFIG_MACH_LGE  /*                                     */
+#ifdef CONFIG_MACH_LGE  /* LGE_CHANGE_S,  Added for COMMON_I2C */
 	{
 		.gpio      = 10,	/* BLSP1 QUP3 I2C_SDA */
 		.settings = {
@@ -323,14 +323,14 @@ static struct gpiomux_setting sd_card_det_sleep_config = {
 	.pull = GPIOMUX_PULL_NONE,
 	.dir = GPIOMUX_IN,
 };
-#else //                    
+#else // not CONFIG_MACH_LGE
 static struct gpiomux_setting sd_card_det_sleep_config = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_UP,
 	.dir = GPIOMUX_IN,
 };
-#endif //                
+#endif // CONFIG_MACH_LGE
 
 static struct msm_gpiomux_config sd_card_det __initdata = {
 	.gpio = 37,
@@ -483,8 +483,8 @@ static struct msm_gpiomux_config gpio_func_reserved_pin_config __initdata = {
 //Need to set GPIO[020] NFC_VEN
 //Need to set GPIO[021] NFC_IRQ
 //Need to set GPIO[022] NFC_MODE
-/*                                                        */
-#ifdef CONFIG_LGE_NFC_PN547_C2
+/*  LGE_CHANGE_S, [NFC][minwoo.kwon@lge.com], NFC Bring up*/
+#ifdef CONFIG_LGE_NFC_PN547
 static struct gpiomux_setting nfc_pn547_sda_cfg = {
 	.func = GPIOMUX_FUNC_3,
 	.drv = GPIOMUX_DRV_8MA,
@@ -561,7 +561,7 @@ static struct msm_gpiomux_config msm_nfc_configs[] __initdata = {
 	},
 };
 #endif
-/*                                                        */
+/*  LGE_CHANGE_E, [NFC][minwoo.kwon@lge.com], NFC Bring up*/
 
 
 // GPIO related function <<7.CAMERA>>
@@ -609,7 +609,7 @@ static struct gpiomux_setting cam_settings[] = {
 	},
 };
 
-/*                                                                                  */
+/* LGE_CHANGE_S, Add gpiomux for ex-ldo used gpio, 2013-09-04, hyungtae.lee@lge.com */
 static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
 	{
 		.gpio = 26, /* CAM_MCLK0 */
@@ -675,7 +675,7 @@ static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
 		},
 	},
 };
-/*                                                                                  */
+/* LGE_CHANGE_E, Add gpiomux for ex-ldo used gpio, 2013-09-04, hyungtae.lee@lge.com */
 
 
 // GPIO related function <<8.FLASH LED>>
@@ -786,11 +786,11 @@ void __init msm8226_init_gpiomux(void)
 #endif
 
 
-/*                                                       */
-#ifdef CONFIG_LGE_NFC_PN547_C2
+/*  LGE_CHANGE_S, [NFC][garam.kim@lge.com], NFC Bring up */
+#ifdef CONFIG_LGE_NFC_PN547
 	msm_gpiomux_install(msm_nfc_configs, ARRAY_SIZE(msm_nfc_configs));
 #endif
-/*                                                       */
+/*  LGE_CHANGE_E, [NFC][garam.kim@lge.com], NFC Bring up */
 
 
 }

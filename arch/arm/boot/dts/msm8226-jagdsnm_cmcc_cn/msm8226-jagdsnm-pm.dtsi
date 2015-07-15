@@ -399,6 +399,7 @@
 	rpm-regulator-ldoa19 {
 		status = "okay";
 		pm8226_l19: regulator-l19 {
+			regulator-always-on;
 			status = "okay";
 		};
 	};

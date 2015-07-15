@@ -112,7 +112,7 @@ static struct ear_3button_info_table max1462x_ear_3button_type_data[]={
 	{KEY_VOLUMEDOWN, VDOWN_MAX, VDOWN_MIN, 0}
 };
 
-//                                                           
+//2013-09-24, seungkyu.joo@lge.com, WX_MAXIM modified [Start]
 	bool maxim_enabled = false;	
 	static struct gpiomux_setting headset_active_cfg_gpio_detect ={
 		.func = GPIOMUX_FUNC_GPIO,
@@ -143,7 +143,7 @@ static struct ear_3button_info_table max1462x_ear_3button_type_data[]={
 			},
 		},
 	};
-//                                                         
+//2013-09-24, seungkyu.joo@lge.com, WX_MAXIM modified [End]
 
 struct hsd_info {
 	/* function devices provided by this driver */

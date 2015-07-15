@@ -48,9 +48,6 @@
 				qcom,use-blink;
 				};
 		};
-		/delete-node/ qcom,leds@a100;
-		/delete-node/ qcom,leds@a300;
-		/delete-node/ qcom,leds@a500;
 	};
 
 	qcom,pm8226@1 {
@@ -101,7 +98,7 @@
 				qcom,cs-out-en;
 				qcom,op-fdbck = <1>;
 				qcom,default-state = "on";
-				qcom,max-current = <17>;
+				qcom,max-current = <20>;
 				qcom,ctrl-delay-us = <0>;
 				qcom,boost-curr-lim = <3>;
 				qcom,cp-sel = <0>;
@@ -291,7 +288,7 @@
 			lge,cable-56k = <496875 1500 1500>;
 			lge,cable-100k = <654545 500 500>;
 			lge,cable-130k = <780861 1500 1500>;
-			lge,cable-180k = <876316 700 500>;
+			lge,cable-180k = <876316 800 500>;
 			lge,cable-200k = <921429 800 500>;
 			lge,cable-220k = <988450 800 500>;
 			lge,cable-270k = <1077399 800 500>;
@@ -365,6 +362,7 @@
 	rpm-regulator-ldoa19 {
 		status = "okay";
 		pm8226_l19: regulator-l19 {
+			regulator-always-on;
 			status = "okay";
 		};
 	};

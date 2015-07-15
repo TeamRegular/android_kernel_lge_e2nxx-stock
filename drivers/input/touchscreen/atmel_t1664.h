@@ -803,6 +803,9 @@ struct mxt_data {
 	u16 T109_address;
 	u8 T109_reportid;
 
+	u16 T80_address;
+	u8 T80_reportid;
+
 	struct mxt_channel_size channel_size;
 	struct mxt_ref_limit ref_limit;
 	u8 ref_chk;
@@ -838,6 +841,7 @@ struct mxt_data {
 	struct delayed_work	work_button_lock;
 	struct delayed_work	work_palm_unlock;
 	struct delayed_work	work_deepsleep;
+	struct delayed_work work_delay_cal;
 	u8	work_deepsleep_enabled;
 	u8 mfts_enable;
 	u8 charging_mode; /*Charger mode in patch*/
@@ -869,6 +873,7 @@ struct mxt_data {
 	bool is_knockONonly;
 	bool is_knockCodeDelay;
 	bool mxt_mode_changed;
+	bool delayed_cal;
 };
 
 struct tci_abs {

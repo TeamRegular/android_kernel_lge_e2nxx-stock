@@ -41,14 +41,14 @@ static struct msm_sensor_power_setting imx091_power_setting[] = {
 		.config_val = GPIO_OUT_HIGH,
 		.delay = 1,
 	},
-/*                                                                                */
+/* LGE_CHANGE_S, add gpio setting for ldaf-en, 2014-04-07, jungryoul.choi@lge.com */
 	{
 		.seq_type = SENSOR_GPIO,
 		.seq_val = SENSOR_GPIO_LDAF_EN,
 		.config_val = GPIO_OUT_HIGH,
 		.delay = 0,
 	},
-/*                                                                                */
+/* LGE_CHANGE_E, add gpio setting for ldaf-en, 2014-04-07, jungryoul.choi@lge.com */
 	{
 		.seq_type = SENSOR_GPIO,
 		.seq_val = SENSOR_GPIO_VAF,

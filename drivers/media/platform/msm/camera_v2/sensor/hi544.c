@@ -31,7 +31,8 @@ static struct msm_sensor_power_setting hi544_power_setting_rev_a[] = {
 		.delay = 1,
 	},
 #if defined(CONFIG_MACH_MSM8926_E2_MPCS_US) || defined(CONFIG_MACH_MSM8926_E2_VZW) || defined(CONFIG_MACH_MSM8926_VFP_KR) \
-	|| defined(CONFIG_MACH_MSM8926_E2_BELL_CA) || defined(CONFIG_MACH_MSM8926_E2_RGS_CA) || defined(CONFIG_MACH_MSM8926_E2_VTR_CA)
+	|| defined(CONFIG_MACH_MSM8926_E2_BELL_CA) || defined(CONFIG_MACH_MSM8926_E2_RGS_CA) || defined(CONFIG_MACH_MSM8926_E2_VTR_CA) \
+	|| defined(CONFIG_MACH_MSM8926_T8LTE)
 	{
 		.seq_type = SENSOR_VREG,
 		.seq_val = CAM_VDIG,
@@ -73,7 +74,6 @@ static struct msm_sensor_power_setting hi544_power_setting_rev_a[] = {
 
 };
 #if defined(CONFIG_MACH_MSM8926_E2_SPR_US)
-
 static struct msm_sensor_power_setting hi544_power_setting_rev_b[] = {
 	{
 		.seq_type = SENSOR_GPIO,
@@ -173,13 +173,13 @@ static int32_t hi544_platform_probe(struct platform_device *pdev)
 	int32_t rc = 0;
 	const struct of_device_id *match;
 	match = of_match_device(hi544_dt_match, &pdev->dev);
-/*                                                    */
+/* LGE_CHANGE_S : WBT, 2013-5-31, jonghwan.ko@lge.com */
 	if(!match)
 	{
 		  pr_err(" %s failed ",__func__);
 		  return -ENODEV;
 	 }
-/*                                                    */
+/* LGE_CHANGE_E : WBT, 2013-5-31, jonghwan.ko@lge.com */
 	rc = msm_sensor_platform_probe(pdev, match->data);
 	return rc;
 }
@@ -188,7 +188,7 @@ static int __init hi544_init_module(void)
 {
 	int32_t rc = 0;
 	pr_info("%s:%d\n", __func__, __LINE__);
-	
+
 #if defined(CONFIG_MACH_MSM8926_E2_SPR_US)
 	switch(lge_get_board_revno()) {
 		case HW_REV_A:
@@ -208,20 +208,11 @@ static int __init hi544_init_module(void)
 			break;
 	}
 #else
-	switch(lge_get_board_revno()) {
-		case HW_REV_A:
-			printk("%s: Sensor power is set as Rev.A, line:%d\n", __func__, __LINE__);
-			hi544_s_ctrl.power_setting_array.power_setting = hi544_power_setting_rev_a;
-			hi544_s_ctrl.power_setting_array.size = ARRAY_SIZE(hi544_power_setting_rev_a);
-			break;
-		default:
-			printk("%s: Sensor power is set as Rev.A, line:%d\n", __func__, __LINE__);
-			hi544_s_ctrl.power_setting_array.power_setting = hi544_power_setting_rev_a;
-			hi544_s_ctrl.power_setting_array.size = ARRAY_SIZE(hi544_power_setting_rev_a);
-			break;
-	}
+	printk("%s: Sensor power is set, line:%d\n", __func__, __LINE__);
+	hi544_s_ctrl.power_setting_array.power_setting = hi544_power_setting_rev_a;
+	hi544_s_ctrl.power_setting_array.size = ARRAY_SIZE(hi544_power_setting_rev_a);
 #endif
-	
+
 	rc = platform_driver_probe(&hi544_platform_driver,
 		hi544_platform_probe);
 	if (!rc)
@@ -250,10 +241,10 @@ static void __exit hi544_exit_module(void)
 
 static struct msm_sensor_ctrl_t hi544_s_ctrl = {
 	.sensor_i2c_client = &hi544_sensor_i2c_client,
-	//                                                                                              
+	//LGE_CHANGE_S, jongkwon.chae, 2014.06.20, To separate power settings depending on HW revisions.
 	//.power_setting_array.power_setting = hi544_power_setting,
 	//.power_setting_array.size = ARRAY_SIZE(hi544_power_setting),
-	//                                                                                              
+	//LGE_CHANGE_E, jongkwon.chae, 2014.06.20, To separate power settings depending on HW revisions.
 	.msm_sensor_mutex = &hi544_mut,
 	.sensor_v4l2_subdev_info = hi544_subdev_info,
 	.sensor_v4l2_subdev_info_size = ARRAY_SIZE(hi544_subdev_info),

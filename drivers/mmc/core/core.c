@@ -65,15 +65,15 @@ static void mmc_clk_scaling(struct mmc_host *host, bool from_wq);
 #define MMC_CACHE_DISBALE_TIMEOUT_MS 180000 /* msec */
 
 /*
-               
-                         
-                            
+ * LGE_CHANGE_S
+ * Comment : FMBT porting
+ * 2013-11-22, p1-fs@lge.com
  */
 #if defined(CONFIG_FMBT_TRACE_EMMC)
 #include <linux/mmc/mem_log.h>
 #define eftech_printf(fmt, args...) printk(fmt, ## args)
-unsigned long long glTimeGap2 = 0;
-unsigned long long glTimeGap1 = 0;
+unsigned long long glTimeGap2;
+unsigned long long glTimeGap1;
 #endif
 
 static struct workqueue_struct *workqueue;
@@ -107,11 +107,11 @@ MODULE_PARM_DESC(
 	"MMC/SD cards are removable and may be removed during suspend");
 
 /*
-               
-                     
-                                
-                              
-                                                                                                       
+ * LGE_CHANGE_S
+ * Date	: 2014.03.19
+ * Author	: bohyun.jung@lge.com
+ * Comment	: Dynamic MMC log
+ *		      set mmc log level by accessing '/sys/module/mmc_core/parameters/debug_level' through adb shell.
  */
 #if defined(CONFIG_LGE_MMC_DYNAMIC_LOG)
 
@@ -122,7 +122,7 @@ MODULE_PARM_DESC(
 	debug_level,
 	"MMC/SD cards debug_level");
 
-#endif	/*                     */
+#endif	/* end of LGE_CHANGE_E */
 
 #define MMC_UPDATE_BKOPS_STATS_HPI(stats)	\
 	do {					\
@@ -203,9 +203,35 @@ static inline void mmc_should_fail_request(struct mmc_host *host,
 
 #endif /* CONFIG_FAIL_MMC_REQUEST */
 
+static inline void
+mmc_clk_scaling_update_state(struct mmc_host *host, struct mmc_request *mrq)
+{
+	if (mrq) {
+		switch (mrq->cmd->opcode) {
+		case MMC_READ_SINGLE_BLOCK:
+		case MMC_READ_MULTIPLE_BLOCK:
+		case MMC_WRITE_BLOCK:
+		case MMC_WRITE_MULTIPLE_BLOCK:
+			host->clk_scaling.invalid_state = false;
+			break;
+		default:
+			host->clk_scaling.invalid_state = true;
+			break;
+		}
+	} else {
+		/*
+		 * force clock scaling transitions,
+		 * if other conditions are met
+		 */
+		host->clk_scaling.invalid_state = false;
+	}
+
+	return;
+}
+
 static inline void mmc_update_clk_scaling(struct mmc_host *host)
 {
-	if (host->clk_scaling.enable) {
+	if (host->clk_scaling.enable && !host->clk_scaling.invalid_state) {
 		host->clk_scaling.busy_time_us +=
 			ktime_to_us(ktime_sub(ktime_get(),
 					host->clk_scaling.start_busy));
@@ -224,15 +250,15 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 {
 	struct mmc_command *cmd = mrq->cmd;
 /*
-               
-               
-                            
+ * LGE_CHANGE_S
+ * FMBT porting
+ * 2013-11-22, p1-fs@lge.com
  */
 #if defined(CONFIG_FMBT_TRACE_EMMC)
 	unsigned long long currentTime = 0;
 	int i;
 #endif
-/*              */
+/* LGE_CHANGE_E */
 
 	int err = cmd->error;
 #ifdef CONFIG_MMC_PERF_PROFILING
@@ -245,7 +271,6 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 		if (cmd->resp[0] & R1_SPI_ILLEGAL_COMMAND)
 			cmd->retries = 0;
 	}
-
 	if (err && cmd->retries && !mmc_card_removed(host->card)) {
 		/*
 		 * Request starter must handle retries - see
@@ -255,9 +280,9 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 			mrq->done(mrq);
 	} else {
 		mmc_should_fail_request(host, mrq);
-
+#ifndef CONFIG_MACH_LGE
 		led_trigger_event(host->led, LED_OFF);
-
+#endif
 		pr_debug("%s: req done (CMD%u): %d: %08x %08x %08x %08x\n",
 			mmc_hostname(host), cmd->opcode, err,
 			cmd->resp[0], cmd->resp[1],
@@ -286,42 +311,36 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 				mmc_hostname(host),
 				mrq->data->bytes_xfered, mrq->data->error);
 /*
-               
-                         
-                            
+ * LGE_CHANGE_S
+ * Comment : FMBT porting
+ * 2013-11-22, p1-fs@lge.com
  */
 #if defined(CONFIG_FMBT_TRACE_EMMC)
-			if(!strncmp(mmc_hostname(host), "mmc0",4))
-			{
+			if (!strncmp(mmc_hostname(host), "mmc0", 4)) {
 				currentTime = sched_clock();
 				memlog_emmc_add(mrq, currentTime, currentTime - glTimeGap2);
 
 				if((lge_packed_cmd_info.packed_cmd_hdr[3] == mrq->cmd->arg) && (mrq->cmd->opcode == 25)
-						&& (mrq->data->blocks == lge_packed_cmd_info.packed_blocks) )
-				{
-					memlog_packed_add(lge_packed_cmd_info.packed_cmd_hdr[0],0);
-					for(i=2; i<(lge_packed_cmd_info.num_packed*2+1); i=i+2)
-					{
-						memlog_packed_add(lge_packed_cmd_info.packed_cmd_hdr[i],1);
-						memlog_packed_add(lge_packed_cmd_info.packed_cmd_hdr[i+1],2);
+						&& (mrq->data->blocks == lge_packed_cmd_info.packed_blocks)) {
+					memlog_packed_add(lge_packed_cmd_info.packed_cmd_hdr[0], 0);
+					for (i = 2; i < (lge_packed_cmd_info.num_packed * 2 + 1); i = i + 2) {
+						memlog_packed_add(lge_packed_cmd_info.packed_cmd_hdr[i], 1);
+						memlog_packed_add(lge_packed_cmd_info.packed_cmd_hdr[i + 1], 2);
 					}
 				}
 			}
-		}
-		else {
-			if(!strncmp(mmc_hostname(host), "mmc0",4))
-			{
-				if(mrq->cmd->opcode != MMC_SEND_STATUS)
-				{
+		} else {
+			if (!strncmp(mmc_hostname(host), "mmc0",4)) {
+				if (mrq->cmd->opcode != MMC_SEND_STATUS) {
 					currentTime = sched_clock();
 					memlog_emmc_add(mrq, currentTime, currentTime - glTimeGap1);
 				}
 			}
 #endif
-/*              */
+/* LGE_CHANGE_E */
 		}
 
-/*              */
+/* LGE_CHANGE_E */
 
 		if (mrq->stop) {
 			pr_debug("%s:     (CMD%u): %d: %08x %08x %08x %08x\n",
@@ -402,25 +421,24 @@ mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 		if (host->perf_enable)
 			host->perf.start = ktime_get();
 #endif
-/* 
-               
-                         
-                            
+/*
+ * LGE_CHANGE_S
+ * Comment : FMBT porting
+ * 2013-11-22, p1-fs@lge.com
  */
 #if defined(CONFIG_FMBT_TRACE_EMMC)
 		glTimeGap2 = sched_clock();
 
 	}
-	else
-	{
+	else {
 		glTimeGap1 = sched_clock();
 #endif
-/*              */
-	
+/* LGE_CHANGE_E */
 	}
 	mmc_host_clk_hold(host);
+#ifndef CONFIG_MACH_LGE
 	led_trigger_event(host->led, LED_FULL);
-
+#endif
 	if (host->card && host->clk_scaling.enable) {
 		/*
 		 * Check if we need to scale the clocks. Clocks
@@ -429,8 +447,11 @@ mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 		 * frequency will be done after current thread
 		 * releases host.
 		 */
-		mmc_clk_scaling(host, false);
-		host->clk_scaling.start_busy = ktime_get();
+		mmc_clk_scaling_update_state(host, mrq);
+		if (!host->clk_scaling.invalid_state) {
+			mmc_clk_scaling(host, false);
+			host->clk_scaling.start_busy = ktime_get();
+		}
 	}
 
 	host->ops->request(host, mrq);
@@ -691,8 +712,10 @@ static bool mmc_should_stop_curr_req(struct mmc_host *host)
 	    (host->areq->cmd_flags & REQ_FUA))
 		return false;
 
+	mmc_host_clk_hold(host);
 	remainder = (host->ops->get_xfer_remain) ?
 		host->ops->get_xfer_remain(host) : -1;
+	mmc_host_clk_release(host);
 	return (remainder > 0);
 }
 
@@ -719,6 +742,7 @@ static int mmc_stop_request(struct mmc_host *host)
 				mmc_hostname(host));
 		return -ENOTSUPP;
 	}
+	mmc_host_clk_hold(host);
 	err = host->ops->stop_request(host);
 	if (err) {
 		pr_err("%s: Call to host->ops->stop_request() failed (%d)\n",
@@ -753,6 +777,7 @@ static int mmc_stop_request(struct mmc_host *host)
 		goto out;
 	}
 out:
+	mmc_host_clk_release(host);
 	return err;
 }
 
@@ -776,19 +801,11 @@ static int mmc_wait_for_data_req_done(struct mmc_host *host,
 	bool pending_is_urgent = false;
 	bool is_urgent = false;
 	bool is_done_rcv = false;
-#ifdef CONFIG_MMC_THREAD_UNBLOCK_BY_SIGNAL
 	int err, ret;
-#else
-	int err;
-#endif
 	unsigned long flags;
 
 	while (1) {
-#ifdef CONFIG_MMC_THREAD_UNBLOCK_BY_SIGNAL
 		ret = wait_io_event_interruptible(context_info->wait,
-#else
-		wait_io_event_interruptible(context_info->wait,
-#endif
 				(context_info->is_done_rcv ||
 				 context_info->is_new_req  ||
 				 context_info->is_urgent));
@@ -842,11 +859,7 @@ static int mmc_wait_for_data_req_done(struct mmc_host *host,
 				err = MMC_BLK_NEW_REQUEST;
 				break; /* return err */
 			}
-#ifdef CONFIG_MMC_THREAD_UNBLOCK_BY_SIGNAL
 		} else if (context_info->is_urgent) {
-#else
-		} else {
-#endif
 			/*
 			 * The case when block layer sent next urgent
 			 * notification before it receives end_io on
@@ -898,14 +911,11 @@ static int mmc_wait_for_data_req_done(struct mmc_host *host,
 				pending_is_urgent = true;
 				continue; /* wait for done/new/urgent event */
 			}
-#ifdef CONFIG_MMC_THREAD_UNBLOCK_BY_SIGNAL
-		}
-		else {
+		} else {
 			pr_warn("%s: mmc thread unblocked from waiting by signal, ret=%d\n",
 					mmc_hostname(host),
 					ret);
 			continue;
-#endif
 		}
 	} /* while */
 	return err;
@@ -1111,6 +1121,10 @@ EXPORT_SYMBOL(mmc_start_req);
  */
 void mmc_wait_for_req(struct mmc_host *host, struct mmc_request *mrq)
 {
+#ifdef CONFIG_MMC_BLOCK_DEFERRED_RESUME
+	if (mmc_bus_needs_resume(host))
+		mmc_resume_bus(host);
+#endif
 	__mmc_start_req(host, mrq);
 	mmc_wait_for_req_done(host, mrq);
 }
@@ -1399,12 +1413,12 @@ void mmc_set_data_timeout(struct mmc_data *data, const struct mmc_card *card)
 			limit_us = 3000000;
 		else
 			#ifdef CONFIG_MACH_LGE
-			/*           
-                                              
-                                                                         
-                                        
-                               
-    */
+			/* LGE_CHANGE
+			 * Although we already applied enough time,
+			 * timeout-error occurs until now with several-ultimate-crappy-memory.
+			 * So, we give more time than before.
+			 * 2013-03-09, G2-FS@lge.com
+			 */
 			limit_us = 300000;
 			#else
 			limit_us = 100000;
@@ -2039,10 +2053,10 @@ void mmc_power_up(struct mmc_host *host)
 	 * to reach the minimum voltage.
 	 */
 	#ifdef CONFIG_MACH_LGE
-	/*           
-                                              
-                            
- */
+	/* LGE_CHANGE
+	* Augmenting delay-time for some crappy card.
+	* 2013-03-09, G2-FS@lge.com
+	*/
 	mmc_delay(20);
 	#else
 	mmc_delay(10);
@@ -2058,10 +2072,10 @@ void mmc_power_up(struct mmc_host *host)
 	 * time required to reach a stable voltage.
 	 */
 #ifdef CONFIG_MACH_LGE
-	/*           
-                                              
-                            
- */
+	/* LGE_CHANGE
+	* Augmenting delay-time for some crappy card.
+	* 2013-03-09, G2-FS@lge.com
+	*/
 	mmc_delay(20);
 #else
 	mmc_delay(10);
@@ -2169,12 +2183,9 @@ int mmc_resume_bus(struct mmc_host *host)
 		host->bus_ops->resume(host);
 	}
 
-	if (host->bus_ops->detect && !host->bus_dead)
-		host->bus_ops->detect(host);
-
 	mmc_bus_put(host);
 	pr_debug("%s: Deferred resume completed\n", mmc_hostname(host));
-	
+
 	return 0;
 }
 
@@ -2227,8 +2238,8 @@ void mmc_detach_bus(struct mmc_host *host)
 }
 
 #ifdef CONFIG_LGE_ENABLE_MMC_STRENGTH_CONTROL
-	extern char clock_flag;
-	char voltage_flag = 0; 
+extern char clock_flag;
+char voltage_flag;
 #endif
 /**
  *	mmc_detect_change - process change of state on a MMC socket
@@ -2248,22 +2259,18 @@ void mmc_detect_change(struct mmc_host *host, unsigned long delay)
 	WARN_ON(host->removed);
 	spin_unlock_irqrestore(&host->lock, flags);
 #endif
-	
 	pr_debug("%s: %s\n", mmc_hostname(host), __func__);
 
 	host->detect_change = 1;
 #ifdef CONFIG_LGE_ENABLE_MMC_STRENGTH_CONTROL
-	if(host->index == 1)
-	{
-		if(host->card)
-		{	
+	if(host->index == 1) {
+		if(host->card) {
 			clock_flag = 0;
 			voltage_flag = 0;
 		}
-		
 	}
 #endif
-#if defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_VFP_KR) || defined(CONFIG_MACH_MSM8926_AKA_KR) || defined(CONFIG_MACH_MSM8926_E8LTE_KR)
+#if defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_VFP_KR) || defined(CONFIG_MACH_MSM8926_AKA_CN) || defined(CONFIG_MACH_MSM8926_E9LTE) || defined(CONFIG_MACH_MSM8926_AKA_KR)
 	wake_lock(&host->detect_wake_lock);
 #endif
 	mmc_schedule_delayed_work(&host->detect, delay);
@@ -3006,7 +3013,8 @@ static bool mmc_is_vaild_state_for_clk_scaling(struct mmc_host *host)
 	 * this mode.
 	 */
 	if (!card || (mmc_card_mmc(card) &&
-			card->part_curr == EXT_CSD_PART_CONFIG_ACC_RPMB))
+			card->part_curr == EXT_CSD_PART_CONFIG_ACC_RPMB)
+			|| host->clk_scaling.invalid_state)
 		goto out;
 
 	if (mmc_send_status(card, &status)) {
@@ -3277,6 +3285,19 @@ int _mmc_detect_card_removed(struct mmc_host *host)
 		return 1;
 
 	ret = host->bus_ops->alive(host);
+
+	/*
+	 * Card detect status and alive check may be out of sync if card is
+	 * removed slowly, when card detect switch changes while card/slot
+	 * pads are still contacted in hardware (refer to "SD Card Mechanical
+	 * Addendum, Appendix C: Card Detection Switch"). So reschedule a
+	 * detect work 200ms later for this case.
+	 */
+	if (!ret && host->ops->get_cd && !host->ops->get_cd(host)) {
+		mmc_detect_change(host, msecs_to_jiffies(200));
+		pr_debug("%s: card removed too slowly\n", mmc_hostname(host));
+	}
+
 	if (ret) {
 		mmc_card_set_removed(host->card);
 		pr_debug("%s: card remove detected\n", mmc_hostname(host));
@@ -3344,16 +3365,14 @@ void mmc_rescan(struct work_struct *work)
 	if (host->bus_ops && host->bus_ops->detect && !host->bus_dead
 	    && !(host->caps & MMC_CAP_NONREMOVABLE))
 	{
-		
-	#ifdef CONFIG_MACH_LGE	
-		if(host->bus_ops->detect(host))
-		{
+	#ifdef CONFIG_MACH_LGE
+		if(host->bus_ops->detect(host)) {
 			mmc_bus_put(host);
 			goto out;
 		}
 	#else
 	host->bus_ops->detect(host);
-	#endif 
+	#endif
 	}
 	host->detect_change = 0;
 	/* If the card was removed the bus will be marked
@@ -3391,8 +3410,12 @@ void mmc_rescan(struct work_struct *work)
 	 */
 	mmc_bus_put(host);
 
-	if (host->ops->get_cd && host->ops->get_cd(host) == 0)
+	if (host->ops->get_cd && host->ops->get_cd(host) == 0) {
+		mmc_claim_host(host);
+		mmc_power_off(host);
+		mmc_release_host(host);
 		goto out;
+	}
 
 	mmc_rpm_hold(host, &host->class_dev);
 	mmc_claim_host(host);
@@ -3401,14 +3424,10 @@ void mmc_rescan(struct work_struct *work)
 	mmc_release_host(host);
 	mmc_rpm_release(host, &host->class_dev);
  out:
-#ifdef CONFIG_MACH_MSM8926_MMC_ABORT_RESCAN_IN_SUSPEND
 	/* only extend the wakelock, if suspend has not started yet */
 	if (extend_wakelock && !host->rescan_disable)
-#else
-	if (extend_wakelock)
-#endif
 		wake_lock_timeout(&host->detect_wake_lock, HZ / 2);
-#if defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_VFP_KR) || defined(CONFIG_MACH_MSM8926_AKA_KR)
+#if defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_VFP_KR) || defined(CONFIG_MACH_MSM8926_AKA_CN) || defined(CONFIG_MACH_MSM8926_E9LTE) || defined(CONFIG_MACH_MSM8926_AKA_KR)
 	else
 		wake_unlock(&host->detect_wake_lock);
 #endif
@@ -3558,7 +3577,8 @@ int mmc_flush_cache(struct mmc_card *card)
 	struct mmc_host *host = card->host;
 	int err = 0, rc;
 
-	if (!(host->caps2 & MMC_CAP2_CACHE_CTRL))
+	if (!(host->caps2 & MMC_CAP2_CACHE_CTRL) ||
+	     (card->quirks & MMC_QUIRK_CACHE_DISABLE))
 		return err;
 
 	if (mmc_card_mmc(card) &&
@@ -3597,7 +3617,8 @@ int mmc_cache_ctrl(struct mmc_host *host, u8 enable)
 	int err = 0, rc;
 
 	if (!(host->caps2 & MMC_CAP2_CACHE_CTRL) ||
-			mmc_card_is_removable(host))
+			mmc_card_is_removable(host) ||
+			(card->quirks & MMC_QUIRK_CACHE_DISABLE))
 		return err;
 
 	if (card && mmc_card_mmc(card) &&
@@ -3790,34 +3811,29 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 			spin_unlock_irqrestore(&host->lock, flags);
 			break;
 		}
-#ifdef CONFIG_MACH_MSM8926_MMC_ABORT_RESCAN_IN_SUSPEND
+
 		/* since its suspending anyway, disable rescan */
 		host->rescan_disable = 1;
-#endif
 		spin_unlock_irqrestore(&host->lock, flags);
 
 		/* Wait for pending detect work to be completed */
 		if (!(host->caps & MMC_CAP_NEEDS_POLL))
 			flush_work(&host->detect.work);
-#ifndef CONFIG_MACH_MSM8926_MMC_ABORT_RESCAN_IN_SUSPEND
-		spin_lock_irqsave(&host->lock, flags);
-		host->rescan_disable = 1;
-		spin_unlock_irqrestore(&host->lock, flags);
-#endif
+
 		/*
 		 * In some cases, the detect work might be scheduled
 		 * just before rescan_disable is set to true.
 		 * Cancel such the scheduled works.
 		 */
 		cancel_delayed_work_sync(&host->detect);
-#ifdef CONFIG_MACH_MSM8926_MMC_ABORT_RESCAN_IN_SUSPEND
+
 		/*
 		 * It is possible that the wake-lock has been acquired, since
 		 * its being suspended, release the wakelock
 		 */
 		if (wake_lock_active(&host->detect_wake_lock))
 			wake_unlock(&host->detect_wake_lock);
-#endif
+
 		if (!host->bus_ops || host->bus_ops->suspend)
 			break;
 
@@ -3846,18 +3862,16 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 		host->rescan_disable = 0;
 		spin_unlock_irqrestore(&host->lock, flags);
 #if defined(CONFIG_MMC_DAMAGED_SDCARD_CTRL)
-		if ( !(host->caps & MMC_CAP_NONREMOVABLE))		// SD Card.
-		{
-			/*                                    
-                                                                                   
-                                                                                 
-                                                       
-    */
+		if (!(host->caps & MMC_CAP_NONREMOVABLE)) {		/* SD Card. */
+			/* LGE_CHANGE_S : bohyun.jung@lge.com
+			 * PM manager (kernel/notifier) calls each pm_notifier suspend/restore scenario.
+			 * In case of damaged SD card, init card fails and block to enter deep sleep.
+			 * Not call mmc_detect_change() for Damaged SD Card.
+			 */
 			if (!host->damaged)
 				mmc_detect_change(host, 0);
 		}
-		else	
-		{
+		else {
 			mmc_detect_change(host, 0);
 		}
 #else
@@ -3985,14 +3999,14 @@ static int __init mmc_init(void)
 	if (ret)
 		goto unregister_host_class;
 /*
-               
-                         
-                            
+ * LGE_CHANGE_S
+ * Comment : FMBT porting
+ * 2013-11-22, p1-fs@lge.com
  */
 #if defined(CONFIG_FMBT_TRACE_EMMC)
 	init_memLog();
 #endif
-/*              */
+/* LGE_CHANGE_E */
 
 	return 0;
 

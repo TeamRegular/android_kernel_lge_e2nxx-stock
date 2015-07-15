@@ -84,9 +84,9 @@ static struct gpiomux_setting lcd_en_sus_cfg = {
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
-/*           
-                             
-                                    
+/* LGE_CHANGE
+ * QCT DSI command mode patch
+ * 2013-06-26, kyeongdon.kim@lge.com
 */
 static struct gpiomux_setting lcd_te_act_config = {
 	.func = GPIOMUX_FUNC_1,
@@ -121,9 +121,9 @@ static struct msm_gpiomux_config msm_lcd_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &lcd_en_sus_cfg,
 		},
 	},
-/*           
-                             
-                                    
+/* LGE_CHANGE
+ * QCT DSI command mode patch
+ * 2013-06-26, kyeongdon.kim@lge.com
 */
 	{
 		.gpio = 12,
@@ -402,8 +402,8 @@ static struct gpiomux_setting cam_settings[] = {
 };
 
 /*
-                                                       
-                                              
+ * This source has changed to match at lgps15 HDK board
+ * changed by junil0814.lee@lge.com 2013-06-05
  */
 static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
 	{
@@ -526,7 +526,7 @@ static struct msm_gpiomux_config sd_card_det[] __initdata = {
 };
 
 #if defined(CONFIG_MACH_LGE) && defined(CONFIG_SWITCH_SPK_RCV)
-//                                                                           
+// sangman.park@lge.com(SOUND) 2013_7_17 added speaker switch mixer control  
 static struct gpiomux_setting spk_rcv_active_config = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_8MA,
@@ -543,7 +543,7 @@ static struct msm_gpiomux_config msm_spk_rcv_det[] __initdata = {
 		},
 	}
 };
-#endif/*                                      */
+#endif/*CONFIG_MACH_LGE&&CONFIG_SWITCH_SPK_RCV*/
 void __init msm8610_init_gpiomux(void)
 {
 	int rc;
@@ -566,11 +566,11 @@ void __init msm8610_init_gpiomux(void)
 	msm_gpiomux_install(msm_sensor_configs, ARRAY_SIZE(msm_sensor_configs));
 #if defined (CONFIG_LGE_BROADCAST_ONESEG)
     msm_gpiomux_install(lge_1seg_blsp_configs, ARRAY_SIZE(lge_1seg_blsp_configs));
-#endif  /*                             */
+#endif  /* CONFIG_LGE_BROADCAST_ONESEG */
 
 #if defined(CONFIG_MACH_LGE) && defined(CONFIG_SWITCH_SPK_RCV)
-//                                                                           
+// sangman.park@lge.com(SOUND) 2013_7_17 added speaker switch mixer control  
 	msm_gpiomux_install(msm_spk_rcv_det,
 			ARRAY_SIZE(msm_spk_rcv_det));
-#endif/*                                       */
+#endif/* CONFIG_MACH_LGE&&CONFIG_SWITCH_SPK_RCV*/
 }

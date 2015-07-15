@@ -137,7 +137,7 @@
 				qcom,cs-out-en;
 				qcom,op-fdbck = <1>;
 				qcom,default-state = "off";
-				qcom,max-current = <18>;
+				qcom,max-current = <14>;
 				qcom,ctrl-delay-us = <0>;
 				qcom,boost-curr-lim = <3>;
 				qcom,cp-sel = <0>;
@@ -335,7 +335,7 @@
 	qcom,vddmax-mv = <4350>;
 	qcom,vddsafe-mv = <4380>;
 	qcom,vinmin-mv = <4350>;
-	qcom,ibatmax-ma = <1200>;
+	qcom,ibatmax-ma = <1100>;
 	qcom,ibatterm-ma = <150>;
 	qcom,vbatdet-delta-mv = <100>;
 	qcom,tchg-mins = <480>;
@@ -394,13 +394,14 @@
 	rpm-regulator-ldoa19 {
 		status = "okay";
 		pm8226_l19: regulator-l19 {
-			regulator-always-on;
 			status = "okay";
 		};
 	};
 	rpm-regulator-ldoa23 {
 		status = "okay";
 		pm8226_l23: regulator-l23 {
+			regulator-name = "8226_l23";
+			revision = "...rev_b";
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1800000>;
 			qcom,init-voltage = <1800000>;
@@ -418,7 +419,14 @@
 	rpm-regulator-ldoa27 {
 		status = "okay";
 		pm8226_l27: regulator-l27 {
-			qcom,init-enable = <0>;
+		    regulator-name = "8226_l27";
+			revision = "rev_c...";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+			qcom,init-voltage = <1800000>;
+			qcom,init-current = <20000>;
+			qcom,init-ldo-mode=<1>;
+			regulator-always-on;
 			status = "okay";
 		};
 	};
@@ -429,6 +437,7 @@
 			regulator-min-microvolt = <3050000>;
 			regulator-max-microvolt = <3050000>;
 			qcom,init-voltage = <3050000>;
+			regulator-always-on;
 			status = "okay";
 		};
 	};

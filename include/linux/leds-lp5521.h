@@ -108,9 +108,6 @@ struct lp5521_chip {
 	int id_pattern_play;
 	u8 current_index;
     unsigned int rgb_led_en;
-#if defined(CONFIG_MACH_MSM8926_VFP_KR)
-	struct notifier_block		fb_notifier_block;
-#endif
 };
 
 #define LP5521_INFO_PRINT   	(1)

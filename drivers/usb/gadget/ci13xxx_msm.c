@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -29,8 +29,8 @@ struct ci13xxx_udc_context {
 	int wake_irq;
 	bool wake_irq_state;
 #ifdef CONFIG_USB_G_LGE_ANDROID
-    struct wake_lock wlock;
-    struct delayed_work wunlock_w;
+	struct wake_lock wlock;
+	struct delayed_work wunlock_w;
 #endif
 };
 
@@ -40,15 +40,15 @@ static struct ci13xxx_udc_context _udc_ctxt;
 #define UNLOCK_DELAY   msecs_to_jiffies(1000)
 static void wunlock_w(struct work_struct *w)
 {
-    wake_unlock(&_udc_ctxt.wlock);
+	wake_unlock(&_udc_ctxt.wlock);
 }
 #endif
 
 #ifdef CONFIG_LGE_PM_VZW_FAST_CHG
-int lge_usb_config_finish = 0;
-bool usb_connecting_flag = false;
-bool usb_connected_flag = false;
-bool usb_configured_flag = false;
+int lge_usb_config_finish /* = 0 */;
+bool usb_connecting_flag  /* = false */;
+bool usb_connected_flag   /* = false */;
+bool usb_configured_flag  /* = false */;
 struct delayed_work usb_detect_w;
 
 extern void set_vzw_usb_charging_state(int state);
@@ -57,20 +57,20 @@ extern int get_vzw_usb_charging_state(void);
 #define USB_DETECT_DELAY msecs_to_jiffies(50000)
 static void usb_detect_work(struct work_struct *w)
 {
-    if (!usb_connected_flag) {
-        set_vzw_usb_charging_state(0 /* IS_OPEN_TA */);
-        pr_info("%s: OPEN TA is connected!!\n", __func__);
-    } else if (usb_configured_flag) {
-        lge_usb_config_finish = 1;
-        set_vzw_usb_charging_state(2 /* IS_USB_DRIVER_INSTALLED */);
-        pr_info("%s: USB DRIVER_INSTALLED\n", __func__);
-    } else {
-        set_vzw_usb_charging_state(1 /* IS_USB_DRIVER_UNINSTALLED */);
-        pr_info("%s: USB DRIVER_UNINSTALLED\n", __func__);
-    }
-    usb_connecting_flag = false;
-    usb_connected_flag = false;
-    usb_configured_flag = false;
+	if (!usb_connected_flag) {
+		set_vzw_usb_charging_state(0 /* IS_OPEN_TA */);
+		pr_info("%s: OPEN TA is connected!!\n", __func__);
+	} else if (usb_configured_flag) {
+		lge_usb_config_finish = 1;
+		set_vzw_usb_charging_state(2 /* IS_USB_DRIVER_INSTALLED */);
+		pr_info("%s: USB DRIVER_INSTALLED\n", __func__);
+	} else {
+		set_vzw_usb_charging_state(1 /* IS_USB_DRIVER_UNINSTALLED */);
+		pr_info("%s: USB DRIVER_UNINSTALLED\n", __func__);
+	}
+	usb_connecting_flag = false;
+	usb_connected_flag = false;
+	usb_configured_flag = false;
 }
 #endif
 
@@ -108,11 +108,27 @@ static void ci13xxx_msm_disconnect(void)
 	struct ci13xxx *udc = _udc;
 	struct usb_phy *phy = udc->transceiver;
 
-	if (phy && (phy->flags & ENABLE_DP_MANUAL_PULLUP))
+	if (phy && (phy->flags & ENABLE_DP_MANUAL_PULLUP)) {
+		u32 temp;
+
 		usb_phy_io_write(phy,
 				ULPI_MISC_A_VBUSVLDEXT |
 				ULPI_MISC_A_VBUSVLDEXTSEL,
 				ULPI_CLR(ULPI_MISC_A));
+
+		/* Notify LINK of VBUS LOW */
+		temp = readl_relaxed(USB_USBCMD);
+		temp &= ~USBCMD_SESS_VLD_CTRL;
+		writel_relaxed(temp, USB_USBCMD);
+
+		/*
+		 * Add memory barrier as it is must to complete
+		 * above USB PHY and Link register writes before
+		 * moving ahead with USB peripheral mode enumeration,
+		 * otherwise USB peripheral mode may not work.
+		 */
+		mb();
+	}
 }
 
 /* Link power management will reduce power consumption by
@@ -204,8 +220,8 @@ static void ci13xxx_msm_notify_event(struct ci13xxx *udc, unsigned event)
 		dev_info(dev, "CI13XXX_CONTROLLER_RESET_EVENT received\n");
 		ci13xxx_msm_reset();
 #ifdef CONFIG_USB_G_LGE_ANDROID
-        cancel_delayed_work_sync(&_udc_ctxt.wunlock_w);
-        wake_lock(&_udc_ctxt.wlock);
+		cancel_delayed_work_sync(&_udc_ctxt.wunlock_w);
+		wake_lock(&_udc_ctxt.wlock);
 #endif
 		break;
 	case CI13XXX_CONTROLLER_DISCONNECT_EVENT:
@@ -213,7 +229,7 @@ static void ci13xxx_msm_notify_event(struct ci13xxx *udc, unsigned event)
 		ci13xxx_msm_disconnect();
 		ci13xxx_msm_resume();
 #ifdef CONFIG_USB_G_LGE_ANDROID
-        schedule_delayed_work(&_udc_ctxt.wunlock_w, UNLOCK_DELAY);
+		schedule_delayed_work(&_udc_ctxt.wunlock_w, UNLOCK_DELAY);
 #endif
 		break;
 	case CI13XXX_CONTROLLER_CONNECT_EVENT:
@@ -235,30 +251,30 @@ static void ci13xxx_msm_notify_event(struct ci13xxx *udc, unsigned event)
 	}
 
 #ifdef CONFIG_LGE_PM_VZW_FAST_CHG
-    switch (event) {
-        case CI13XXX_CONTROLLER_CONNECT_EVENT:
-        case CI13XXX_CONTROLLER_RESUME_EVENT:
-            pr_info("%s: [USB_DRV] CONNECTING\n", __func__);
-            if (usb_connecting_flag) {
-                cancel_delayed_work_sync(&usb_detect_w);
-            } else {
-                usb_connecting_flag = true;
-            }
-            usb_connected_flag = false;
-            usb_configured_flag = false;
-            lge_usb_config_finish = 0;
-            schedule_delayed_work(&usb_detect_w, USB_DETECT_DELAY);
-            break;
-        case CI13XXX_CONTROLLER_DISCONNECT_EVENT:
-            cancel_delayed_work_sync(&usb_detect_w);
-            lge_usb_config_finish = 0;
-            usb_connecting_flag = false;
-            usb_connected_flag = false;
-            usb_configured_flag = false;
-            break;
-        default:
-            break;
-    }
+	switch (event) {
+	case CI13XXX_CONTROLLER_CONNECT_EVENT:
+	case CI13XXX_CONTROLLER_RESUME_EVENT:
+		pr_info("%s: [USB_DRV] CONNECTING\n", __func__);
+		if (usb_connecting_flag)
+			cancel_delayed_work_sync(&usb_detect_w);
+		else
+			usb_connecting_flag = true;
+
+		usb_connected_flag = false;
+		usb_configured_flag = false;
+		lge_usb_config_finish = 0;
+		schedule_delayed_work(&usb_detect_w, USB_DETECT_DELAY);
+		break;
+	case CI13XXX_CONTROLLER_DISCONNECT_EVENT:
+		cancel_delayed_work_sync(&usb_detect_w);
+		lge_usb_config_finish = 0;
+		usb_connecting_flag = false;
+		usb_connected_flag = false;
+		usb_configured_flag = false;
+		break;
+	default:
+		break;
+	}
 #endif
 }
 
@@ -401,11 +417,11 @@ static int ci13xxx_msm_probe(struct platform_device *pdev)
 	}
 
 #ifdef CONFIG_USB_G_LGE_ANDROID
-    wake_lock_init(&_udc_ctxt.wlock, WAKE_LOCK_SUSPEND, "usb_bus_active");
-    INIT_DELAYED_WORK(&_udc_ctxt.wunlock_w, wunlock_w);
+	wake_lock_init(&_udc_ctxt.wlock, WAKE_LOCK_SUSPEND, "usb_bus_active");
+	INIT_DELAYED_WORK(&_udc_ctxt.wunlock_w, wunlock_w);
 #endif
 #ifdef CONFIG_LGE_PM_VZW_FAST_CHG
-    INIT_DELAYED_WORK(&usb_detect_w, usb_detect_work);
+	INIT_DELAYED_WORK(&usb_detect_w, usb_detect_work);
 #endif
 
 	pm_runtime_no_callbacks(&pdev->dev);
@@ -433,6 +449,11 @@ int ci13xxx_msm_remove(struct platform_device *pdev)
 	return 0;
 }
 
+void ci13xxx_msm_shutdown(struct platform_device *pdev)
+{
+	ci13xxx_pullup(&_udc->gadget, 0);
+}
+
 void msm_hw_bam_disable(bool bam_disable)
 {
 	u32 val;
@@ -452,6 +473,7 @@ static struct platform_driver ci13xxx_msm_driver = {
 		.name = "msm_hsusb",
 	},
 	.remove = ci13xxx_msm_remove,
+	.shutdown = ci13xxx_msm_shutdown,
 };
 MODULE_ALIAS("platform:msm_hsusb");
 

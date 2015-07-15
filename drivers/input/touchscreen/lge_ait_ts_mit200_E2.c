@@ -151,7 +151,7 @@ static int mit_fw_version_check(struct mms_data *ts, struct touch_fw_info *info)
 		return 1;
 	}
 
-	if (strcmp(ts->pdata->fw_product, ts->module.product_code) != 0) {
+	if ((strcmp(ts->pdata->fw_product, ts->module.product_code) != 0) && (strcmp(ts->pdata->p3_fw_product, ts->module.product_code) != 0)) {
 		TOUCH_INFO_MSG("F/W Product is not matched [%s] \n", ts->module.product_code);
 		if (ts->module.product_code[0] == 0)
 			return 2;

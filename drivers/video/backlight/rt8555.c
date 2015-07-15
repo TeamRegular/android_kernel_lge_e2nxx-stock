@@ -101,7 +101,7 @@ EXPORT_SYMBOL(wireless_backlight_state);
 static void rt8555_hw_reset(void)
 {
 	int gpio = main_rt8555_dev->gpio;
-	/*                                      */
+	/* LGE_CHANGE - Fix GPIO Setting Warning*/
 	if (gpio_is_valid(gpio)) {
 		gpio_direction_output(gpio, 1);
 		gpio_set_value_cansleep(gpio, 1);

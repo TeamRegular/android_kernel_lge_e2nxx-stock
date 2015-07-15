@@ -49,20 +49,14 @@ static int gpio_reserved_pin_rev_zero[] = {
 };
 #endif
 static int gpio_reserved_pin_rev_A[] = {
-	0, 1, 2, 4, 5, 12, 13, 14, 15, 20, 21, 22, 24, 35, 45, 46, 49, 50, 51, 52, 53, 54, 55, 56, 63, 65, 67, 75, 76, 77, 78, 79, 81, 82, 86, 88, 91, 92, 93, 94, 97, 98, 103, 104, 108, 109, 111, 116, 117, 118,
+	0, 1, 2, 3, 5, 34, 35, 53, 54, 55, 67, 73, 74, 76, 77, 78, 82, 83, 84, 89, 90, 94, 95, 96, 97, 98, 103, 104, 107, 112, 115, 116, 117, 118,
 	MSM8x26_GPIO_END // This is included to notify the end of reserved GPIO configuration.
 };
 
 static int gpio_reserved_pin_rev_B[] = {
-	0, 1, 2, 4, 5, 10, 11, 12, 13, 14, 15, 20, 21, 22, 24, 34, 35, 45, 46, 49, 50, 51, 52, 53, 54, 55, 56, 63, 65, 67, 75, 76, 77, 78, 79, 81, 82, 86, 88, 91, 92, 93, 94, 97, 98, 103, 104, 108, 109, 111, 116, 117, 118,
+	0, 1, 2, 3, 5, 34, 35, 53, 55, 56, 67, 73, 74, 76, 77, 78, 82, 83, 84, 85, 86, 89, 90, 94, 95, 96, 97, 98, 103, 104, 110, 111, 112, 115, 116, 117, 118,
 	MSM8x26_GPIO_END // This is included to notify the end of reserved GPIO configuration.
 };
-
-static int gpio_reserved_pin_rev_1[] = {
-	0, 1, 2, 4, 5, 10, 11, 12, 13, 14, 15, 20, 21, 22, 24, 34, 35, 45, 46, 49, 50, 51, 52, 53, 54, 55, 56, 63, 65, 67, 75, 76, 77, 78, 79, 81, 82, 86, 88, 91, 92, 93, 94, 97, 98, 103, 104, 108, 109, 111, 116, 117, 118,
-	MSM8x26_GPIO_END // This is included to notify the end of reserved GPIO configuration.
-};
-
 
 static struct gpiomux_setting reserved_pin_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
@@ -469,7 +463,7 @@ static struct msm_gpiomux_config msm_touch_configs[] __initdata = {
 //Need to set GPIO[020] NFC_VEN
 //Need to set GPIO[021] NFC_IRQ
 //Need to set GPIO[022] NFC_MODE
-/*                                                        */
+/*  LGE_CHANGE_S, [NFC][minwoo.kwon@lge.com], NFC Bring up*/
 #ifdef CONFIG_LGE_NFC_PN544_C3
 #if 0
 static struct gpiomux_setting nfc_pn544_sda_cfg = {
@@ -551,7 +545,7 @@ static struct msm_gpiomux_config msm_nfc_configs[] __initdata = {
 	},
 };
 #endif
-/*                                                        */
+/*  LGE_CHANGE_E, [NFC][minwoo.kwon@lge.com], NFC Bring up*/
 
 
 /* Camera Pin Setting */
@@ -755,14 +749,14 @@ static struct gpiomux_setting sd_card_det_sleep_config = {
 	.pull = GPIOMUX_PULL_NONE,
 	.dir = GPIOMUX_IN,
 };
-#else //                    
+#else // not CONFIG_MACH_LGE
 static struct gpiomux_setting sd_card_det_sleep_config = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_UP,
 	.dir = GPIOMUX_IN,
 };
-#endif //                
+#endif // CONFIG_MACH_LGE
 
 static struct msm_gpiomux_config sd_card_det __initdata = {
 	.gpio = 37,
@@ -1133,8 +1127,8 @@ static void bluetooth_msm_gpiomux_install(void)
     /* PCM I/F */
     msm_gpiomux_install(bt_pcm_configs, ARRAY_SIZE(bt_pcm_configs));
 }
-#endif /*                      */
-/*                                                 */
+#endif /* CONFIG_LGE_BLUETOOTH */
+/* LGE_CHANGE_E, BT][teddy.ju@lge.com], 2013-05-13 */
 
 /* WIFI Pin Setting */
 static struct gpiomux_setting wcnss_5wire_suspend_cfg = {
@@ -1308,6 +1302,7 @@ static struct msm_gpiomux_config msm_keypad_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_keys_suspend,
 		},
 	},
+#if 0 // GPIO 107 is used for LDAF_INT
 	{
 		.gpio = 107,
 		.settings = {
@@ -1315,6 +1310,23 @@ static struct msm_gpiomux_config msm_keypad_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_keys_suspend,
 		},
 	},
+#endif
+	{
+		.gpio = 108,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &gpio_keys_active,
+			[GPIOMUX_SUSPENDED] = &gpio_keys_suspend,
+		},
+	},
+#if 0 // GPIO 109 is used for LDAF_EN
+	{
+		.gpio = 109,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &gpio_keys_active,
+			[GPIOMUX_SUSPENDED] = &gpio_keys_suspend,
+		},
+	},
+#endif
 };
 
 /* LOGIC & LDO_EN Pin Setting */
@@ -1429,11 +1441,6 @@ void __init msm8226_init_gpiomux(void)
 		case HW_REV_D :
 		case HW_REV_E :
 		case HW_REV_1_0 :
-			for ( gpio_index = 0 ; gpio_reserved_pin_rev_1[gpio_index] < MSM8x26_GPIO_END ; gpio_index++ ){
-				gpio_func_reserved_pin_config.gpio = gpio_reserved_pin_rev_1[gpio_index];
-				msm_gpiomux_install(&gpio_func_reserved_pin_config, 1);
-				}
-			break;
 		case HW_REV_1_1 :
 		default :
 			for ( gpio_index = 0 ; gpio_reserved_pin_rev_B[gpio_index] < MSM8x26_GPIO_END ; gpio_index++ ){
@@ -1453,14 +1460,17 @@ void __init msm8226_init_gpiomux(void)
 	msm_gpiomux_install(gpio_func_uart_configs, ARRAY_SIZE(gpio_func_uart_configs));
 
 	// GPIO related function <<4.TOUCH>>
-	msm_gpiomux_install(msm_touch_configs, ARRAY_SIZE(msm_touch_configs));
+	if (hw_rev >= HW_REV_A) {
+		msm_gpiomux_install(msm_touch_configs, ARRAY_SIZE(msm_touch_configs));
+		printk(KERN_ERR "[Touch] HW_REV_A configs \n");
+	}
 
 	// GPIO related function <<5.NFC>>
-/*                                                         */
+/*  LGE_CHANGE_S, [NFC][minwoo.kwon@lge.com], NFC Bring up */
 #ifdef CONFIG_LGE_NFC_PN544_C3
 	msm_gpiomux_install(msm_nfc_configs, ARRAY_SIZE(msm_nfc_configs));
 #endif
-/*                                                         */
+/*  LGE_CHANGE_E, [NFC][minwoo.kwon@lge.com], NFC Bring up */
 
 	// GPIO related function <<6.LCD>>
 	msm_gpiomux_install_nowrite(msm_lcd_configs,
@@ -1483,7 +1493,7 @@ void __init msm8226_init_gpiomux(void)
 	// GPIO related function <<13.BT>>
 #ifdef CONFIG_LGE_BLUETOOTH
     bluetooth_msm_gpiomux_install();
-#endif /*                      */
+#endif /* CONFIG_LGE_BLUETOOTH */
 
 	// GPIO related function <<14.WIFI>>
 	msm_gpiomux_install(wcnss_5wire_interface,

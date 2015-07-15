@@ -19,7 +19,7 @@
 #define LGE_TOUCH_CORE_H
 #include <linux/wakelock.h>
 
-//                            
+//#define LGE_TOUCH_TIME_DEBUG
 
 #define MAX_FINGER	10
 #define MAX_BUTTON	4
@@ -55,10 +55,17 @@ struct jitter_filter_role {
 
 struct quickcover_filter_role {
 	u32 enable;
-	u32 X1;
-	u32 X2;
-	u32 Y1;
-	u32 Y2;
+	u32 x1;
+	u32 x2;
+	u32 y1;
+	u32 y2;
+	u32 use_halfcover;
+	u32 half_x1;
+	u32 half_x2;
+	u32 half_y1;
+	u32 half_y2;
+	u32 grip_margin;
+	u32 cover_proxi;
 };
 
 struct ghost_detection_enable_check {
@@ -123,6 +130,7 @@ struct touch_operation_role {
 	u32	wake_up_by_touch;
 	u32	use_sleep_mode; // Yes = 1, No = 0
 	u32	use_lpwg_all;
+	u32	use_jdi_incell;
 	u32	thermal_check;
 	u32	palm_ctrl_mode;
 	u32	mini_os_finger_amplitude;
@@ -159,6 +167,8 @@ struct touch_platform_data {
 	struct touch_power_module	*pwr;
 	struct touch_firmware_module	*fw;
 	const char* inbuilt_fw_name;
+	const char* inbuilt_fw_name_s3320_a0;
+	const char* inbuilt_fw_name_s3320_a1_factory;	
 	/*
 	const char* inbuilt_fw_name_s3621;
 	const char* inbuilt_fw_name_s3528_a1;
@@ -205,6 +215,8 @@ struct touch_fw_info {
 	u8		ic_fw_identifier[31];	/* String */
 	u8		ic_fw_version[11]; /* String */
 	char		fw_path[256];		// used for dynamic firmware upgrade
+	char		fw_path_s3320_a0[256];		// used for dynamic firmware upgrade
+	char		fw_path_s3320_a1_factory[256];		// used for dynamic firmware upgrade
 	/*
 	char		fw_path_s3528_a1[256];		// used for dynamic firmware upgrade
 	char		fw_path_s3528_a1_suntel[256];		// used for dynamic firmware upgrade
@@ -415,6 +427,7 @@ enum{
 	POWER_ON,
 	POWER_SLEEP,
 	POWER_WAKE,
+	SAFETY_RESET,
 };
 
 enum{
@@ -554,6 +567,7 @@ enum{
 	LPWG_DOUBLE_TAP_CHECK,
 	LPWG_REPLY,
 	LPWG_UPDATE_ALL,
+	LPWG_INCELL_LPWG_ON,
 };
 
 enum{
@@ -611,6 +625,7 @@ enum{
 enum{
 	QUICKCOVER_OPEN = 0,
 	QUICKCOVER_CLOSE,
+	QUICKCOVER_HALFOPEN,
 };
 
 enum{

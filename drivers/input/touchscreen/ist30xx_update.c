@@ -916,12 +916,12 @@ int ist30xx_auto_fw_update(struct ist30xx_data *data)
 	bool isp_mode = (IST30XX_ISP_MODE ? true : false);
 
 #if 0
-	/*                                                                  */
+	/* REV_C use HW_I2C, HW_I2C use not ISP_MODE. sukkyoon.hong@lge.com */
 	if(lge_get_board_revno() > LGE_REV_A)
 		isp_mode = false;
 	else
 		isp_mode = true;
-	/*                                                                  */
+	/* REV_C use HW_I2C, HW_I2C use not ISP_MODE. sukkyoon.hong@lge.com */
 #endif
 
 	ist30xx_get_update_info(data, ist30xx_fw, sizeof(ist30xx_fw));
@@ -1003,7 +1003,7 @@ int ist30xx_check_fw(struct ist30xx_data *data, const u8 *buf)
 }
 
 
-#if 1 //           
+#if 1 // LGE - L39C
 int ist30xx_check_auto_update(struct ist30xx_data *data)
 {
 	ist30xx_write_cmd(data->client, CMD_RUN_DEVICE, 0);
@@ -1026,7 +1026,7 @@ int ist30xx_check_auto_update(struct ist30xx_data *data)
 
 	return -EAGAIN;
 }
-#endif //           
+#endif // LGE - L39C
 
 
 int ist30xx_auto_bin_update(struct ist30xx_data *data)
@@ -1036,12 +1036,12 @@ int ist30xx_auto_bin_update(struct ist30xx_data *data)
 	bool isp_mode = (IST30XX_ISP_MODE ? true : false);
 
 #if 0
-	/*                                                                  */
+	/* REV_C use HW_I2C, HW_I2C use not ISP_MODE. sukkyoon.hong@lge.com */
 	if(lge_get_board_revno() > LGE_REV_A)
 		isp_mode = false;
 	else
 		isp_mode = true;
-	/*                                                                  */
+	/* REV_C use HW_I2C, HW_I2C use not ISP_MODE. sukkyoon.hong@lge.com */
 #endif
 
 	ist30xx_get_update_info(data, ist30xx_fw, sizeof(ist30xx_fw));

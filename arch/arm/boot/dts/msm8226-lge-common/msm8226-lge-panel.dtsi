@@ -201,7 +201,7 @@
 		qcom,mdss-pan-physical-height-dimension = < 103 >;
 		qcom,mdss-dsi-bpp = <24>;
 		qcom,mdss-dsi-color-order = "rgb_swap_rgb";
-		qcom,mdss-dsi-underflow-color = <0xff>;
+		qcom,mdss-dsi-underflow-color = <0x0>;
 		qcom,mdss-dsi-border-color = <0>;
 		qcom,mdss-dsi-on-command = [39 01 00 00 00 00 04 /* set EXTC */
 		B9 FF 83 89
@@ -334,7 +334,7 @@
 		39 01 00 00 00 00 18			/* set CYC */
 		B4 00 08 00 32 10 00 00 00 00 00 00 00 37 0A 40 04 37 0A 40 14 65 65 0A
 		39 01 00 00 00 00 05       /* set VCOM */
-		B6 00 BB 00 BB
+		B6 00 AF 00 AF
 		39 01 00 00 00 00 02       /* set Panel */
 		CC 0E
 		39 01 00 00 00 00 33       /*set GIP */
@@ -1919,7 +1919,7 @@
 		qcom,mdss-pan-physical-height-dimension = < 110 >;
 		qcom,mdss-dsi-bpp = <24>;
 		qcom,mdss-dsi-color-order = "rgb_swap_rgb";
-		qcom,mdss-dsi-underflow-color = <0xff>;
+		qcom,mdss-dsi-underflow-color = <0x0>;
 		qcom,mdss-dsi-lp11-init =<1>;
 		qcom,mdss-dsi-border-color = <0>;
 
@@ -2258,7 +2258,7 @@ dsi_lh500wx9_vid_b: qcom,mdss_dsi_lh500wx9_720p_video_b {
 		qcom,mdss-pan-physical-height-dimension = < 110 >;
 		qcom,mdss-dsi-bpp = <24>;
 		qcom,mdss-dsi-color-order = "rgb_swap_rgb";
-		qcom,mdss-dsi-underflow-color = <0xff>;
+		qcom,mdss-dsi-underflow-color = <0x0>;
 		qcom,mdss-dsi-lp11-init =<1>;
 		qcom,mdss-dsi-border-color = <0>;
 		qcom,mdss-dsi-on-command = [
@@ -2914,10 +2914,81 @@ dsi_jdi_r69338_vid: qcom,mdss_dsi_r69338_720p_video {
 			53 0C
 			39 01 00 00 00 00 02
 			55 00
-			29 01 00 00 00 00 02//Test command
+			29 01 00 00 00 00 02 //Test command
 			B0 04
-			29 01 00 00 00 00 04 //Test command
-			C1 84 61 00
+			29 01 00 00 00 00 08 //Test command1
+			b3 14 1A 00 00 00 00
+			00
+			29 01 00 00 00 00 02 //Test command2
+			b4 0c
+			29 01 00 00 00 00 03 //Test command3
+			b6 3a b3
+			29 01 00 00 00 00 2d //Test command4
+			c1 84 61 00 52 4A 59
+			94 20 03 1C D9 D8
+			82 CF B9 07 17 6B D1 80
+			41 82 94 52 4A 09 11 11 11 11
+			A0 40 42 20 12 10 22 00 15 00 01 00
+			00 00
+			29 01 00 00 00 00 0a //Test command5
+			c2 31 F5 00 00 04 00 08 00 00
+			29 01 00 00 00 00 10 //Test command6
+			c4 70 00 00 00 00 00 00 00
+			00 00 06 16 16 16 01
+			29 01 00 00 00 00 15 //Test command7
+			c6 54 10 10 04 49 01 01 01
+			01 01 01 45 0D 01 01 01
+			01 06 13 03
+			29 01 00 00 00 00 0d //Test command8
+			cb F0 F7 FF 3F 30 00
+			00 00 00 00 3c cf
+			29 01 00 00 00 00 02 //Test command9
+			cc 0d
+			29 01 00 00 00 00 06 //Test command10
+			d0 10 91 bb 12 8e
+			29 01 00 00 00 00 06 //Test command11
+			d1 25 00 19 61 06
+			29 01 00 00 00 00 1c //Test command12
+			d3 0B 37 9F BD B7 33
+			33 17 00 01 00 A0 D8
+			A0 0D 23 23 33 3B
+			F7 72 07 3D BF 99 21 FA
+			29 01 00 00 00 00 0c //Test command13
+			d5 06 00 00 01 28 01 28
+			00 00 00 00
+			29 01 00 00 00 00 0d //Test command14
+			d9 8A 23 AA AA 0A E4 00
+			06 07 00 00 00
+			29 01 00 00 00 00 31 //Test command15
+			ec 29 00 2C 2B 01 00
+			00 00 00 00 00 00
+			00 00 00 00 07 09
+			00 11 0F 00 00 00
+			00 50 06 00 00 00
+			00 05 FC 00 00 00
+			03 40 02 13 02 02
+			01 00 00 00 00 00
+			29 01 00 00 00 00 20 //Test command16
+			ed  3B 02 02 03 21
+			11 00 93 00 00 00 00
+			00 03 1E 21 00 DF 00
+			DD 06 F3 3F 00 00 15
+			00 00 00 00 00
+			29 01 00 00 00 00 20 //Test command17
+			ee 1D 02 02 03 00 10
+			00 02 00 00 00 00 00
+			03 00 00 01 C5 01 C4
+			0E 28 23 00 00 2A 00
+			00 00 00 00
+			29 01 00 00 00 00 3f //Test command18
+			ef 3B 02 02 03 21 11 00
+			93 00 00 00 00 00 03 1E
+			21 00 DF 00 DD 06 F3 3F
+			00 00 15 00 00 00 00 00
+			3B  02 02 03 21 11 00 93
+			00 F0 00 00 54  00  03 1E
+			21 00 DF 00 DD 06 F3 3F
+			00 15 00 00 00 00 00
 			29 01 00 00 00 00 1F //Gamma Setting_1
 			C7 00 0A 16 20 2C 39
 			43 52 36 3E 4B 58 5A
@@ -2932,6 +3003,14 @@ dsi_jdi_r69338_vid: qcom,mdss_dsi_r69338_720p_video {
 			D6 01
 			15 01 00 00 00 00 02 //set_address_mode
 			36 00
+			29 01 00 00 00 00 21 ca //Color setting
+			01 70 9a 95 a2
+			98 95 8f 3f 3f
+			80 80 08 80 08
+			3f 08 90 0c 0c
+			0a 06 04 04 00
+			c8 10 10 3f 3f
+			3f 3f
 			05 01 00 00 00 00 01
 			29
 			05 01 00 00 78 00 01
@@ -2943,6 +3022,21 @@ dsi_jdi_r69338_vid: qcom,mdss_dsi_r69338_720p_video {
 			28
 			05 01 00 00 50 00 01
 			10
+		];
+		lge,touch-cmd1 = [
+			29 01 00 00 00 00 02
+			B0 04
+			29 01 00 00 00 00 02
+			EC 09
+
+		];
+
+
+		lge,touch-cmd2 = [
+			29 01 00 00 00 00 02
+			EC 29
+			29 01 00 00 00 00 02
+			B0 03
 		];
 
 		qcom,mdss-dsi-on-command-state = "dsi_lp_mode";
@@ -2966,6 +3060,23 @@ dsi_jdi_r69338_vid: qcom,mdss_dsi_r69338_720p_video {
 		qcom,mdss-dsi-dma-trigger = "trigger_sw";
 		qcom,mdss-dsi-mdp-trigger = "none";
 		qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
-		qcom,mdss-dsi-reset-sequence = <0 10>, <1 20>, <0 2>, <1 20>;
+		qcom,mdss-dsi-reset-sequence = <1 10>;
 	};
+};
+
+&soc {
+	mdss_mdp: qcom,mdss_mdp@fd900000 {
+                /* Fudge factors */
+                qcom,mdss-ab-factor = <2 1>;            /* 2 times    */
+                qcom,mdss-ib-factor = <3 2>;            /* 1.5 times  */
+
+                qcom,vbif-settings = <0x004 0x00000001>,
+                                     <0x0D8 0x00000707>,
+                                     <0x124 0x00000003>,
+                                     <0x0C0 0x04101010>;//for limiting the number of outstanding transactions for the rotator write port
+        };
+};
+&mdss_dsi0 {
+	qcom,platform-enable-gpio = <&msmgpio 111 0>;
+	/delete-property/ qcom,platform-te-gpio;
 };

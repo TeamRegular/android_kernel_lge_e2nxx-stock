@@ -38,7 +38,8 @@ struct pm8xxx_cradle {
     defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8926_E8LTE) || \
     defined(CONFIG_MACH_MSM8226_E9WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFIN)|| \
     defined(CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined(CONFIG_MACH_MSM8926_E7LTE_ATT_US) || \
-	defined(CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined(CONFIG_MACH_MSM8926_B2LN_KR)
+	defined(CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || \
+	defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US)
 #define POUCH_DETECT_DELAY 100
 #endif
 
@@ -151,14 +152,12 @@ static irqreturn_t pm8xxx_pouch_irq_handler(int irq, void *handle)
     defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8926_E8LTE) || \
     defined(CONFIG_MACH_MSM8226_E9WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFIN) || \
     defined(CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined(CONFIG_MACH_MSM8926_E7LTE_ATT_US) || \
-	defined(CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined(CONFIG_MACH_MSM8926_B2LN_KR)
+	defined(CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || \
+	defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US)
 	v = 1 + 1*(!gpio_get_value(cradle->pdata->hallic_pouch_detect_pin));
 	wake_lock_timeout(&cradle->wake_lock, msecs_to_jiffies(POUCH_DETECT_DELAY*v+5));
 	queue_delayed_work(cradle_wq, &cradle_handle->pouch_work, msecs_to_jiffies(POUCH_DETECT_DELAY*v+5));
 #else
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-	if(cradle->state == 1) v = 0;
-#endif
 	queue_delayed_work(cradle_wq, &cradle_handle->pouch_work, msecs_to_jiffies(v));
 #endif
 #endif
@@ -186,34 +185,7 @@ cradle_sensing_show(struct device *dev, struct device_attribute *attr, char *buf
 	return len;
 }
 
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-static ssize_t
-cradle_sensing_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
-{
-
-	int ret = -EINVAL, len = strcspn(buf, " ");
-
-	if (len > 0 && buf[len] == '\0')
-		len--;
-
-	if (strncmp(buf, "1", len) == 0) {
-		cradle_set_deskdock(1);
-		ret = size;
-	} else if (strncmp(buf, "0", len) == 0) {
-		cradle_set_deskdock(0);
-		ret = size;
-	}
-
-	return ret;
-
-}
-#endif
-
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-static struct device_attribute cradle_sensing_attr = __ATTR(sensing, S_IRUGO | S_IWUSR, cradle_sensing_show, cradle_sensing_store);
-#else
 static struct device_attribute cradle_sensing_attr = __ATTR(sensing, S_IRUGO | S_IWUSR, cradle_sensing_show, NULL);
-#endif
 static struct device_attribute cradle_pouch_attr   = __ATTR(pouch, S_IRUGO | S_IWUSR, cradle_pouch_show, NULL);
 
 static ssize_t cradle_print_name(struct switch_dev *sdev, char *buf)

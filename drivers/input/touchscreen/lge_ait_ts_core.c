@@ -53,7 +53,6 @@
 
 
 #include "lge_ait_ts_core.h"
-#include <mach/board_lge.h>
 
 #define LGE_TOUCH_NAME		"lge_touch"
 
@@ -61,12 +60,11 @@ struct lge_touch_data
 {
 	void				*h_touch;
 	atomic_t			device_init;
-	atomic_t			crack_test_state;
 	u8				work_sync_err_cnt;
 	u8				ic_init_err_cnt;
 	u8				ic_error_cnt;
-	volatile bool is_probed;
-	struct mutex			thread_lock;
+	volatile int			curr_pwr_state;
+
 	struct i2c_client 		*client;
 	struct input_dev 		*input_dev;
 	struct hrtimer 			timer;
@@ -75,6 +73,7 @@ struct lge_touch_data
 	struct delayed_work		work_init;
 	struct delayed_work		work_touch_lock;
 	struct work_struct  		work_fw_upgrade;
+//	struct delayed_work		work_gesture_wakeup;
 	struct delayed_work		work_crack;
 #if defined(CONFIG_FB)
 	struct notifier_block		fb_notifier_block;
@@ -91,10 +90,13 @@ struct lge_touch_data
 	bool sd_status;
 	struct completion irq_completion;
 	struct completion fw_upgrade_completion;
-	struct pinctrl      *ts_pinctrl;
-	struct pinctrl_state	*ts_pinset_state_active;
-	struct pinctrl_state	*ts_pinset_state_suspend;
 };
+
+#define ts_pdata	((ts)->pdata)
+#define ts_caps		(ts_pdata->caps)
+#define ts_role		(ts_pdata->role)
+#define ts_pwr		(ts_pdata->pwr)
+#define ts_limit	(ts_pdata->limit)
 
 struct lge_touch_attribute {
 	struct attribute	attr;
@@ -104,18 +106,10 @@ struct lge_touch_attribute {
 #define LGE_TOUCH_ATTR(_name, _mode, _show, _store)	\
 struct lge_touch_attribute lge_touch_attr_##_name = __ATTR(_name, _mode, _show, _store)
 
-#define ts_pdata	((ts)->pdata)
-#define ts_caps		(ts_pdata->caps)
-#define ts_role		(ts_pdata->role)
-#define ts_pwr		(ts_pdata->pwr)
-#define ts_limit	(ts_pdata->limit)
-#define ts_lpwg		(ts_pdata->tci_info)
-
-
 struct touch_device_driver	*touch_drv;
 static struct workqueue_struct	*touch_wq = NULL;
 
-struct wake_lock touch_wake_lock;
+static struct wake_lock touch_wake_lock;
 static struct mutex i2c_suspend_lock;
 static struct mutex irq_lock;
 
@@ -149,7 +143,7 @@ static char *window_crack[2] = { "TOUCH_WINDOW_STATE=CRACK", NULL };
 static void safety_reset(struct lge_touch_data *ts);
 static int touch_ic_init(struct lge_touch_data *ts);
 static void touch_work_func_a(struct lge_touch_data *ts);
-atomic_t			dev_state;
+
 /* Debug mask value
  * usage: echo [debug_mask] > /sys/module/lge_ts_core/parameters/debug_mask
  */
@@ -198,8 +192,6 @@ void send_uevent(char* string[2])
 	kobject_uevent_env(&lge_touch_sys_device.kobj, KOBJ_CHANGE, string);
 	TOUCH_INFO_MSG("uevent[%s]\n", string[0]);
 }
-
-
 void power_lock(int value)
 {
 	power_block |= value;
@@ -232,7 +224,7 @@ void trigger_baseline_state_machine(int usb_type)
 	u8 buf=0;
 
 	if (touch_test_dev && touch_test_dev->pdata->role->ghost_detection_enable) {
-		if (touch_test_dev->pdata->curr_pwr_state == POWER_ON) {
+		if (touch_test_dev->curr_pwr_state == POWER_ON) {
 			if (usb_type ==0) {
 				touch_i2c_read(touch_test_dev->client, 0x50, 1, &buf);
 				buf = buf & 0xDF;
@@ -788,16 +780,14 @@ static int touch_power_cntl(struct lge_touch_data *ts, int onoff)
 		return -1;
 	}
 
-	if (!ts->fw_info.is_downloading && power_block) {
-		TOUCH_INFO_MSG("Power control blocked \n");
-		return 0;
-	}
-
 	switch (onoff) {
 	case POWER_ON:
 		ret = touch_drv->power(ts->client, POWER_ON);
 		if (ret < 0) {
 			TOUCH_ERR_MSG("Power On failed\n");
+		} else {
+			ts->curr_pwr_state = POWER_ON;
+			TOUCH_INFO_MSG("Power On \n");
 		}
 		break;
 
@@ -805,7 +795,12 @@ static int touch_power_cntl(struct lge_touch_data *ts, int onoff)
 		ret = touch_drv->power(ts->client, POWER_OFF);
 		if (ret < 0) {
 			TOUCH_ERR_MSG("Power Off failed\n");
+		} else {
+			ts->curr_pwr_state = POWER_OFF;
+			TOUCH_INFO_MSG("Power Off \n");
 		}
+
+		msleep(ts_role->reset_delay);
 		atomic_set(&ts->device_init, 0);
 		break;
 
@@ -813,6 +808,9 @@ static int touch_power_cntl(struct lge_touch_data *ts, int onoff)
 		ret = touch_drv->power(ts->client, POWER_SLEEP);
 		if (ret < 0) {
 			TOUCH_ERR_MSG("power Sleep failed\n");
+		} else {
+			ts->curr_pwr_state = POWER_SLEEP;
+			TOUCH_INFO_MSG("Power Sleep \n");
 		}
 		break;
 
@@ -820,6 +818,9 @@ static int touch_power_cntl(struct lge_touch_data *ts, int onoff)
 		ret = touch_drv->power(ts->client, POWER_WAKE);
 		if (ret < 0) {
 			TOUCH_ERR_MSG("Power Wake failed\n");
+		} else {
+			ts->curr_pwr_state = POWER_WAKE;
+			TOUCH_INFO_MSG("Power Wake \n");
 		}
 		break;
 
@@ -828,7 +829,7 @@ static int touch_power_cntl(struct lge_touch_data *ts, int onoff)
 	}
 
 	if (ret >= 0)
-		TOUCH_POWER_MSG("power_state[%d]\n", ts->pdata->curr_pwr_state);
+		TOUCH_POWER_MSG("power_state[%d]", ts->curr_pwr_state);
 
 	return ret;
 }
@@ -846,8 +847,7 @@ static int touch_power_cntl(struct lge_touch_data *ts, int onoff)
  */
 static void safety_reset(struct lge_touch_data *ts)
 {
-	if(ts->is_probed)
-		touch_disable(ts->client->irq);
+	touch_disable(ts->client->irq);
 
 #ifdef LGE_TOUCH_GHOST_DETECTION
 	if (ts_role->ghost_detection_enable) {
@@ -858,10 +858,11 @@ static void safety_reset(struct lge_touch_data *ts)
 	release_all_ts_event(ts);
 
 	touch_power_cntl(ts, POWER_OFF);
+	msleep(ts_role->booting_delay);
 	touch_power_cntl(ts, POWER_ON);
+	msleep(ts_role->booting_delay);
 
-	if(ts->is_probed)
-		touch_enable(ts->client->irq);
+	touch_enable(ts->client->irq);
 
 	return;
 }
@@ -876,14 +877,10 @@ static int touch_ic_init(struct lge_touch_data *ts)
 
 	if (unlikely(ts->ic_init_err_cnt >= MAX_RETRY_COUNT)) {
 		TOUCH_ERR_MSG("Init Failed: Irq-pin has some unknown problems\n");
-#if defined(CONFIG_PRE_SELF_DIAGNOSIS)
-		lge_pre_self_diagnosis("i2c", 8, (char *)ts->client->name, (char *)ts->client->driver->driver.name, 5);
-#endif
 		goto err_out_critical;
 	}
 
 	atomic_set(&ts->device_init, 1);
-	atomic_set(&dev_state,DEV_RESUME);
 
 	if (touch_drv->init == NULL) {
 		TOUCH_INFO_MSG("There is no specific IC init function\n");
@@ -1200,8 +1197,6 @@ void touch_send_wakeup(void *info)
 {
 	struct lge_touch_data *ts = (struct lge_touch_data *)info;
 
-	wake_lock_timeout(&touch_wake_lock, msecs_to_jiffies(3000));
-
 	TOUCH_INFO_MSG("Send Wake-up \n");
 	if (ts->pdata->send_lpwg == LPWG_DOUBLE_TAP) {
 		kobject_uevent_env(&lge_touch_sys_device.kobj, KOBJ_CHANGE, lpwg_uevent[0]);
@@ -1210,7 +1205,7 @@ void touch_send_wakeup(void *info)
 	     kobject_uevent_env(&lge_touch_sys_device.kobj, KOBJ_CHANGE, lpwg_uevent[1]);
 		TOUCH_DEBUG_MSG( "uevent[%s]\n", lpwg_uevent[1][0]);
 	} else {
-		TOUCH_DEBUG_MSG("error send mode = 0x%x\n", ts->pdata->send_lpwg);
+		TOUCH_DEBUG_MSG("error send mode = 0x%x", ts->pdata->send_lpwg);
 	}
 }
 
@@ -1227,17 +1222,15 @@ static void touch_gesture_wakeup_func(struct lge_touch_data *ts)
 
 	if (touch_drv->data(ts->client, &ts->ts_data) < 0) {
 		TOUCH_INFO_MSG("%s get data fail \n", __func__);
-		goto ignore_interrupt;
 	}
 
 	if (ts->pdata->send_lpwg) {
+		wake_lock_timeout(&touch_wake_lock, msecs_to_jiffies(3000));
 		touch_send_wakeup(ts);
 		ts->pdata->send_lpwg = 0;
 	}
 
-ignore_interrupt:
 	mutex_unlock(&i2c_suspend_lock);
-	return;
 }
 
 static void touch_lock_func(struct work_struct *work_touch_lock)
@@ -1262,7 +1255,7 @@ static void check_log_finger_changed(struct lge_touch_data *ts, u8 total_num)
 	u16 id = 0;
 
 #if 0
-	TOUCH_INFO_MSG("%s %d ts->ts_data.prev_total_num=%d total_num=%d\n", __func__, __LINE__, ts->ts_data.prev_total_num, total_num);
+	TOUCH_INFO_MSG("%s %d ts->ts_data.prev_total_num=%d total_num=%d", __func__, __LINE__, ts->ts_data.prev_total_num, total_num);
 
 
 	if (ts->ts_data.prev_total_num != total_num) {
@@ -1359,7 +1352,7 @@ static int touch_work_pre_proc(struct lge_touch_data *ts)
 
 	if (result == -EIO) {
 		TOUCH_ERR_MSG("get data fail\n");
-		goto ignore_interrupt;
+		return -EIO;
 	}
 	else if (result == -ENXIO) {
 		if (++ts->ic_error_cnt > MAX_RETRY_COUNT) {
@@ -1390,10 +1383,6 @@ static int touch_work_pre_proc(struct lge_touch_data *ts)
 	}
 
 	return 0;
-
-ignore_interrupt:
-	return -EIO;
-
 }
 
 /* touch_work_post_proc
@@ -1650,7 +1639,7 @@ static void touch_fw_upgrade_func(struct work_struct *work_fw_upgrade)
 {
 	struct lge_touch_data *ts =
 			container_of(work_fw_upgrade, struct lge_touch_data, work_fw_upgrade);
-	u8	saved_state = ts->pdata->curr_pwr_state;
+	u8	saved_state = ts->curr_pwr_state;
 
 	TOUCH_TRACE_FUNC();
 
@@ -1673,8 +1662,9 @@ static void touch_fw_upgrade_func(struct work_struct *work_fw_upgrade)
 	}
 #endif
 
-	if (ts->pdata->curr_pwr_state == POWER_OFF) {
+	if (ts->curr_pwr_state == POWER_OFF) {
 		touch_power_cntl(ts, POWER_ON);
+		msleep(ts_role->booting_delay);
 	}
 
 	if (likely(touch_debug_mask_ & (DEBUG_FW_UPGRADE | DEBUG_BASE_INFO)))
@@ -1740,34 +1730,17 @@ static void inspection_crack_func(struct work_struct *work_crack)
 {
 	struct lge_touch_data *ts =
 			container_of(to_delayed_work(work_crack), struct lge_touch_data, work_crack);
-	int iterator = 0;
-	int retry_count = 3;
-	char *buf = NULL;
 
 	TOUCH_TRACE_FUNC();
-	atomic_set(&ts->crack_test_state, CRACK_TEST_START);
 
-	do {
-		iterator++;
-		if (ts->fw_info.is_downloading != UNDER_DOWNLOADING) {
-			window_crack_check = touch_drv->inspection_crack(ts->client);
-			TOUCH_INFO_MSG("%s window_crack_check = %d, count = %d\n", __func__, window_crack_check, iterator);
-		}
-	} while ( (window_crack_check == CRACK) && (iterator < retry_count) );
+	if (ts->fw_info.is_downloading != UNDER_DOWNLOADING) {
+		atomic_set(&ts->pdata->crack_test_state, CRACK_TEST_START);
+		window_crack_check = touch_drv->inspection_crack(ts->client);
+		atomic_set(&ts->pdata->crack_test_state, CRACK_TEST_FINISH);
+	}
 
 	safety_reset(ts);
 	touch_ic_init(ts);
-
-	if(ts->pdata->panel_on == POWER_ON || ts->pdata->panel_on == POWER_WAKE) {
-		buf = kzalloc(PAGE_SIZE,GFP_KERNEL);
-		TOUCH_INFO_MSG("%s Check Rawdata\n", __func__);
-		touch_drv->sysfs(ts->client, buf, 0, SYSFS_RAWDATA_SHOW);
-		kfree(buf);
-	} else {
-		TOUCH_INFO_MSG("If you want to check raw data, please turn on the LCD.\n");
-	}
-
-	atomic_set(&ts->crack_test_state, CRACK_TEST_FINISH);
 }
 
 /* touch_irq_handler
@@ -1782,8 +1755,8 @@ static irqreturn_t touch_irq_handler(int irq, void *dev_id)
 {
 	struct lge_touch_data *ts = (struct lge_touch_data *)dev_id;
 
-	if (unlikely(atomic_read(&ts->device_init) != 1) && atomic_read(&dev_state) == DEV_RESUME) {
-		TOUCH_INFO_MSG("device_init : %d, dev_state : %d \n",atomic_read(&ts->device_init), atomic_read(&dev_state));
+	if (unlikely(atomic_read(&ts->device_init) != 1)){
+		TOUCH_INFO_MSG("device_init : %d \n",atomic_read(&ts->device_init));
 		return IRQ_HANDLED;
 	}
 
@@ -1814,7 +1787,7 @@ static irqreturn_t touch_thread_irq_handler(int irq, void *dev_id)
 
 	INIT_COMPLETION(ts->irq_completion);
 
-	if (ts->pdata->panel_on == 0 && ts->pdata->lpwg_mode) {
+	if (ts->pdata->panel_on == 0 /*&& ts->pdata->lpwg_mode*/) {
 		touch_gesture_wakeup_func(ts);
 	} else {
 		touch_work_func_a(ts);
@@ -1958,29 +1931,23 @@ static int touch_parse_dt(struct device *dev, struct touch_platform_data *pdata)
 	const char *str_index = NULL;
 	struct touch_dt_map *itr = NULL;
 	struct touch_dt_map map[] = {
-		{ "lge,rst-gpio", &pdata->reset_pin, DT_GPIO, 0xffffffff },
-		{ "lge,int-gpio", &pdata->int_pin, DT_GPIO, 0xffffffff },
 		{ "lge,sda-gpio", &pdata->sda_pin, DT_GPIO, 0xffffffff },
 		{ "lge,scl-gpio", &pdata->scl_pin, DT_GPIO, 0xffffffff },
+		{ "lge,int-gpio", &pdata->int_pin, DT_GPIO, 0xffffffff },
 		{ "lge,id-gpio", &pdata->id_pin, DT_GPIO, 0 },
 		{ "lge,id2-gpio", &pdata->id2_pin, DT_GPIO, 0 },
+		{ "lge,rst-gpio", &pdata->reset_pin, DT_GPIO, 0xffffffff },
 
 		{ "lge,ic_type", &pdata->ic_type, DT_U8, 0 },
 		{ "lge,maker", &pdata->maker, DT_STRING, 0 },
 		{ "lge,product", &pdata->fw_product, DT_STRING, 0 },
 		{ "lge,fw_image", &pdata->fw_image, DT_STRING, 0 },
 		{ "lge,auto_fw_update", &pdata->auto_fw_update, DT_U8, 0 },
-		{ "active_area_gap", &pdata->active_area_gap, DT_U8, 0 },
-
-		/* panel status check */
-		{ "openshort_enable", &pdata->check_openshort, DT_U8, 0 },
-
+		{ "gap", &pdata->lpwg_gap, DT_U8, 0 },
 		/*  limitation value */
 		{ "raw_data_max", &limit->raw_data_max, DT_U32, 0 },
 		{ "raw_data_min", &limit->raw_data_min, DT_U32, 0 },
-		{ "raw_data_margin", &limit->raw_data_margin, DT_U32, 0 },
-		{ "raw_data_otp_min", &limit->raw_data_otp_min, DT_U32, 0 },
-		{ "raw_data_otp_max", &limit->raw_data_otp_max, DT_U32, 0 },
+		{ "open_short_max", &limit->open_short_max, DT_U32, 0 },
 		{ "open_short_min", &limit->open_short_min, DT_U32, 0 },
 		{ "slope_max", &limit->slope_max, DT_U32, 0 },
 		{ "slope_min", &limit->slope_min, DT_U32, 0 },
@@ -2091,7 +2058,7 @@ static int touch_parse_dt(struct device *dev, struct touch_platform_data *pdata)
 
 		if (ret) {
 			if (unlikely(touch_debug_mask_ & DEBUG_CONFIG))
-				TOUCH_INFO_MSG("Missing DT entry: %s, ret:%d\n", itr->name, ret);
+				TOUCH_INFO_MSG("Missing DT entry: %s, ret:%d", itr->name, ret);
 		}
 	}
 
@@ -2102,7 +2069,7 @@ static int touch_parse_dt(struct device *dev, struct touch_platform_data *pdata)
 		prop = of_find_property(np, "button_name", &i);
 		if (prop == NULL) {
 			if (unlikely(touch_debug_mask_ & DEBUG_CONFIG))
-				TOUCH_INFO_MSG("Missing DT entry: %s, ret:%d\n", itr->name, ret);
+				TOUCH_INFO_MSG("Missing DT entry: %s, ret:%d", itr->name, ret);
 			return 0;
 		}
 
@@ -2173,13 +2140,6 @@ static int touch_init_platform_data(struct i2c_client *client)
 				sizeof(struct touch_limit_value), GFP_KERNEL);
 		if (!ts_limit) {
 			dev_err(&client->dev, "Failed to allocate memory : limit\n");
-			return -ENOMEM;
-		}
-
-		ts_lpwg = devm_kzalloc(&client->dev,
-			sizeof(struct touch_tci_info), GFP_KERNEL);
-		if (!ts_lpwg) {
-			dev_err(&client->dev, "Failed to allocate memory : lpwg\n");
 			return -ENOMEM;
 		}
 
@@ -2277,6 +2237,9 @@ static int touch_input_init(struct lge_touch_data *ts)
 		}
 	}
 
+	set_bit(EV_KEY, dev->evbit);
+	set_bit(LPWG_WAKEUP_KEY, dev->keybit);
+
 	input_set_abs_params(dev, ABS_MT_POSITION_X, 0, ts_caps->x_max, 0, 0);
 	max = (ts_caps->y_button_boundary ? ts_caps->y_button_boundary : ts_caps->y_max);
 	input_set_abs_params(dev, ABS_MT_POSITION_Y, 0, max, 0, 0);
@@ -2305,29 +2268,6 @@ static int touch_input_init(struct lge_touch_data *ts)
 	return 0;
 }
 
-#if defined(TOUCH_USE_DSV)
-struct lge_touch_data *g_ts = NULL;
-static void dsv_ctrl(int onoff)
-{
-	TOUCH_INFO_MSG("apds interrupt onoff: %d\n", onoff);
-	g_ts->pdata->sensor_value = onoff;
-
-	if(g_ts->pdata->enable_sensor_interlock) {
-		if(onoff) {
-			if (atomic_read(&dev_state) == DEV_RESUME_ENABLE) {
-				g_ts->pdata->use_dsv = 1;
-				touch_drv->dsv_control(g_ts->client);
-			} else {
-				g_ts->pdata->use_dsv = 0;
-				TOUCH_INFO_MSG("%s Don't turn on DSV, LPWG not ready\n", __func__);
-			}
-		} else {
-			g_ts->pdata->use_dsv = 0;
-			touch_drv->dsv_control(g_ts->client);
-		}
-	}
-}
-#endif
 static int touch_fb_suspend(struct device *device)
 {
 	struct lge_touch_data *ts =  dev_get_drvdata(device);
@@ -2336,13 +2276,8 @@ static int touch_fb_suspend(struct device *device)
 	TOUCH_INFO_MSG("%s \n", __func__);
 
 	ts->pdata->panel_on = 0;
-	if (ts->pdata->curr_pwr_state == POWER_OFF)
+	if (ts->curr_pwr_state == POWER_OFF)
 		return 0;
-
-	if (atomic_read(&ts->crack_test_state) != CRACK_TEST_FINISH) {
-		TOUCH_INFO_MSG("touch_fb_suspend is not executed - crack check not finished\n");
-		return 0;
-	}
 
 	if(power_block){
 		TOUCH_INFO_MSG("touch_suspend is not executed\n");
@@ -2351,9 +2286,7 @@ static int touch_fb_suspend(struct device *device)
 
 	touch_disable(ts->client->irq);
 
-	if (!ts->pdata->lpwg_mode)
-		cancel_delayed_work_sync(&ts->work_init);
-
+	cancel_delayed_work_sync(&ts->work_init);
 	if (ts_role->key_type == TOUCH_HARD_KEY)
 		cancel_delayed_work_sync(&ts->work_touch_lock);
 
@@ -2375,20 +2308,15 @@ static int touch_fb_suspend(struct device *device)
 	if (ts->pdata->lpwg_mode) {
 		TOUCH_INFO_MSG("ts->pdata->lpwg_mode : %d, \n", (u32)ts->pdata->lpwg_mode);
 		touch_drv->ic_ctrl(ts->client, IC_CTRL_LPWG, (u32)&(ts->pdata->lpwg_mode));
-		atomic_set(&dev_state,DEV_RESUME_ENABLE);
 		touch_enable(ts->client->irq);
 		touch_enable_wake(ts->client->irq);
 	} else {
-		touch_power_cntl(ts, ts_role->suspend_pwr);
-		atomic_set(&dev_state,DEV_SUSPEND);
-		TOUCH_INFO_MSG("SUSPEND AND SET power off\n");
-
-#if defined(TOUCH_USE_DSV)
-		if(ts_pdata->enable_sensor_interlock) {
-			ts->pdata->use_dsv = 0;
-			touch_drv->dsv_control(g_ts->client);
+		if (ts->pdata->lpwg_prox != 0) {
+			touch_power_cntl(ts, ts_role->suspend_pwr);
+			}
+		else{
+			touch_drv->ic_ctrl(ts->client, IC_CTRL_LPWG, (u32)&(ts->pdata->lpwg_mode));
 		}
-#endif
 	}
 
 	return 0;
@@ -2398,45 +2326,32 @@ static int touch_fb_resume(struct device *device)
 {
 	struct lge_touch_data *ts =  dev_get_drvdata(device);
 
-	mutex_lock(&ts->thread_lock);
+//	u8 lpwg_mode = LPWG_NONE;
 
 	TOUCH_INFO_MSG("%s \n", __func__);
 
 	ts->pdata->panel_on = 1;
 
-#if defined(TOUCH_USE_DSV)
-	ts->pdata->sensor_value = 0;
-	if(ts->pdata->enable_sensor_interlock) {
-		ts->pdata->use_dsv = 0;
-	}
-#endif
 
-	if (atomic_read(&ts->crack_test_state) == CRACK_TEST_FINISH) {
-		if (window_crack_check == CRACK) {
-			TOUCH_INFO_MSG("%s : window cracked - send uevent\n", __func__);
-			send_uevent(window_crack);
-		}
-	} else {
-		TOUCH_INFO_MSG("touch_resume is not executed - crack check not finished\n");
-		goto exit;
+	if (window_crack_check == CRACK) {
+		TOUCH_INFO_MSG("%s : window cracked - send uevent.\n", __func__);
+		send_uevent(window_crack);
 	}
 
-	if (power_block) {
+	if(power_block){
 		TOUCH_INFO_MSG("touch_resume is not executed\n");
-		goto exit;
+		return 0;
 	}
 
 	if (ts->pdata->lpwg_mode) {
+//		touch_drv->ic_ctrl(ts->client, IC_CTRL_LPWG, (u32)&lpwg_mode);
 		touch_disable_wake(ts->client->irq);
 		safety_reset(ts);
+		touch_ic_init(ts);
 	} else {
-		if (ts->pdata->curr_pwr_state == POWER_ON) {
-			touch_disable_wake(ts->client->irq);
-			safety_reset(ts);
-		} else {
-			touch_power_cntl(ts, ts_role->resume_pwr);
-			touch_enable(ts->client->irq);
-		}
+//		touch_power_cntl(ts, ts_role->resume_pwr);
+		safety_reset(ts);
+		touch_ic_init(ts);
 	}
 
 	ts->ic_error_cnt =0;
@@ -2446,9 +2361,6 @@ static int touch_fb_resume(struct device *device)
 				msecs_to_jiffies(ts_role->booting_delay));
 	else
 		queue_delayed_work(touch_wq, &ts->work_init, 0);
-
-exit:
-	mutex_unlock(&ts->thread_lock);
 
 	return 0;
 }
@@ -2515,6 +2427,64 @@ static int touch_notifier_callback(struct notifier_block *self, unsigned long ev
 #endif
 
 /* sysfs */
+static ssize_t platform_data_show(struct lge_touch_data *ts, char *buf)
+{
+	TOUCH_INFO_MSG("Do nothing\n");
+	return 1;
+/*
+	struct lge_touch_data *ts = dev_get_drvdata(dev);
+	int i;
+	int ret = 0;
+
+	ret += sprintf(buf+ret, "====== Platform data ======\n");
+	ret += sprintf(buf+ret, "int_pin[%d] reset_pin[%d]\n", ts_pdata->int_pin, ts_pdata->reset_pin);
+	ret += sprintf(buf+ret, "scl_pin[%d] sda_pin[%d]\n", ts_pdata->scl_pin, ts_pdata->sda_pin);
+	if (ts_pdata->id_pin)
+		ret += sprintf(buf+ret, "Touch ID[%d]\n", ts_pdata->id_pin);
+	if (ts_pdata->id_pin)
+		ret += sprintf(buf+ret, "Touch ID2[%d]\n", ts_pdata->id2_pin);
+	ret += sprintf(buf+ret, "maker [%s %s] \n", ts_pdata->maker, (ts_pdata->ic_type?((ts_pdata->ic_type == 2)?"MIT200":"MMS-100A"):"MMS-100S"));
+	ret += sprintf(buf+ret, "defualt firmware image[%s]\n", ts_pdata->fw_image);
+	ret += sprintf(buf+ret, "default panel spec[%s]\n", ts_pdata->panel_spec);
+
+	ret += sprintf(buf+ret, "caps:\n");
+	ret += sprintf(buf+ret, "\tbutton_support        = %d\n", ts_caps->button_support);
+	ret += sprintf(buf+ret, "\ty_button_boundary     = %d\n", ts_caps->y_button_boundary);
+	ret += sprintf(buf+ret, "\tbutton_margin         = %d\n", ts_caps->button_margin);
+	ret += sprintf(buf+ret, "\tnumber_of_button      = %d\n", ts_caps->number_of_button);
+	ret += sprintf(buf+ret, "\tbutton_name           = %d, %d, %d, %d\n",
+			ts_caps->button_name[0], ts_caps->button_name[1], ts_caps->button_name[2], ts_caps->button_name[3]);
+	ret += sprintf(buf+ret, "\tis_width_supported    = %d\n", ts_caps->is_width_supported);
+	ret += sprintf(buf+ret, "\tis_pressure_supported = %d\n", ts_caps->is_pressure_supported);
+	ret += sprintf(buf+ret, "\tis_id_supported       = %d\n", ts_caps->is_id_supported);
+	ret += sprintf(buf+ret, "\tmax_width             = %d\n", ts_caps->max_width);
+	ret += sprintf(buf+ret, "\tmax_pressure          = %d\n", ts_caps->max_pressure);
+	ret += sprintf(buf+ret, "\tmax_id                = %d\n", ts_caps->max_id);
+	ret += sprintf(buf+ret, "\tx_max                 = %d\n", ts_caps->x_max);
+	ret += sprintf(buf+ret, "\ty_max                 = %d\n", ts_caps->y_max);
+	ret += sprintf(buf+ret, "\tlcd_x                 = %d\n", ts_caps->lcd_x);
+	ret += sprintf(buf+ret, "\tlcd_y                 = %d\n", ts_caps->lcd_y);
+
+	ret += sprintf(buf+ret, "role:\n");
+	ret += sprintf(buf+ret, "\tbooting_delay         = %d\n", ts_role->booting_delay);
+	ret += sprintf(buf+ret, "\treset_delay           = %d\n", ts_role->reset_delay);
+	ret += sprintf(buf+ret, "\tsuspend_pwr           = %d\n", ts_role->suspend_pwr);
+	ret += sprintf(buf+ret, "\tresume_pwr            = %d\n", ts_role->resume_pwr);
+	ret += sprintf(buf+ret, "\tghost_finger_solution_enable = %d\n", ts_role->ghost_finger_solution_enable);
+//	ret += sprintf(buf+ret, "\tirqflags              = 0x%lx\n", ts_role->irqflags);
+#ifdef LGE_TOUCH_GHOST_DETECTION
+	ret += sprintf(buf+ret, "\tghost_detection_enable= %d\n", ts_role->ghost_detection_enable);
+#endif
+	ret += sprintf(buf+ret, "pwr:\n");
+	for (i = 0; i < TOUCH_PWR_NUM; i++) {
+		ret += sprintf(buf+ret, "\t[%d] vdd_type         = %d\n", i, ts_pwr[i].type);
+		ret += sprintf(buf+ret, "\t[%d] name             = %s\n", i, ts_pwr[i].name);
+		ret += sprintf(buf+ret, "\t[%d] value            = %d\n", i, ts_pwr[i].value);
+	}
+	return ret;
+*/
+}
+
 static ssize_t fw_upgrade_show(struct lge_touch_data *ts, char *buf, bool forceupgrade)
 {
 	int ret = 0;
@@ -2551,10 +2521,10 @@ static ssize_t fw_upgrade_store(struct lge_touch_data *ts, const char *buf, size
 		return -EINVAL;
 
 	if (!strncmp(cmd, "erase", 5)) {
-		TOUCH_INFO_MSG("Touch Firmware erase start...\n");
+		TOUCH_INFO_MSG("Touch Firmware erase start...");
 		ts->fw_info.eraseonly = 1;
 	} else if (strncmp(&cmd[strlen(cmd) - 3], ".fw", 3) == 0 || strncmp(&cmd[strlen(cmd) - 3], ".FW", 3) == 0) {
-		TOUCH_INFO_MSG("F/W File : %s\n",cmd);
+		TOUCH_INFO_MSG("F/W File : %s",cmd);
 		snprintf(ts->fw_info.path, NAME_BUFFER_SIZE, "%s", cmd);
 	} else if(!strncmp(cmd,"1",1)){
 		strncpy(ts->fw_info.path, ts_pdata->fw_image, NAME_BUFFER_SIZE);
@@ -2653,21 +2623,22 @@ static ssize_t power_control_store(struct lge_touch_data *ts, const char *buf, s
 		return -EINVAL;
 	switch (cmd){
 		case 0:
-			if (ts->pdata->curr_pwr_state == POWER_ON){
+			if (ts->curr_pwr_state == POWER_ON){
 				touch_disable(ts->client->irq);
 				release_all_ts_event(ts);
 				touch_power_cntl(ts, POWER_OFF);
 			}
 			break;
 		case 1:
-			if (ts->pdata->curr_pwr_state == POWER_OFF){
+			if (ts->curr_pwr_state == POWER_OFF){
 				touch_power_cntl(ts, POWER_ON);
+				msleep(ts_role->booting_delay);
 				touch_enable(ts->client->irq);
 				touch_ic_init(ts);
 			}
 			break;
 		case 2:
-			if (ts->pdata->curr_pwr_state == POWER_ON){
+			if (ts->curr_pwr_state == POWER_ON){
 				safety_reset(ts);
 				touch_ic_init(ts);
 			}
@@ -2686,60 +2657,19 @@ static ssize_t chstatus_show(struct lge_touch_data *ts, char *buf)
 {
 	ssize_t ret;
 	if(ts->pdata->panel_on == POWER_ON || ts->pdata->panel_on == POWER_WAKE) {
-		ret = touch_drv->sysfs(ts->client, buf, 0, SYSFS_CHSTATUS_SHOW);
+	ret = touch_drv->sysfs(ts->client, buf, 0, SYSFS_CHSTATUS_SHOW);
 	} else {
 		ret = snprintf(buf,PAGE_SIZE,"If you want to check open short, please turn on the LCD.\n");
 		TOUCH_INFO_MSG("If you want to check open short, please turn on the LCD.\n");
 	}
 	return ret;
+
 }
-
-static ssize_t openshort_show(struct lge_touch_data *ts, char *buf)
-{
-	ssize_t ret;
-	int value = 0;
-	if(ts->pdata->panel_on == POWER_ON || ts->pdata->panel_on == POWER_WAKE) {
-
-		value = ts->pdata->check_openshort;
-		ts->pdata->check_openshort = 1;
-
-		ret = touch_drv->sysfs(ts->client, buf, 0, SYSFS_CHSTATUS_SHOW);
-
-		ts->pdata->check_openshort = value;
-	} else {
-		ret = snprintf(buf,PAGE_SIZE,"If you want to check open short, please turn on the LCD.\n");
-		TOUCH_INFO_MSG("If you want to check open short, please turn on the LCD.\n");
-	}
-	return ret;
-}
-
-static ssize_t openshort_store(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	int ret = 0;
-	int value = 0;
-	char cmd[NAME_BUFFER_SIZE] = {0};
-	if (ts->pdata->panel_on == POWER_ON || ts->pdata->panel_on == POWER_WAKE) {
-		if (sscanf(buf, "%s", cmd) != 1)
-			return -EINVAL;
-
-		value = ts->pdata->check_openshort;
-		ts->pdata->check_openshort = 1;
-
-		ret = touch_drv->sysfs(ts->client, 0, buf, SYSFS_CHSTATUS_STORE);
-
-		ts->pdata->check_openshort = value;
-	} else {
-		TOUCH_INFO_MSG("If you want to check open short, please turn on the LCD.\n");
-	}
-
-	return count;
-}
-
 
 static ssize_t rawdata_show(struct lge_touch_data *ts, char *buf)
 {
 	ssize_t ret;
-	if(ts->pdata->panel_on == POWER_ON || ts->pdata->panel_on == POWER_WAKE || ts->pdata->lpwg_debug_enable != 0) {
+	if(ts->pdata->panel_on == POWER_ON || ts->pdata->panel_on == POWER_WAKE) {
 	ret = touch_drv->sysfs(ts->client, buf, 0, SYSFS_RAWDATA_SHOW);
 	} else {
 		ret = snprintf(buf,PAGE_SIZE,"If you want to check raw data, please turn on the LCD.\n");
@@ -2753,7 +2683,7 @@ static ssize_t rawdata_store(struct lge_touch_data *ts, const char *buf, size_t 
 {
 	int ret = 0;
 	char cmd[NAME_BUFFER_SIZE] = {0};
-	if (ts->pdata->panel_on == POWER_ON || ts->pdata->panel_on == POWER_WAKE || ts->pdata->lpwg_debug_enable != 0) {
+	if (ts->pdata->panel_on == POWER_ON || ts->pdata->panel_on == POWER_WAKE) {
 		if (sscanf(buf, "%s", cmd) != 1)
 			return -EINVAL;
 
@@ -2766,22 +2696,35 @@ static ssize_t rawdata_store(struct lge_touch_data *ts, const char *buf, size_t 
 
 }
 
+static ssize_t jitter_show(struct lge_touch_data *ts, char *buf)
+{
+	TOUCH_INFO_MSG("Do nothing\n");
+	return 1;
+/*
+	struct lge_touch_data *ts = dev_get_drvdata(dev);
+	ssize_t ret;
+
+	ret = touch_drv->sysfs(ts->client, buf, 0, SYSFS_JITTER_SHOW);
+	return ret;
+*/
+}
+
 static ssize_t delta_show(struct lge_touch_data *ts, char *buf)
 {
 	ssize_t ret;
-	if (ts->pdata->panel_on == POWER_ON || ts->pdata->panel_on == POWER_WAKE || ts->pdata->lpwg_debug_enable != 0) {
+	//if(ts->pdata->panel_on == POWER_ON || ts->pdata->panel_on == POWER_WAKE) {
 		ret = touch_drv->sysfs(ts->client, buf, 0, SYSFS_DELTA_SHOW);
-	} else {
-		ret = snprintf(buf,PAGE_SIZE,"If you want to check delta, please turn on the LCD.\n");
-		TOUCH_INFO_MSG("If you want to check delta, please turn on the LCD.\n");
-	}
+	//} else {
+	//	ret = snprintf(buf,PAGE_SIZE,"If you want to check self diagnostic, please turn on the LCD.\n");
+	//	TOUCH_INFO_MSG("If you want to check self diagnostic, please turn on the LCD.\n");
+	//}
 	return ret;
 }
 
 static ssize_t self_diagnostic_show(struct lge_touch_data *ts, char *buf)
 {
 	ssize_t ret;
-	if(ts->pdata->panel_on == POWER_ON || ts->pdata->panel_on == POWER_WAKE || ts->pdata->lpwg_debug_enable != 0) {
+	if(ts->pdata->panel_on == POWER_ON || ts->pdata->panel_on == POWER_WAKE) {
 		ts->sd_status = 1;
 		ret = touch_drv->sysfs(ts->client, buf, 0, SYSFS_SELF_DIAGNOSTIC_SHOW);
 		ts->sd_status = 0;
@@ -2790,6 +2733,46 @@ static ssize_t self_diagnostic_show(struct lge_touch_data *ts, char *buf)
 		TOUCH_INFO_MSG("If you want to check self diagnostic, please turn on the LCD.\n");
 	}
 	return ret;
+}
+
+static ssize_t self_diagnostic_status_show(struct lge_touch_data *ts, char *buf)
+{
+	TOUCH_INFO_MSG("Do nothing\n");
+	return 1;
+/*
+
+	struct lge_touch_data *ts = dev_get_drvdata(dev);
+	ssize_t ret;
+	ret = snprintf(buf, PAGE_SIZE, "%d\n", ts->sd_status);
+	return ret;
+*/
+}
+
+
+static ssize_t edge_expand_show(struct lge_touch_data *ts, char *buf)
+{
+	TOUCH_INFO_MSG("Do nothing\n");
+	return 1;
+/*
+	struct lge_touch_data *ts = dev_get_drvdata(dev);
+	ssize_t ret;
+
+	ret = touch_drv->sysfs(ts->client, buf, 0, SYSFS_EDGE_EXPAND_SHOW);
+	return ret;
+*/
+}
+
+static ssize_t edge_expand_store(struct lge_touch_data *ts, const char *buf, size_t count)
+{
+	TOUCH_INFO_MSG("Do nothing\n");
+	return 1;
+/*
+	struct lge_touch_data *ts = dev_get_drvdata(dev);
+	int ret = 0;
+	ret = touch_drv->sysfs(ts->client, 0, buf, SYSFS_EDGE_EXPAND_STORE);
+
+	return count;
+*/
 }
 
 static ssize_t sensing_on_show(struct lge_touch_data *ts, char *buf)
@@ -2859,13 +2842,51 @@ static ssize_t lpwg_store(struct lge_touch_data *ts, const char *buf, size_t cou
 	return count;
 }
 
+static ssize_t lpwg_wakeup_show(struct lge_touch_data *ts, char *buf)
+{
+	int ret = 0;
+
+	ret = touch_drv->sysfs(ts->client, buf, 0, SYSFS_LPWG_WAKEUP_SHOW);
+
+	return ret;
+}
+
+static ssize_t lpwg_test_store(struct lge_touch_data *ts, const char *buf, size_t count)
+{
+	int ret = 0;
+	char onoff = '1';
+	int cmd = 0;
+	if (sscanf(buf, "%d", &cmd) != 1)
+		return -EINVAL;
+
+	ret = touch_drv->sysfs(ts->client, &onoff, buf, SYSFS_LPWG_TEST_STORE);
+
+	return count;
+}
+
+static ssize_t pin_show(struct lge_touch_data *ts, char *buf)
+{
+
+	int ret = 0;
+
+	ret = gpio_get_value(0);
+	TOUCH_INFO_MSG("RESET PIN = %d ", ret);
+	ret = gpio_get_value(1);
+	TOUCH_INFO_MSG("INT PIN = %d ", ret);
+	ret = gpio_get_value(82);
+	TOUCH_INFO_MSG("Touch LDO Enable PIN = %d ", ret);
+	ret = gpio_get_value(41);
+	TOUCH_INFO_MSG("LCD RESEST PIN = %d ", ret);
+
+	return ret;
+}
+
 static ssize_t window_crack_status_show(struct lge_touch_data *ts, char *buf)
 {
 	int ret = 0;
 	ret = sprintf(buf, "window crack status [%d]\n", window_crack_check);
 	return ret;
 }
-
 static ssize_t window_crack_status_store(struct lge_touch_data *ts, const char *buf, size_t count)
 {
 	int cmd = 0;
@@ -2883,38 +2904,43 @@ static ssize_t lpwg_notify_store(struct lge_touch_data *ts, const char *buf, siz
 	int cmd[4] = {0,};
 	int ret = 0;
 
+	const char *lpwg_off = "0";
+	const char *lpwg_double = "1";
+	const char *lpwg_multi= "11";
+
 	sscanf(buf, "%d %d %d %d %d", &type, &cmd[0], &cmd[1], &cmd[2], &cmd[3]);
 	TOUCH_INFO_MSG(" type = %d value = %d %d %d %d\n", type, cmd[0], cmd[1], cmd[2], cmd[3]);
-	mutex_lock(&ts->thread_lock);
+
 	switch(type) {
 		case CMD_LPWG_ENABLE:
 			break;
 		case CMD_LPWG_LCD:
 			break;
 		case CMD_LPWG_ACTIVE_AREA:
-			ret = touch_drv->sysfs(ts->client, "area", buf + 1, SYSFS_LPWG_STORE);
+			ret = touch_drv->sysfs(ts->client, "area", buf+1, SYSFS_LPWG_STORE);
 			break;
 		case CMD_LPWG_TAP_COUNT:
 			ret = touch_drv->sysfs(ts->client, "tap_count", buf + 1, SYSFS_LPWG_STORE);
 			break;
 		case CMD_LPWG_LCD_RESUME_SUSPEND:
 			if (cmd[0] == 0)
-				ts->pdata->lpwg_panel_on = LCD_OFF;
+				ts->pdata->lpwg_panel_on = 0;
 			else
-				ts->pdata->lpwg_panel_on = LCD_ON;
+				ts->pdata->lpwg_panel_on = 1;
 			break;
 		case CMD_LPWG_PROX:
 			break;
-		case CMD_LPWG_DOUBLE_TAP_CHECK:
-			ret = touch_drv->sysfs(ts->client, "tap_check", buf + 1, SYSFS_LPWG_STORE);
-			break;
 		case CMD_LPWG_TOTAL_STATUS:
-			ts->pdata->lpwg_panel_on = cmd[1];
 			ts->pdata->lpwg_prox = cmd[2];
-			ret = touch_drv->sysfs(ts->client, "update_all", buf + 1, SYSFS_LPWG_STORE);
+			if (cmd[0] == 0) {
+				ret = touch_drv->sysfs(ts->client, NULL, lpwg_off, SYSFS_LPWG_STORE);
+			} else if (cmd[0] == 1) {
+				ret = touch_drv->sysfs(ts->client, NULL, lpwg_double, SYSFS_LPWG_STORE);
+			} else if (cmd[0] == 2) {
+				ret = touch_drv->sysfs(ts->client, NULL, lpwg_multi, SYSFS_LPWG_STORE);
+			}
 			break;
 	}
-	mutex_unlock(&ts->thread_lock);
 	return count;
 }
 
@@ -2923,7 +2949,7 @@ static ssize_t lpwg_data_show(struct lge_touch_data *ts, char *buf)
 	int ret = 0;
 	int i = 0;
 
-	TOUCH_INFO_MSG("Called lpwg_data_show  size = %d\n", ts->pdata->lpwg_size);
+	TOUCH_INFO_MSG("Called lpwg_data_show  size = %d", ts->pdata->lpwg_size);
 
 	for(i = 0; i < ts->pdata->lpwg_size; i++) {
 		ret += sprintf(buf+ret, "%d %d\n", ts->pdata->lpwg_x[i], ts->pdata->lpwg_y[i]);
@@ -2937,175 +2963,12 @@ static ssize_t lpwg_data_show(struct lge_touch_data *ts, char *buf)
 
 static ssize_t lpwg_data_store(struct lge_touch_data *ts, const char *buf, size_t count)
 {
-	uint8_t reply = 0;
-
-	sscanf(buf, "%c", &reply);
-	TOUCH_INFO_MSG("Called lpwg_data_store reply = %c\n", reply);
+	TOUCH_INFO_MSG("Called lpwg_data_store ");
 
 	return count;
 }
 
-static ssize_t keyguard_info_store(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	int ret = 0;
-
-	ret = touch_drv->sysfs(ts->client, 0, buf, SYSFS_KEYGUARD_STORE);
-
-	return count;
-}
-
-static ssize_t reg_control_store(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	int ret = 0;
-
-	TOUCH_INFO_MSG("reg_control_store\n");
-	ret = touch_drv->sysfs(ts->client, 0, buf, SYSFS_REG_CONTROL_STORE);
-
-	return count;
-}
-
-static ssize_t tci_show(struct lge_touch_data *ts, char *buf)
-{
-	int ret = 0;
-
-	ret += sprintf(buf+ret, "\n<Select Type>\n\n1.IDLE_REPORTRATE_CTRL\n2.ACTIVE_REPORTRATE_CTRL\n3.SENSITIVITY_CTRL\n11.TCI_ENABLE_CTRL\n12.TOUCH_SLOP_CTRL\n13.TAP_MIN_DISTANCE_CTRL\n"
-							"14.TAP_MAX_DISTANCE_CTRL\n15.MIN_INTERTAP_CTRL\n16.MAX_INTERTAP_CTRL\n"
-							"17.TAP_COUNT_CTRL\n18.INTERRUPT_DELAY_CTRL\n21.TCI_ENABLE_CTRL2\n");
-	ret += sprintf(buf+ret, "22.TOUCH_SLOP_CTRL2\n23.TAP_MIN_DISTANCE_CTRL2\n24.TAP_MAX_DISTANCE_CTRL2\n"
-							"25.MIN_INTERTAP_CTRL2\n26.MAX_INTERTAP_CTRL2\n27.TAP_COUNT_CTRL2\n28.INTERRUPT_DELAY_CTRL2\n"
-							"31.LPWG_STORE_INFO_CTRL\n32.LPWG_START_CTRL\n\n");
-	return ret;
-}
-
-static ssize_t tci_store(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	int ret = 0;
-
-	TOUCH_INFO_MSG("tci_store!\n");
-	ret = touch_drv->sysfs(ts->client, 0, buf, SYSFS_LPWG_TCI_STORE);
-
-	return count;
-}
-#if defined(TOUCH_USE_DSV)
-static ssize_t touch_dsv_show(struct lge_touch_data *ts, char *buf)
-{
-	int ret = 0;
-	char tmp[128] = {0};
-
-	sprintf(tmp, "use_dsv : %d \n", ts_pdata->use_dsv);
-
-	TOUCH_INFO_MSG("%s", tmp);
-
-	ret += sprintf(buf+ret, "%s", tmp);
-
-	return ret;
-}
-
-static ssize_t touch_dsv_store(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	if (!ts_pdata->panel_on) {
-		TOUCH_INFO_MSG("LCD is off. Try after LCD On \n");
-		return count;
-	}
-	sscanf(buf, "%d", &ts_pdata->use_dsv);
-	TOUCH_INFO_MSG("use_dsv : %d \n", ts_pdata->use_dsv);
-
-	return count;
-}
-
-static ssize_t sensor_value_show(struct lge_touch_data *ts, char *buf)
-{
-	int ret = 0;
-	char tmp[128] = {0};
-
-	sprintf(tmp, "sensor_value : %d \n", ts_pdata->sensor_value);
-
-	TOUCH_INFO_MSG("%s", tmp);
-
-	ret += sprintf(buf+ret, "%s", tmp);
-
-	return ret;
-}
-
-static ssize_t sensor_value_store(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	if (!ts_pdata->panel_on) {
-		TOUCH_INFO_MSG("LCD is off. Try after LCD On \n");
-		return count;
-	}
-	sscanf(buf, "%d", &ts_pdata->sensor_value);
-	TOUCH_INFO_MSG("sensor_value store: %d \n", ts_pdata->sensor_value);
-
-	return count;
-}
-
-static ssize_t enable_sensor_interlock_show(struct lge_touch_data *ts, char *buf)
-{
-	int ret = 0;
-	char tmp[128] = {0};
-
-	sprintf(tmp, "enable_sensor_interlock : %d \n", ts_pdata->enable_sensor_interlock);
-
-	TOUCH_INFO_MSG("%s", tmp);
-
-	ret += sprintf(buf+ret, "%s", tmp);
-
-	return ret;
-}
-
-static ssize_t enable_sensor_interlock_store(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	if (!ts_pdata->panel_on) {
-		TOUCH_INFO_MSG("LCD is off. Try after LCD On \n");
-		return count;
-	}
-	sscanf(buf, "%d", &ts_pdata->enable_sensor_interlock);
-	TOUCH_INFO_MSG("enable_sensor_interlock store: %d \n", ts_pdata->enable_sensor_interlock);
-
-	return count;
-}
-#endif
-
-static ssize_t lpwg_debug_show(struct lge_touch_data *ts, char *buf)
-{
-	int ret = 0;
-	ret = sprintf(buf, "ts->pdata->lpwg_debug_enable : [%d]\n", ts->pdata->lpwg_debug_enable);
-	return ret;
-}
-
-static ssize_t lpwg_debug_store(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	int cmd = 0;
-	int ret = 0;
-
-	sscanf(buf, "%d", &cmd);
-
-	ts->pdata->lpwg_debug_enable = cmd;
-	ret = touch_drv->sysfs(ts->client, 0, buf, SYSFS_LPWG_DEBUG_STORE);
-
-	return count;
-}
-
-static ssize_t lpwg_reason_show(struct lge_touch_data *ts, char *buf)
-{
-	int ret = 0;
-	ret = sprintf(buf, "ts->pdata->lpwg_fail_reason : [%d]\n", ts->pdata->lpwg_fail_reason);
-	return ret;
-}
-
-static ssize_t lpwg_reason_store(struct lge_touch_data *ts, const char *buf, size_t count)
-{
-	int cmd = 0;
-	int ret = 0;
-
-	sscanf(buf, "%d", &cmd);
-
-	ts->pdata->lpwg_fail_reason = cmd;
-	ret = touch_drv->sysfs(ts->client, 0, buf, SYSFS_LPWG_REASON_STORE);
-
-	return count;
-}
-
+static LGE_TOUCH_ATTR(platform_data, S_IRUGO | S_IWUSR, platform_data_show, NULL);
 static LGE_TOUCH_ATTR(fw_force_upgrade, S_IRUGO | S_IWUSR, fw_force_upgrade_show, fw_force_upgrade_store);
 static LGE_TOUCH_ATTR(fw_upgrade, S_IRUGO | S_IWUSR, fw_normal_upgrade_show, fw_normal_upgrade_store);
 static LGE_TOUCH_ATTR(fw_dump, S_IRUGO | S_IWUSR, fw_dump_show, NULL);
@@ -3113,29 +2976,24 @@ static LGE_TOUCH_ATTR(version, S_IRUGO | S_IWUSR, version_show, NULL);
 static LGE_TOUCH_ATTR(testmode_ver, S_IRUGO | S_IWUSR, testmode_version_show, NULL);
 static LGE_TOUCH_ATTR(power_control, S_IRUGO | S_IWUSR, power_control_show, power_control_store);
 static LGE_TOUCH_ATTR(chstatus, S_IRUGO | S_IWUSR, chstatus_show, NULL);
-static LGE_TOUCH_ATTR(openshort, S_IRUGO | S_IWUSR, openshort_show, openshort_store);
 static LGE_TOUCH_ATTR(rawdata, S_IRUGO | S_IWUSR, rawdata_show, rawdata_store);
+static LGE_TOUCH_ATTR(jitter, S_IRUGO | S_IWUSR, jitter_show, NULL);//pending
 static LGE_TOUCH_ATTR(delta, S_IRUGO | S_IWUSR, delta_show, NULL);
-static LGE_TOUCH_ATTR(sd, S_IRUGO | S_IWUSR, self_diagnostic_show, NULL);
+static LGE_TOUCH_ATTR(sd, S_IRUGO | S_IWUSR, self_diagnostic_show, NULL);//pending
+static LGE_TOUCH_ATTR(sd_status, S_IRUGO | S_IWUSR, self_diagnostic_status_show, NULL);
+static LGE_TOUCH_ATTR(edge_expand, S_IRUGO | S_IWUSR/*S_IWUGO*/, edge_expand_show, edge_expand_store);
 static LGE_TOUCH_ATTR(sensing_block_on, S_IRUGO | S_IWUSR, sensing_on_show, sensing_on_store);
 static LGE_TOUCH_ATTR(sensing_block_off, S_IRUGO | S_IWUSR, sensing_off_show, sensing_off_store);
 static LGE_TOUCH_ATTR(lpwg, S_IRUGO | S_IWUSR, lpwg_show, lpwg_store);
-static LGE_TOUCH_ATTR(crack_status, S_IRUGO | S_IWUSR, window_crack_status_show, window_crack_status_store);
+static LGE_TOUCH_ATTR(wakeup, S_IRUGO | S_IWUSR, lpwg_wakeup_show, NULL);
+static LGE_TOUCH_ATTR(lpwg_test, S_IRUGO | S_IWUSR, NULL, lpwg_test_store);
+static LGE_TOUCH_ATTR(pin, S_IRUGO | S_IWUSR, pin_show, NULL);
 static LGE_TOUCH_ATTR(lpwg_notify, S_IRUGO | S_IWUSR, NULL, lpwg_notify_store);
 static LGE_TOUCH_ATTR(lpwg_data, S_IRUGO | S_IWUSR, lpwg_data_show, lpwg_data_store);
-static LGE_TOUCH_ATTR(keyguard, S_IRUGO | S_IWUSR, NULL, keyguard_info_store);
-static LGE_TOUCH_ATTR(reg_control, S_IRUGO | S_IWUSR, NULL, reg_control_store);
-static LGE_TOUCH_ATTR(tci, S_IRUGO | S_IWUSR, tci_show, tci_store);
-static LGE_TOUCH_ATTR(lpwg_debug, S_IRUGO | S_IWUSR, lpwg_debug_show, lpwg_debug_store);
-static LGE_TOUCH_ATTR(lpwg_fail_reason, S_IRUGO | S_IWUSR, lpwg_reason_show, lpwg_reason_store);
-#if defined(TOUCH_USE_DSV)
-static LGE_TOUCH_ATTR(dsv, S_IRUGO | S_IWUSR, touch_dsv_show, touch_dsv_store);
-static LGE_TOUCH_ATTR(sensor_value, S_IRUGO | S_IWUSR, sensor_value_show, sensor_value_store);
-static LGE_TOUCH_ATTR(enable_sensor_interlock, S_IRUGO | S_IWUSR, enable_sensor_interlock_show, enable_sensor_interlock_store);
-#endif
-
+static LGE_TOUCH_ATTR(crack_status, S_IRUGO | S_IWUSR, window_crack_status_show, window_crack_status_store);
 
 static struct attribute *lge_touch_attribute_list[] = {
+	&lge_touch_attr_platform_data.attr,
 	&lge_touch_attr_fw_force_upgrade.attr,
 	&lge_touch_attr_fw_upgrade.attr,
 	&lge_touch_attr_fw_dump.attr,
@@ -3143,27 +3001,21 @@ static struct attribute *lge_touch_attribute_list[] = {
 	&lge_touch_attr_testmode_ver.attr,
 	&lge_touch_attr_power_control.attr,
 	&lge_touch_attr_chstatus.attr,
-	&lge_touch_attr_openshort.attr,
 	&lge_touch_attr_rawdata.attr,
+	&lge_touch_attr_jitter.attr,
 	&lge_touch_attr_delta.attr,
 	&lge_touch_attr_sd.attr,
+	&lge_touch_attr_sd_status.attr,
+	&lge_touch_attr_edge_expand.attr,
 	&lge_touch_attr_sensing_block_on.attr,
 	&lge_touch_attr_sensing_block_off.attr,
 	&lge_touch_attr_lpwg.attr,
+	&lge_touch_attr_wakeup.attr,
+	&lge_touch_attr_lpwg_test.attr,
+	&lge_touch_attr_pin.attr,
 	&lge_touch_attr_lpwg_data.attr,
 	&lge_touch_attr_lpwg_notify.attr,
 	&lge_touch_attr_crack_status.attr,
-	&lge_touch_attr_keyguard.attr,
-	&lge_touch_attr_reg_control.attr,
-	&lge_touch_attr_tci.attr,
-	&lge_touch_attr_lpwg_debug.attr,
-	&lge_touch_attr_lpwg_fail_reason.attr,
-#if defined(TOUCH_USE_DSV)
-	&lge_touch_attr_dsv.attr,
-	&lge_touch_attr_sensor_value.attr,
-	&lge_touch_attr_enable_sensor_interlock.attr,
-#endif
-
 	NULL,
 };
 
@@ -3286,10 +3138,12 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 	}
 
 	atomic_set(&ts->device_init, 0);
-	atomic_set(&dev_state,DEV_RESUME_ENABLE);
+
 	/* Power on */
 	if (touch_power_cntl(ts, POWER_ON) < 0)
 		goto err_power_failed;
+
+	msleep(ts_role->booting_delay);
 
 	if (touch_drv->init(ts->client, &ts->fw_info) < 0) {
 		TOUCH_ERR_MSG("specific device initialization fail\n");
@@ -3305,10 +3159,8 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 
 	/* Specific device initialization */
 	touch_ic_init(ts);
-	mutex_init(&ts->thread_lock);
-	touch_drv->ic_ctrl(ts->client, IC_CTRL_INFO_SHOW, 0);
 
-	msleep(100);
+	touch_drv->ic_ctrl(ts->client, IC_CTRL_INFO_SHOW, 0);
 
 	/* Firmware Upgrade Check - use thread for booting time reduction */
 	if (ts_pdata->auto_fw_update && touch_drv->fw_upgrade) {
@@ -3328,10 +3180,6 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 		TOUCH_INFO_MSG("Crack Check \n");
 		queue_delayed_work(touch_wq, &ts->work_crack, msecs_to_jiffies(100));
 	}
-
-	ret = touch_input_init(ts);
-	if (ret < 0)
-		goto err_lge_touch_input_init;
 
 	/* interrupt mode */
 	ret = gpio_request(ts_pdata->int_pin, "touch_int");
@@ -3356,6 +3204,10 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 #endif
 	/* ghost-finger solution */
 	ts->gf_ctrl.probe = 1;
+
+	ret = touch_input_init(ts);
+	if (ret < 0)
+		goto err_lge_touch_input_init;
 
 #if defined(CONFIG_FB)
 	ts->fb_notifier_block.notifier_call = touch_notifier_callback;
@@ -3395,20 +3247,11 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 		goto err_lge_touch_sysfs_init_and_add;
 	}
 
-#if defined(TOUCH_USE_DSV)
-	g_ts = ts;
-	ts_pdata->use_dsv = 0;
-	ts_pdata->sensor_value = 0;
-	ts_pdata->enable_sensor_interlock = 1;
-	apds9930_register_lux_change_callback(dsv_ctrl);
-#endif
-
 	if (likely(touch_debug_mask_ & DEBUG_BASE_INFO))
 		TOUCH_INFO_MSG("Touch driver is initialized\n");
 #endif
 	complete_all(&ts->irq_completion);
-	ts->is_probed = true;
-	TOUCH_INFO_MSG("probe done\n");
+
 	return 0;
 
 #if 1
@@ -3490,7 +3333,6 @@ static int touch_remove(struct i2c_client *client)
 
 	mutex_destroy(&irq_lock);
 	mutex_destroy(&i2c_suspend_lock);
-	mutex_destroy(&ts->thread_lock);
 	wake_lock_destroy(&touch_wake_lock);
 
 	return 0;

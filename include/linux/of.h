@@ -178,13 +178,13 @@ extern struct device_node *of_find_compatible_node(struct device_node *from,
 #define for_each_compatible_node(dn, type, compatible) \
 	for (dn = of_find_compatible_node(NULL, type, compatible); dn; \
 	     dn = of_find_compatible_node(dn, type, compatible))
-//                                                           
+//2013-09-24, seungkyu.joo@lge.com, WX_MAXIM modified [Start]
 extern struct device_node *of_find_compatible_node_with_rev_lge(struct device_node *from,
 			const char *type, const char *compat);
 #define for_each_compatible_node_with_rev_lge(dn, type, compatible) \
 			for (dn = of_find_compatible_node_with_rev_lge(NULL, type, compatible); dn; \
 				 dn = of_find_compatible_node_with_rev_lge(dn, type, compatible))
-//                                                         
+//2013-09-24, seungkyu.joo@lge.com, WX_MAXIM modified [End]
 extern struct device_node *of_find_matching_node(struct device_node *from,
 	const struct of_device_id *matches);
 #define for_each_matching_node(dn, matches) \

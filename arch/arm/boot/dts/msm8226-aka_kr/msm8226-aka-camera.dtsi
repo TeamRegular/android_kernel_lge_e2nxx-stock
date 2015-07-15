@@ -28,10 +28,10 @@
 	};
 
 	qcom,proxy@29 {
- 			cell-index = <998>;
-                        reg = <0x29 0x0>;
-                        compatible = "qcom,proxy";
-                        qcom,cci-master = <0>;
+		cell-index = <998>;
+		reg = <0x29 0x0>;
+		compatible = "qcom,proxy";
+		qcom,cci-master = <0>;
 	};
 
 	eeprom0: qcom,eeprom@a0 {

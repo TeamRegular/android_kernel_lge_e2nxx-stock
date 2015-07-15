@@ -43,7 +43,7 @@
 	aliases{
 		uart99 = &uart4;
 	};
-	
+
 	/* To register A1 BT wake-up devices for BT sleep */
 	bt_sleep {
 		compatible = "lge,bcm_bluesleep";
@@ -52,6 +52,6 @@
 		interrupt-parent = <&msmgpio>;
 		interrupts = <48 0>;
 		interrupt-names = "host_wake";
-	};	
+	};
 };
 

@@ -28,5 +28,12 @@
 		MSM8812   = 166,
 	*/
 	qcom,board-id = <122 0>;
+	aliases {
+		lcd_primary = "/soc/qcom,dsi_v2_lgd_incell_wvga_video";
+		lcd_secondary = "/soc/qcom,dsi_v2_tovis_shrink_wvga_video";
+	};
 };
+
+
+
 

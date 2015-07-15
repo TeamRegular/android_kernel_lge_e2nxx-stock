@@ -47,7 +47,7 @@
 #define STOP_ACK_TIMEOUT_MS	1000
 
 /* START : subsys_modem_restart : testmode */
-bool ignore_errors_by_subsys_modem_restart = false;
+bool ignore_errors_by_subsys_modem_restart;
 /* END : subsys_modem_restart : testmode */
 
 struct modem_data {
@@ -61,12 +61,20 @@ struct modem_data {
 	bool ignore_errors;
 	struct completion stop_ack;
 };
+struct lge_hw_smem_id2_type {
+	uint32_t sbl_log_meta_info;
+	uint32_t lcd_maker;
+	uint32_t sbl_delta_time;
+	uint32_t secure_auth;
+	uint32_t build_info;
+	int modem_reset;
+};
 
 #define subsys_to_drv(d) container_of(d, struct modem_data, subsys_desc)
 
-//                                      
+/* [START] jin.park@lge.com, SSR FEATURE */
 char ssr_noti[MAX_SSR_REASON_LEN];
-//                                    
+/* [END] jin.park@lge.com, SSR FEATURE */
 static void log_modem_sfr(void)
 {
 	u32 size;
@@ -85,12 +93,12 @@ static void log_modem_sfr(void)
 	strlcpy(reason, smem_reason, min(size, sizeof(reason)));
 	pr_err("modem subsystem failure reason: %s.\n", reason);
 #if defined(CONFIG_PRE_SELF_DIAGNOSIS)
-	lge_pre_self_diagnosis((char *) "modem",3,(char *) "modem failed",(char *) reason, 20001);
+	lge_pre_self_diagnosis((char *) "modem", 3, (char *) "modem failed", (char *) reason, 20001);
 #endif
 
-//                                      
+/* [START] jin.park@lge.com, SSR FEATURE */
 	strlcpy(ssr_noti, smem_reason, min(size, sizeof(ssr_noti)));
-//                                    
+/* [END] jin.park@lge.com, SSR FEATURE */
 	smem_reason[0] = '\0';
 	wmb();
 }
@@ -105,28 +113,26 @@ static void restart_modem(struct modem_data *drv)
 static int check_modem_reset(struct modem_data *drv)
 {
 	u32 size;
-	char *smem_reason, reason[MAX_SSR_REASON_LEN];
 	int ret = -EPERM;
+	struct lge_hw_smem_id2_type *smem_id2;
 
-	smem_reason = smem_get_entry_no_rlock(SMEM_SSR_REASON_MSS0, &size);
+	smem_id2 = smem_get_entry(SMEM_ID_VENDOR2, &size);
 
-	if (!smem_reason || !size) {
-		pr_err("modem subsystem failure reason: (unknown, smem_get_entry_no_rlock failed).\n");
-		goto err;
-	}
-	if (!smem_reason[0]) {
-		pr_err("modem subsystem failure reason: (unknown, empty string found).\n");
-		goto err;
+	if (smem_id2 == NULL) {
+		pr_err("%s: smem_id2 is NULL.\n", __func__);
+		return ret;
 	}
 
-	strlcpy(reason, smem_reason, min(size, sizeof(reason)));
-	if (strstr(reason,"forced modem reset")){
-		subsys_set_crash_status(drv->subsys, true);
+	printk("smem_id2->modem_reset : %d", smem_id2->modem_reset);
+
+	if (smem_id2->modem_reset != 1) {
+		ret = 1;
+	} else {
+		wmb();
+		drv->ignore_errors = true;
 		subsys_modem_restart();
 		ret = 0;
 	}
-
-err:
 	return ret;
 }
 
@@ -143,7 +149,7 @@ static irqreturn_t modem_err_fatal_intr_handler(int irq, void *dev_id)
 
 	pr_err("Fatal error on the modem.\n");
 #if defined(CONFIG_PRE_SELF_DIAGNOSIS)
-	lge_pre_self_diagnosis((char *) "modem",2,(char *) "modem fatal",(char *) "_", 20000);
+	lge_pre_self_diagnosis((char *) "modem", 2, (char *) "modem fatal", (char *) "_", 20000);
 #endif
 	subsys_set_crash_status(drv->subsys, true);
 	restart_modem(drv);
@@ -217,7 +223,7 @@ static void modem_crash_shutdown(const struct subsys_desc *subsys)
 	struct modem_data *drv = subsys_to_drv(subsys);
 	drv->crash_shutdown = true;
 #ifdef CONFIG_LGE_HANDLE_PANIC
-	if (!subsys_get_crash_status(drv->subsys) && (lge_get_modem_panic() != 3 )) {
+	if (!subsys_get_crash_status(drv->subsys) && (lge_get_modem_panic() != 3)) {
 #else
 	if (!subsys_get_crash_status(drv->subsys)) {
 #endif
@@ -280,7 +286,7 @@ static irqreturn_t modem_wdog_bite_intr_handler(int irq, void *dev_id)
 
 	pr_err("Watchdog bite received from modem software!\n");
 #if defined(CONFIG_PRE_SELF_DIAGNOSIS)
-	lge_pre_self_diagnosis((char *) "modem",2,(char *) "Watchdog bite Intr",(char *) "_", 20000);
+	lge_pre_self_diagnosis((char *) "modem", 2, (char *) "Watchdog bite Intr", (char *) "_", 20000);
 #endif
 
 	subsys_set_crash_status(drv->subsys, true);

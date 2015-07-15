@@ -147,6 +147,9 @@ struct touch_platform_data
 	char	maker[30];
 	char	fw_product[9];
 	char	fw_image[NAME_BUFFER_SIZE];
+	char	p3_fw_product[9];
+	char	p3_fw_image[NAME_BUFFER_SIZE];
+
 	char	panel_spec[NAME_BUFFER_SIZE];
 	bool	selfdiagnostic_state[3];
 	struct touch_power_info		pwr[TOUCH_PWR_NUM];

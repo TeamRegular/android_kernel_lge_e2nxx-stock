@@ -273,8 +273,8 @@ static struct gpiomux_setting cam_settings[] = {
 };
 
 /*
-                                                       
-                                              
+ * This source has changed to match at lgps15 HDK board
+ * changed by junil0814.lee@lge.com 2013-06-05
  */
 static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
 	{

@@ -63,7 +63,7 @@
 #include "msm_sdcc.h"
 #include "msm_sdcc_dml.h"
 
-/// SD_CARD_DET polarity change.
+/* SD_CARD_DET polarity change. */
 #if defined(CONFIG_MACH_MSM8226_W7_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_W7_GLOBAL_SCA) || defined(CONFIG_MACH_MSM8226_W7N_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_W7N_GLOBAL_SCA) || defined(CONFIG_MACH_MSM8226_G2MDS_OPEN_CIS) || defined(CONFIG_MACH_MSM8226_G2MDS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_G2MSS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_JAG3GDS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_JAG3GSS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFIN) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8926_E8LTE)
 #include <mach/board_lge.h>
 #endif /* CONFIG_MACH_MSM8226_W7_OPEN_CIS || CONFIG_MACH_MSM8226_W7_OPEN_EU || CONFIG_MACH_MSM8226_W7_GLOBAL_COM || CONFIG_MACH_MSM8226_W7_GLOBAL_SCA */
@@ -206,6 +206,18 @@ static void msmsdcc_pm_qos_update_latency(struct msmsdcc_host *host, int vote)
 	else
 		pm_qos_update_request(&host->pm_qos_req_dma,
 					PM_QOS_DEFAULT_VALUE);
+
+/* LGE_CHANGE_S, [WiFi][hayun.kim@lge.com], 2013-06-12, dma qos control */
+#if defined(CONFIG_BCMDHD) || defined (CONFIG_BCMDHD_MODULE)
+{
+	extern void bcm_wifi_req_dma_qos(int vote);
+	if (host->mmc && host->mmc->card && mmc_card_sdio(host->mmc->card)) {
+		bcm_wifi_req_dma_qos(vote);
+	}
+}
+#endif
+/* LGE_CHANGE_S, [WiFi][hayun.kim@lge.com], 2013-06-12, dma qos control */
+
 }
 
 #ifdef CONFIG_MMC_MSM_SPS_SUPPORT
@@ -5587,7 +5599,7 @@ static void msmsdcc_dt_get_cd_wp_gpio(struct device *dev,
 
 /// SD_CARD_DET polarity change.
 #if defined(CONFIG_MACH_MSM8226_W7_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_W7_GLOBAL_SCA) || defined(CONFIG_MACH_MSM8226_W7N_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_W7N_GLOBAL_SCA) || defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFIN) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8926_E8LTE)
-	if( hw_rev <= HW_REV_A )
+	if (hw_rev <= HW_REV_A)
 		flags = OF_GPIO_ACTIVE_LOW;
 	else
 		flags = 0x0;
@@ -5869,9 +5881,9 @@ err:
 	return NULL;
 }
 
-#if defined( CONFIG_BCMDHD )  //joon For device tree.
-extern int sdc3_status_register(void (*cb)(int card_present, void *dev), void *dev);
-extern unsigned int sdc3_status(struct device* );
+#if defined(CONFIG_BCMDHD)  /*joon For device tree. */
+extern int wcf_status_register(void (*cb)(int card_present, void *dev), void *dev);
+extern unsigned int wcf_status(struct device *);
 #endif
 
 static int
@@ -6248,16 +6260,13 @@ msmsdcc_probe(struct platform_device *pdev)
 	 * Setup card detect change
 	 */
 
-#if defined( CONFIG_BCMDHD ) //joon For device tree.
-            printk("J:%s-%d> plat->nonremovable = %d\n", __FUNCTION__, host->pdev->id, plat->nonremovable );
-            if( host->pdev->id == 3 )
-            {
-                plat->register_status_notify = sdc3_status_register;
-                plat->status = sdc3_status;
-            }
+#if defined( CONFIG_BCMDHD ) /* joon For device tree. */
+	printk("J:%s-%d> plat->nonremovable = %d\n", __FUNCTION__, host->pdev->id, plat->nonremovable);
+	if (host->pdev->id == 3) {
+		plat->register_status_notify = wcf_status_register;
+		plat->status = wcf_status;
+	}
 #endif
-        
-
 	if (!plat->status_gpio)
 		plat->status_gpio = -ENOENT;
 	if (!plat->wpswitch_gpio)

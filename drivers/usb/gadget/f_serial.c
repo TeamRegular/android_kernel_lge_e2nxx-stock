@@ -94,7 +94,7 @@ static inline struct f_gser *port_to_gser(struct gserial *p)
 }
 #define GS_LOG2_NOTIFY_INTERVAL		5	/* 1 << 5 == 32 msec */
 #ifdef CONFIG_USB_G_LGE_ANDROID
-#define GS_NOTIFY_MAXPACKET		16	/*                                        */
+#define GS_NOTIFY_MAXPACKET		16	/* by mo2chunghan.lee@lge.com, 09/20/2012 */
 #else
 #define GS_NOTIFY_MAXPACKET		10	/* notification + 2 bytes */
 #endif
@@ -150,7 +150,7 @@ static struct usb_interface_descriptor gser_interface_desc = {
 	.bInterfaceProtocol =	0,
 	/* .iInterface = DYNAMIC */
 };
-#endif	/*                                        */
+#endif	/* by mo2chunghan.lee@lge.com, 09/20/2012 */
 #ifdef CONFIG_MODEM_SUPPORT
 static struct usb_cdc_header_desc gser_header_desc  = {
 	.bLength =		sizeof(gser_header_desc),

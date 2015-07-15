@@ -126,7 +126,7 @@ static int broadcast_tdmb_get_ch_info(void __user *arg)
 
 	struct broadcast_tdmb_ch_info __user* puserdata = (struct broadcast_tdmb_ch_info __user*)arg;
 
-	if((puserdata == NULL)||( puserdata->ch_buf == NULL))
+	if((puserdata == NULL)||( puserdata->ch_buf_addr == 0))
 	{
 		printk("broadcast_tdmb_get_ch_info argument error\n");
 		return rc;
@@ -137,7 +137,7 @@ static int broadcast_tdmb_get_ch_info(void __user *arg)
 
 	if(rc == OK)
 	{
-		if(copy_to_user((void __user*)puserdata->ch_buf, (void*)fic_kernel_buffer, fic_len))
+		if(copy_to_user((void __user*)((unsigned int)puserdata->ch_buf_addr), (void*)fic_kernel_buffer, fic_len))
 		{
 			fic_len = 0;
 			rc = ERROR;
@@ -177,8 +177,7 @@ static int broadcast_tdmb_get_dmb_data(void __user *arg)
 			printk("broadcast_tdmb_get_dmb_data, output buffer is small\n");
 			break;
 		}
-
-		if(copy_to_user((void __user*)(puserdata->data_buf + copied_buffer_size), (void*)read_buffer_ptr, read_buffer_size))
+		if(copy_to_user((void __user*)(((unsigned int)puserdata->data_buf_addr) + copied_buffer_size), (void*)read_buffer_ptr, read_buffer_size))
 		{
 			puserdata->copied_size= 0;
 			puserdata->packet_cnt = 0;
@@ -238,7 +237,7 @@ static int8 broadcast_tdmb_select_antenna(void __user *arg)
 	return rc;
 }
 
-static ssize_t broadcast_tdmb_open_control(struct inode *inode, struct file *file)
+static Dynamic_32_64 broadcast_tdmb_open_control(struct inode *inode, struct file *file)
 {
 	struct broadcast_tdmb_chdevice *the_dev =
 	       container_of(inode->i_cdev, struct broadcast_tdmb_chdevice, cdev);
@@ -257,59 +256,59 @@ static long broadcast_tdmb_ioctl_control(struct file *filep, unsigned int cmd,	u
 	int rc = -EINVAL;
 	void __user *argp = (void __user *)arg;
 
-	switch (cmd) 
+	switch (cmd)
 	{
 	case LGE_BROADCAST_TDMB_IOCTL_ON:
 		rc = broadcast_tdmb_power_on();
-		//                                                   
+		//printk("LGE_BROADCAST_TDMB_IOCTL_ON OK %d \n", rc);
 		break;
 	case LGE_BROADCAST_TDMB_IOCTL_OFF:
 		rc = broadcast_tdmb_power_off();
-		//                                                    
+		//printk("LGE_BROADCAST_TDMB_IOCTL_OFF OK %d \n", rc);
 		break;
 	case LGE_BROADCAST_TDMB_IOCTL_OPEN:
 		rc = broadcast_tdmb_open();
-		//                                                     
+		//printk("LGE_BROADCAST_TDMB_IOCTL_OPEN OK %d \n", rc);
 		break;
 	case LGE_BROADCAST_TDMB_IOCTL_CLOSE:
 		broadcast_tdmb_close();
-		//                                               
+		//printk("LGE_BROADCAST_TDMB_IOCTL_CLOSE OK \n");
 		rc = 0;
 		break;
 	case LGE_BROADCAST_TDMB_IOCTL_SET_CH:
 		rc = broadcast_tdmb_set_channel(argp);
-		//                                                             
+		//printk("LGE_BROADCAST_TDMB_IOCTL_SET_CH result = %d \n", rc);
 		break;
 	case LGE_BROADCAST_TDMB_IOCTL_RESYNC:
 		rc = broadcast_tdmb_resync(argp);
-		//                                                             
+		//printk("LGE_BROADCAST_TDMB_IOCTL_RESYNC result = %d \n", rc);
 		break;
 	case LGE_BROADCAST_TDMB_IOCTL_DETECT_SYNC:
 		rc = broadcast_tdmb_detect_sync(argp);
-		//                                                                  
+		//printk("LGE_BROADCAST_TDMB_IOCTL_DETECT_SYNC result = %d \n", rc);
 		break;
 	case LGE_BROADCAST_TDMB_IOCTL_GET_SIG_INFO:
 		rc = broadcast_tdmb_get_sig_info(argp);
-		//                                                                   
+		//printk("LGE_BROADCAST_TDMB_IOCTL_GET_SIG_INFO result = %d \n", rc);
 		break;
 	case LGE_BROADCAST_TDMB_IOCTL_GET_CH_INFO:
 		rc = broadcast_tdmb_get_ch_info(argp);
-		//                                                                  
+		//printk("LGE_BROADCAST_TDMB_IOCTL_GET_CH_INFO result = %d \n", rc);
 		break;
 
 	case LGE_BROADCAST_TDMB_IOCTL_RESET_CH:
-		//                                                               
+		//printk("LGE_BROADCAST_TDMB_IOCTL_RESET_CH result = %d \n", rc);
 		rc = broadcast_tdmb_reset_ch();
 		break;
 
 	case LGE_BROADCAST_TDMB_IOCTL_USER_STOP:
-		//                                                    
+		//printk("LGE_BROADCAST_TDMB_IOCTL_USER_STOP !!! \n");
 		rc = broadcast_tdmb_user_stop(argp);
 		break;
 
 	case LGE_BROADCAST_TDMB_IOCTL_GET_DMB_DATA:
 		rc = broadcast_tdmb_get_dmb_data(argp);
-		//                                                              
+		//printk("LGE_BROADCAST_TDMB_IOCTL_GET_DMB_DATA TBD... !!! \n");
 		break;
 
 	case LGE_BROADCAST_TDMB_IOCTL_SELECT_ANTENNA:
@@ -325,12 +324,12 @@ static long broadcast_tdmb_ioctl_control(struct file *filep, unsigned int cmd,	u
 	return rc;
 }
 
-static ssize_t broadcast_tdmb_release_control(struct inode *inode, struct file *file)
+static Dynamic_32_64 broadcast_tdmb_release_control(struct inode *inode, struct file *file)
 {
 	return 0;
 }
 
-static const struct file_operations broadcast_tdmb_fops_control = 
+static const struct file_operations broadcast_tdmb_fops_control =
 {
 	.owner = THIS_MODULE,
 	.open = broadcast_tdmb_open_control,
@@ -364,6 +363,15 @@ static int broadcast_tdmb_device_init(struct broadcast_tdmb_chdevice *pbroadcast
 	return rc;
 }
 
+int broadcast_tdmb_is_on(void)
+{
+	int rc = FALSE;
+
+	rc = device_drv->broadcast_drv_if_is_on();
+
+	return rc;
+}
+EXPORT_SYMBOL(broadcast_tdmb_is_on);
 
 int8 broadcast_tdmb_blt_power_on(void)
 {

@@ -540,8 +540,8 @@ static struct gpiomux_setting cam_settings[] = {
 };
 
 /*
-                                                       
-                                              
+ * This source has changed to match at lgps15 HDK board
+ * changed by junil0814.lee@lge.com 2013-06-05
  */
 static struct msm_gpiomux_config msm_sensor_configs_revA[] __initdata = {
 	{
@@ -601,7 +601,7 @@ static struct msm_gpiomux_config msm_sensor_configs_revA[] __initdata = {
 		},
 	},
 	{
-		.gpio = 91, /*                                                                                                                   */
+		.gpio = 91, /* VDIG_LDO_EN_Port. this will start 2ex-ldo for vdig and vana at the same time., youngwook.song@lge.com, 2013.08.26 */
 		.settings = {
 			[GPIOMUX_ACTIVE]    = &cam_settings[3],
 			[GPIOMUX_SUSPENDED] = &gpio_suspend_config[1],
@@ -667,14 +667,14 @@ static struct msm_gpiomux_config msm_sensor_configs_revB[] __initdata = {
 		},
 	},
 	{
-		.gpio = 85, /*                                                                                                                   */
+		.gpio = 85, /* VDIG_LDO_EN_Port. this will start 2ex-ldo for vdig and vana at the same time., youngwook.song@lge.com, 2013.08.26 */
 		.settings = {
 			[GPIOMUX_ACTIVE]    = &cam_settings[3],
 			[GPIOMUX_SUSPENDED] = &gpio_suspend_config[1],
 		},
 	},
 };
-/*                                                                                               */
+/* LGE_CHANGE_X, Code modifying by revision for revA and revB, youngwook.song@lge.com 2013-09-21 */
 
 static struct msm_gpiomux_config msm_keypad_configs[] __initdata = {
 	{
@@ -734,7 +734,7 @@ static struct msm_gpiomux_config sd_card_det[] __initdata = {
 };
 
 #if defined(CONFIG_MACH_LGE) && defined(CONFIG_SWITCH_SPK_RCV)
-//                                                                           
+// sangman.park@lge.com(SOUND) 2013_7_17 added speaker switch mixer control  
 static struct gpiomux_setting spk_rcv_active_config = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_8MA,
@@ -751,10 +751,10 @@ static struct msm_gpiomux_config msm_spk_rcv_det[] __initdata = {
 		},
 	}
 };
-#endif/*                                      */
+#endif/*CONFIG_MACH_LGE&&CONFIG_SWITCH_SPK_RCV*/
 
 #ifdef CONFIG_FMR_INTENNA
-//                                                              
+// real-wifi@lge.com(FM) 2013_8_23 added FM intenna GPIO control
 static struct gpiomux_setting fmr_intenna_config = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_8MA,
@@ -796,7 +796,7 @@ static struct msm_gpiomux_config main_cam_id_gpio[] __initdata = {
 		}
 	}
 };
-#endif /*                 */
+#endif /* CONFIG_MACH_LGE */
 
 void __init msm8610_init_gpiomux(void)
 {
@@ -846,15 +846,15 @@ void __init msm8610_init_gpiomux(void)
 				gpio_func_reserved_pin_config.gpio = gpio_reserved_pin_rev_0[gpio_index];
 				msm_gpiomux_install(&gpio_func_reserved_pin_config, 1);
 				}
-			msm_gpiomux_install(msm_sensor_configs_revA, ARRAY_SIZE(msm_sensor_configs_revA)); //                                                                          
+			msm_gpiomux_install(msm_sensor_configs_revA, ARRAY_SIZE(msm_sensor_configs_revA)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
 			}
 			break;
 		case HW_REV_A :
-			msm_gpiomux_install(msm_sensor_configs_revA, ARRAY_SIZE(msm_sensor_configs_revA)); //                                                                          
+			msm_gpiomux_install(msm_sensor_configs_revA, ARRAY_SIZE(msm_sensor_configs_revA)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
 			break;
 		case HW_REV_B :
 		case HW_REV_C :
-            msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); //                                                                          
+            msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
             break;
 		case HW_REV_D :
 		case HW_REV_E :
@@ -865,7 +865,7 @@ void __init msm8610_init_gpiomux(void)
 				gpio_func_reserved_pin_config.gpio = gpio_reserved_pin_rev_A[gpio_index];
 				msm_gpiomux_install(&gpio_func_reserved_pin_config, 1);
 				}
-			msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); //                                                                          
+			msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
 			msm_gpiomux_install(main_cam_id_gpio, ARRAY_SIZE(main_cam_id_gpio));	/* MAIN_CAM_ID */
 			break;
 	}
@@ -891,16 +891,16 @@ void __init msm8610_init_gpiomux(void)
 
 #if defined (CONFIG_LGE_BROADCAST_ONESEG)
     msm_gpiomux_install(lge_1seg_blsp_configs, ARRAY_SIZE(lge_1seg_blsp_configs));
-#endif  /*                             */
+#endif  /* CONFIG_LGE_BROADCAST_ONESEG */
 
 #if defined(CONFIG_MACH_LGE) && defined(CONFIG_SWITCH_SPK_RCV)
-//                                                                           
+// sangman.park@lge.com(SOUND) 2013_7_17 added speaker switch mixer control  
 	msm_gpiomux_install(msm_spk_rcv_det,
 			ARRAY_SIZE(msm_spk_rcv_det));
-#endif/*                                       */
+#endif/* CONFIG_MACH_LGE&&CONFIG_SWITCH_SPK_RCV*/
 
 #ifdef CONFIG_FMR_INTENNA
-//                                                              
+// real-wifi@lge.com(FM) 2013_8_23 added FM intenna GPIO control
 	msm_gpiomux_install(fmr_intenna_det,
 		ARRAY_SIZE(fmr_intenna_det));
 #endif

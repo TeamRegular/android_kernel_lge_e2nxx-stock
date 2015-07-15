@@ -41,7 +41,7 @@ struct _startupcheckparameters {
     s32 dynamicthreshold_offset; // used as an offset for startup (calcualted from temperature test)
     s32 dynamicthreshold_temp_slope; // used for temperature slope
     s32 dynamicthreshold_hysteresis;
-    s32 calibratoin_margin;
+    s32 calibration_margin;
     u8 startup_touch_regavgthresh; // capacitance(of dynamicthreshold hysteresis) / 128
     u8 startup_release_regavgthresh; // same value as regproxctrl4[avgthresh]
 };

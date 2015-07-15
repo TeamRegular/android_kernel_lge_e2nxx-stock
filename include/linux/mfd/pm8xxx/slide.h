@@ -21,17 +21,14 @@
 /* SMART COVER Support */
 #define SMARTCOVER_SLIDE_CLOSED		1
 #define SMARTCOVER_SLIDE_OPENED		0
-#define SMARTCOVER_SLIDE_HALF		0
+#define SMARTCOVER_SLIDE_HALF		2
+#define SMARTCOVER_SLIDE_TOP		3
 
 struct pm8xxx_slide_platform_data {
 	int hallic_top_detect_pin;
 	int hallic_bottom_detect_pin;
-	int backcover_detect_pin;
-	int backcover_validation_pin;
-	int cover_pullup_pin;
 	unsigned int hallic_top_irq;
 	unsigned int hallic_bottom_irq;
-	unsigned int backcover_irq;
 	unsigned long irq_flags;
 };
 

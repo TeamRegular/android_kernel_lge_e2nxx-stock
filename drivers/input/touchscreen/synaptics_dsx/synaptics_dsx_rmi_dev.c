@@ -22,6 +22,8 @@
 #include <linux/interrupt.h>
 #include <linux/delay.h>
 #include <linux/input.h>
+#include <linux/signal.h>
+#include <linux/sched.h>
 #include <linux/gpio.h>
 #include <linux/uaccess.h>
 #include <linux/cdev.h>
@@ -52,11 +54,31 @@ static ssize_t rmidev_sysfs_release_store(struct device *dev,
 static ssize_t rmidev_sysfs_attn_state_show(struct device *dev,
 		struct device_attribute *attr, char *buf);
 
+static ssize_t rmidev_sysfs_pid_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
+
+static ssize_t rmidev_sysfs_pid_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
+
+static ssize_t rmidev_sysfs_term_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
+
+static ssize_t rmidev_sysfs_intr_mask_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
+
+static ssize_t rmidev_sysfs_intr_mask_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
+
 struct rmidev_handle {
 	dev_t dev_no;
+	pid_t pid;
+	unsigned char intr_mask;
 	struct device dev;
 	struct synaptics_rmi4_data *rmi4_data;
 	struct kobject *sysfs_dir;
+	struct siginfo interrupt_signal;
+	struct siginfo terminate_signal;
+	struct task_struct *task;
 	void *data;
 	bool irq_enabled;
 };
@@ -89,6 +111,15 @@ static struct device_attribute attrs[] = {
 	__ATTR(attn_state, S_IRUGO,
 			rmidev_sysfs_attn_state_show,
 			synaptics_rmi4_store_error),
+	__ATTR(pid, S_IRUGO | S_IWUGO,
+			rmidev_sysfs_pid_show,
+			rmidev_sysfs_pid_store),
+	__ATTR(term, S_IWUGO,
+			synaptics_rmi4_show_error,
+			rmidev_sysfs_term_store),
+	__ATTR(intr_mask, S_IRUGO | S_IWUGO,
+			rmidev_sysfs_intr_mask_show,
+			rmidev_sysfs_intr_mask_store),
 };
 
 static int rmidev_major_num;
@@ -130,7 +161,7 @@ static int rmidev_sysfs_irq_enable(struct synaptics_rmi4_data *rmi4_data,
 
 		retval = request_threaded_irq(rmi4_data->irq, NULL,
 				rmidev_sysfs_irq, irq_flags,
-				"synaptics_dsx_rmidev", rmi4_data);
+				PLATFORM_DRIVER_NAME, rmi4_data);
 		if (retval < 0) {
 			dev_err(rmi4_data->pdev->dev.parent,
 					"%s: Failed to create irq thread\n",
@@ -230,7 +261,16 @@ static ssize_t rmidev_sysfs_open_store(struct device *dev,
 	if (input != 1)
 		return -EINVAL;
 
-	rmi4_data->irq_enable(rmi4_data, false);
+	if (rmi4_data->sensor_sleep) {
+		dev_err(rmi4_data->pdev->dev.parent,
+				"%s: Sensor sleeping\n",
+				__func__);
+		return -ENODEV;
+	}
+
+	rmi4_data->stay_awake = true;
+
+	rmi4_data->irq_enable(rmi4_data, false, false);
 	rmidev_sysfs_irq_enable(rmi4_data, true);
 
 	dev_dbg(rmi4_data->pdev->dev.parent,
@@ -252,14 +292,16 @@ static ssize_t rmidev_sysfs_release_store(struct device *dev,
 	if (input != 1)
 		return -EINVAL;
 
-	rmi4_data->reset_device(rmi4_data);
-
 	rmidev_sysfs_irq_enable(rmi4_data, false);
-	rmi4_data->irq_enable(rmi4_data, true);
+	rmi4_data->irq_enable(rmi4_data, true, false);
 
 	dev_dbg(rmi4_data->pdev->dev.parent,
 			"%s: Attention interrupt enabled\n",
 			__func__);
+
+	rmi4_data->reset_device(rmi4_data);
+
+	rmi4_data->stay_awake = false;
 
 	return count;
 }
@@ -277,18 +319,83 @@ static ssize_t rmidev_sysfs_attn_state_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%u\n", attn_state);
 }
 
+static ssize_t rmidev_sysfs_pid_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%u\n", rmidev->pid);
+}
+
+static ssize_t rmidev_sysfs_pid_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	unsigned int input;
+	struct synaptics_rmi4_data *rmi4_data = rmidev->rmi4_data;
+
+	if (sscanf(buf, "%u", &input) != 1)
+		return -EINVAL;
+
+	rmidev->pid = input;
+
+	if (rmidev->pid) {
+		rmidev->task = pid_task(find_vpid(rmidev->pid), PIDTYPE_PID);
+		if (!rmidev->task) {
+			dev_err(rmi4_data->pdev->dev.parent,
+					"%s: Failed to locate PID of data logging tool\n",
+					__func__);
+			return -EINVAL;
+		}
+	}
+
+	return count;
+}
+
+static ssize_t rmidev_sysfs_term_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	unsigned int input;
+
+	if (sscanf(buf, "%u", &input) != 1)
+		return -EINVAL;
+
+	if (input != 1)
+		return -EINVAL;
+
+	if (rmidev->pid)
+		send_sig_info(SIGTERM, &rmidev->terminate_signal, rmidev->task);
+
+	return count;
+}
+
+static ssize_t rmidev_sysfs_intr_mask_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "0x%02x\n", rmidev->intr_mask);
+}
+
+static ssize_t rmidev_sysfs_intr_mask_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	unsigned int input;
+
+	if (sscanf(buf, "%u", &input) != 1)
+		return -EINVAL;
+
+	rmidev->intr_mask = (unsigned char)input;
+
+	return count;
+}
+
 /*
- * rmidev_llseek - used to set up register address
+ * rmidev_llseek - set register address to access for RMI device
  *
- * @filp: file structure for seek
- * @off: offset
+ * @filp: pointer to file structure
+ * @off:
  *   if whence == SEEK_SET,
- *     high 16 bits: page address
- *     low 16 bits: register address
+ *		off: 16-bit RMI register address
  *   if whence == SEEK_CUR,
- *     offset from current position
+ *		off: offset from current position
  *   if whence == SEEK_END,
- *     offset from end position (0xFFFF)
+ *		off: offset from end position (0xFFFF)
  * @whence: SEEK_SET, SEEK_CUR, or SEEK_END
  */
 static loff_t rmidev_llseek(struct file *filp, loff_t off, int whence)
@@ -336,12 +443,12 @@ clean_up:
 }
 
 /*
- * rmidev_read: - use to read data from rmi device
+ * rmidev_read: read register data from RMI device
  *
- * @filp: file structure for read
- * @buf: user space buffer pointer
+ * @filp: pointer to file structure
+ * @buf: pointer to user space buffer
  * @count: number of bytes to read
- * @f_pos: offset (starting register address)
+ * @f_pos: starting RMI register address
  */
 static ssize_t rmidev_read(struct file *filp, char __user *buf,
 		size_t count, loff_t *f_pos)
@@ -382,12 +489,12 @@ clean_up:
 }
 
 /*
- * rmidev_write: - used to write data to rmi device
+ * rmidev_write: write register data to RMI device
  *
- * @filep: file structure for write
- * @buf: user space buffer pointer
+ * @filp: pointer to file structure
+ * @buf: pointer to user space buffer
  * @count: number of bytes to write
- * @f_pos: offset (starting register address)
+ * @f_pos: starting RMI register address
  */
 static ssize_t rmidev_write(struct file *filp, const char __user *buf,
 		size_t count, loff_t *f_pos)
@@ -424,11 +531,6 @@ static ssize_t rmidev_write(struct file *filp, const char __user *buf,
 	return retval;
 }
 
-/*
- * rmidev_open: enable access to rmi device
- * @inp: inode struture
- * @filp: file structure
- */
 static int rmidev_open(struct inode *inp, struct file *filp)
 {
 	int retval = 0;
@@ -439,11 +541,20 @@ static int rmidev_open(struct inode *inp, struct file *filp)
 	if (!dev_data)
 		return -EACCES;
 
+	if (rmi4_data->sensor_sleep) {
+		dev_err(rmi4_data->pdev->dev.parent,
+				"%s: Sensor sleeping\n",
+				__func__);
+		return -ENODEV;
+	}
+
+	rmi4_data->stay_awake = true;
+
 	filp->private_data = dev_data;
 
 	mutex_lock(&(dev_data->file_mutex));
 
-	rmi4_data->irq_enable(rmi4_data, false);
+	rmi4_data->irq_enable(rmi4_data, false, false);
 	dev_dbg(rmi4_data->pdev->dev.parent,
 			"%s: Attention interrupt disabled\n",
 			__func__);
@@ -458,11 +569,6 @@ static int rmidev_open(struct inode *inp, struct file *filp)
 	return retval;
 }
 
-/*
- * rmidev_release: - release access to rmi device
- * @inp: inode structure
- * @filp: file structure
- */
 static int rmidev_release(struct inode *inp, struct file *filp)
 {
 	struct synaptics_rmi4_data *rmi4_data = rmidev->rmi4_data;
@@ -472,20 +578,22 @@ static int rmidev_release(struct inode *inp, struct file *filp)
 	if (!dev_data)
 		return -EACCES;
 
-	rmi4_data->reset_device(rmi4_data);
-
 	mutex_lock(&(dev_data->file_mutex));
 
 	dev_data->ref_count--;
 	if (dev_data->ref_count < 0)
 		dev_data->ref_count = 0;
 
-	rmi4_data->irq_enable(rmi4_data, true);
+	rmi4_data->irq_enable(rmi4_data, true, false);
 	dev_dbg(rmi4_data->pdev->dev.parent,
 			"%s: Attention interrupt enabled\n",
 			__func__);
 
 	mutex_unlock(&(dev_data->file_mutex));
+
+	rmi4_data->reset_device(rmi4_data);
+
+	rmi4_data->stay_awake = false;
 
 	return 0;
 }
@@ -547,6 +655,18 @@ static int rmidev_create_device_class(void)
 	return 0;
 }
 
+static void rmidev_attn(struct synaptics_rmi4_data *rmi4_data,
+		unsigned char intr_mask)
+{
+	if (!rmidev)
+		return;
+
+	if (rmidev->pid && (rmidev->intr_mask & intr_mask))
+		send_sig_info(SIGIO, &rmidev->interrupt_signal, rmidev->task);
+
+	return;
+}
+
 static int rmidev_init_device(struct synaptics_rmi4_data *rmi4_data)
 {
 	int retval;
@@ -567,6 +687,14 @@ static int rmidev_init_device(struct synaptics_rmi4_data *rmi4_data)
 	}
 
 	rmidev->rmi4_data = rmi4_data;
+
+	memset(&rmidev->interrupt_signal, 0, sizeof(rmidev->interrupt_signal));
+	rmidev->interrupt_signal.si_signo = SIGIO;
+	rmidev->interrupt_signal.si_code = SI_USER;
+
+	memset(&rmidev->terminate_signal, 0, sizeof(rmidev->terminate_signal));
+	rmidev->terminate_signal.si_signo = SIGTERM;
+	rmidev->terminate_signal.si_code = SI_USER;
 
 	retval = rmidev_create_device_class();
 	if (retval < 0) {
@@ -754,7 +882,7 @@ static struct synaptics_rmi4_exp_fn rmidev_module = {
 	.suspend = NULL,
 	.resume = NULL,
 	.late_resume = NULL,
-	.attn = NULL,
+	.attn = rmidev_attn,
 };
 
 static int __init rmidev_module_init(void)

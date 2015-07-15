@@ -515,7 +515,7 @@ static void pil_release_mmap(struct pil_desc *desc)
 	}
 }
 
-#define IOMAP_SIZE SZ_4M
+#define IOMAP_SIZE SZ_1M
 
 static int pil_load_seg(struct pil_desc *desc, struct pil_seg *seg)
 {
@@ -768,7 +768,7 @@ int pil_desc_init(struct pil_desc *desc)
 	void __iomem *addr;
 	char buf[sizeof(priv->info->name)];
 #ifdef CONFIG_MACH_LGE
-	if (!strcmp(desc->name, "pil-q6v5-mss") || !strcmp(desc->name,"modem"))
+	if (!strcmp(desc->name, "pil-q6v5-mss") || !strcmp(desc->name, "modem"))
 		pil_info(desc, " pil description init : %s \n", desc->name);
 #endif
 

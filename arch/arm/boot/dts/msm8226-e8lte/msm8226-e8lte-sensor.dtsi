@@ -52,7 +52,7 @@
 			Semtech,DynamicThres_Offset = <82000>;
 			Semtech,DynamicThres_Temp_Slope = <60>;
 			Semtech,DynamicThres_Hysteresis = <800>;
-			Semtech,Calibratoin_Margin = <0>;
+			Semtech,Calibration_Margin = <0>;
 			Semtech,Startup_Touch_RegAvgThres = <0x36>;
 			Semtech,Startup_Release_RegAvgThres = <0x40>;
 			status = "ok";

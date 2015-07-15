@@ -59,126 +59,6 @@
 extern int update_preset_lcdc_lut(void);
 #endif
 
-#ifdef CONFIG_LGE_LCD_TUNING
-#include "../../../../drivers/video/msm/mdss/mdss_dsi.h"
-#include <linux/uaccess.h>
-
-#define TUNING_BUFSIZE 8192
-#define TUNING_REGSIZE 50
-#define TUNING_REGNUM 160
-
-struct tuning_buff{
-	char buf[TUNING_REGNUM][TUNING_REGSIZE];
-	int size;
-	int idx;
-};
-
-extern struct mdss_panel_data *pdata_base;
-char set_buff[TUNING_REGNUM][TUNING_REGSIZE];
-int tun_lcd[128];
-
-int lcd_set_values(int *tun_lcd_t)
-{
-	memset(tun_lcd,0,128*sizeof(int));
-	memcpy(tun_lcd,tun_lcd_t,128*sizeof(int));
-	printk("lcd_set_values ::: tun_lcd[0]=[%x], tun_lcd[1]=[%x], tun_lcd[2]=[%x] ......\n"
-				,tun_lcd[0],tun_lcd[1],tun_lcd[2]);
-	return 0;
-}
-
-static int lcd_get_values(int *tun_lcd_t)
-{
-	memset(tun_lcd_t,0,128*sizeof(int));
-	memcpy(tun_lcd_t,tun_lcd,128*sizeof(int));
-	printk("lcd_get_values\n");
-	return 0;
-}
-
-static int tuning_read_regset(unsigned long tmp)
-{
-	struct tuning_buff *rbuf = (struct tuning_buff *)tmp;
-	int i;
-	int size;
-
-	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
-
-	if(pdata_base == NULL) {
-		pr_err("%s: Invalid input data\n", __func__);
-		return -EINVAL;
-	}
-
-	ctrl =  container_of(pdata_base, struct mdss_dsi_ctrl_pdata, panel_data);
-
-	size = ctrl->on_cmds.cmd_cnt;
-	printk(KERN_INFO "read_file\n");
-
-	for(i = 0; i < size; i++){
-		if(copy_to_user(rbuf->buf[i], ctrl->on_cmds.cmds[i].payload, ctrl->on_cmds.cmds[i].dchdr.dlen)){
-			printk(KERN_ERR "read_file : error of copy_to_user_buff\n");
-			return -EFAULT;
-		}
-	}
-
-	if(put_user(size, &(rbuf->size))){
-		printk(KERN_ERR "read_file : error of copy_to_user_buffsize\n");
-		return -EFAULT;
-	}
-
-	return 0;
-}
-
-static int tuning_write_regset(unsigned long tmp)
-{
-	char *buff;
-	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
-	struct tuning_buff *wbuf = (struct tuning_buff *)tmp;
-	int i = wbuf->idx;
-
-	printk(KERN_INFO "write file\n");
-
-	if(pdata_base == NULL) {
-		pr_err("%s: Invalid input data\n", __func__);
-		return -EINVAL;
-	}
-
-	ctrl = container_of(pdata_base, struct mdss_dsi_ctrl_pdata, panel_data);
-
-	buff = kmalloc(TUNING_BUFSIZE, GFP_KERNEL);
-	if (copy_from_user(buff, wbuf->buf, wbuf->size)) {
-		printk(KERN_ERR "write_file : error of copy_from_user\n");
-		return -EFAULT;
-	}
-
-	memset(set_buff[i], 0x00, TUNING_REGSIZE);
-	memcpy(set_buff[i], buff, wbuf->size);
-	ctrl->on_cmds.cmds[i].payload = set_buff[i];
-	ctrl->on_cmds.cmds[i].dchdr.dlen = wbuf->size;
-
-	kfree(buff);
-	return 0;
-}
-
-static struct lcd_platform_data lcd_pdata ={
-	.set_values = lcd_set_values,
-	.get_values = lcd_get_values,
-	.read_regset = tuning_read_regset,
-	.write_regset = tuning_write_regset,
-};
-
-static struct platform_device lcd_misc_device = {
-	.name = "lcd_misc_msm",
-	.dev = {
-	.platform_data = &lcd_pdata,
-	}
-};
-
-void __init lge_add_lcd_misc_devices(void)
-{
-	printk("%s : LCD_DEBUG \n", __func__);
-	platform_device_register(&lcd_misc_device);
-}
-#endif
-
 static struct memtype_reserve msm8226_reserve_table[] __initdata = {
 	[MEMTYPE_SMI] = {
 	},
@@ -346,10 +226,7 @@ void __init msm8226_add_drivers(void)
 #ifdef CONFIG_LGE_DIAG_ENABLE_SYSFS
 	lge_add_diag_devices();
 #endif
-#if defined(CONFIG_LGE_LCD_TUNING)
-	lge_add_lcd_misc_devices();
-#endif
-#if defined(CONFIG_LCD_KCAL)
+	 #if defined(CONFIG_LCD_KCAL)
 	 lge_add_lcd_kcal_devices();
 #endif
 

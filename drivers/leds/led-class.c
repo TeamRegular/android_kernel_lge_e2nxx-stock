@@ -23,10 +23,6 @@
 #if defined(CONFIG_MACH_LGE)
 #include <mach/board_lge.h>
 #endif
-#if defined(CONFIG_LEDS_WINDOW_COLOR)
-#include <linux/string.h>
-#endif
-
 
 #define LED_BUFF_SIZE 50
 
@@ -44,11 +40,6 @@ extern void make_input_led_pattern(int patterns[],
 static int onoff_rgb = 0;
 extern void change_led_mode(void);
 #endif
-#if defined(CONFIG_LEDS_WINDOW_COLOR)
-enum WINDOW_COLORS window_color = WINDOW_COLOR_BK;
-unsigned char win_color[] = "com.lge.systemui.theme.xxxxxx";
-#endif
-
 static void led_update_brightness(struct led_classdev *led_cdev)
 {
 	if (led_cdev->brightness_get)
@@ -74,14 +65,7 @@ static ssize_t led_brightness_store(struct device *dev,
 	char *after;
 	unsigned long state = simple_strtoul(buf, &after, 10);
 	size_t count = after - buf;
-#if defined(CONFIG_LEDS_WINDOW_COLOR)
-#if defined(CONFIG_MACH_MSM8926_B2LN_KR)
-	if (!strncmp(led_cdev->name, "red", 3)){
-		if(window_color == WINDOW_COLOR_WH) state = state * 45 / 100;
-		else if(window_color == WINDOW_COLOR_BK) state = state / 2;
-	}
-#endif
-#endif
+
 #ifdef CONFIG_LEDS_PM8226_EMOTIONAL
 	if(lge_get_boot_mode() != LGE_BOOT_MODE_CHARGERLOGO) {
 		if (!strncmp(led_cdev->name, "red", 3)){
@@ -314,50 +298,6 @@ static ssize_t set_pattern(struct device *dev, struct device_attribute *attr, co
 
 static DEVICE_ATTR(setting, 0664, get_pattern, set_pattern);
 
-#if defined(CONFIG_LEDS_WINDOW_COLOR)
-static ssize_t get_window_color(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, " - Window Color is '%s' \n", win_color);
-}
-
-static ssize_t set_window_color(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
-{
-	ssize_t ret = -EINVAL;
-	unsigned char color[30];
-
-	if (sscanf(buf, "%29s", color) != 1) {
-		printk("[RGB LED] bad arguments ");
-	}
-	ret = size;
-
-	printk("[RGB LED] # Window Color [%s] # Set Color [%s]\n", color, win_color);
-
-	memcpy(win_color, color, sizeof(color));
-
-	if (strstr(color, "black") != NULL) {
-		window_color = WINDOW_COLOR_BK;
-		printk("[RGB LED] window_color is black\n");
-	} else if (strstr(color, "white") != NULL) {
-		window_color = WINDOW_COLOR_WH;
-		printk("[RGB LED] window_color is white\n");
-	} else if (strstr(color, "silver") != NULL) {
-		window_color = WINDOW_COLOR_SV;
-		printk("[RGB LED] window_color is silver\n");
-	} else if (strstr(color, "titan") != NULL) {
-		window_color = WINDOW_COLOR_TK;
-		printk("[RGB LED] window_color is titan\n");
-	} else {
-		memcpy(win_color, "black", sizeof("black"));
-		window_color = WINDOW_COLOR_BK;
-		printk("[RGB LED] window_color is default(black)\n");
-	}
-
-	return ret;
-}
-
-static DEVICE_ATTR(window_color, 0644, get_window_color, set_window_color);
-#endif
-
 static ssize_t get_input_pattern(struct device *dev,
 						struct device_attribute *attr,
 						char *buf)
@@ -489,10 +429,7 @@ int led_pattern_sysfs_register(void)
 
 	if (device_create_file(pattern_sysfs_dev, &dev_attr_onoff_patterns) < 0)
 		printk("Failed to create device file(%s)!\n", dev_attr_onoff_patterns.attr.name);
-#if defined(CONFIG_LEDS_WINDOW_COLOR)
-	if (device_create_file(pattern_sysfs_dev, &dev_attr_window_color) < 0)
-		printk("Failed to create device file(%s)!\n", dev_attr_window_color.attr.name);
-#endif
+
 	return 0;
 }
 EXPORT_SYMBOL_GPL(led_pattern_sysfs_register);

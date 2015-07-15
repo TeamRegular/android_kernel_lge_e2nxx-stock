@@ -17,7 +17,7 @@
 
 #include <mach/lge_charging_scenario_sprint.h>
 #include <linux/string.h>
-/*                                 */
+/* For LGE charging scenario debug */
 #ifdef DEBUG_LCS
 /* For fake battery temp' debug */
 #ifdef DEBUG_LCS_DUMMY_TEMP
@@ -26,11 +26,8 @@ static int time_order = 1;
 #endif
 #endif
 
-#if defined(CONFIG_LGE_PM_CHARGING_TEMP_SCENARIO_V1_8)
-#define CHG_MAXIDX	7
-#else
 #define CHG_MAXIDX	6
-#endif
+
 #if defined(CONFIG_MACH_MSM8926_X5_SPR)
 static struct batt_temp_table chg_temp_table[CHG_MAXIDX] = {
 	{INT_MIN,        -71,    CHG_BATTEMP_BL_M7},	// batt_temp < -7
@@ -57,20 +54,6 @@ static struct batt_temp_table chg_temp_table[CHG_MAXIDX] = {
 	{    440,        459,    CHG_BATTEMP_44_45},	// 44 <= batt_temp < 46
 	{    460,        559,    CHG_BATTEMP_46_OT},	// 46 < batt_temp < 56
 	{    560,    INT_MAX,    CHG_BATTEMP_AB_OT},	// 56 <= batt_temp
-};
-#elif defined(CONFIG_MACH_MSM8926_E2_SPR_US)
-static struct batt_temp_table chg_temp_table[CHG_MAXIDX] = {
-	{INT_MIN,        -71,    CHG_BATTEMP_BL_M7},    // batt_temp < -7
-	{    -70,        -60,    CHG_BATTEMP_M6_M5},    // -7 <= batt_temp <= -5
-	{    -59,        439,    CHG_BATTEMP_M4_43},    // -5 < batt_temp < 44
-	{    440,        459,    CHG_BATTEMP_44_45},    // 44 <= batt_temp < 46
-#if defined(CONFIG_LGE_PM_CHARGING_TEMP_SCENARIO_V1_8)
-	{     460,       499,    CHG_BATTEMP_46_52},	// 46 <= batt_temp < 51
-	{     500,       519,    CHG_BATTEMP_53_OT},	// 53 <= batt_temp < 56
-#else
-	{    460,        559,    CHG_BATTEMP_46_OT},    // 46 < batt_temp < 56
-#endif
-	{    520,    INT_MAX,    CHG_BATTEMP_AB_OT},    // 56 <= batt_temp
 };
 #else
 static struct batt_temp_table chg_temp_table[CHG_MAXIDX] = {
@@ -128,11 +111,7 @@ determine_lge_charging_state(enum lge_battemp_states battemp_st, int batt_volt)
 				pseudo_chg_ui = 0;
 
 			next_state = CHG_BATT_STPCHG_STATE;
-#if defined(CONFIG_LGE_PM_CHARGING_TEMP_SCENARIO_V1_8)
-		} else if (battemp_st == CHG_BATTEMP_46_52 || battemp_st == CHG_BATTEMP_53_OT) {
-#else
 		} else if (battemp_st == CHG_BATTEMP_46_OT) {
-#endif
 			if (batt_volt > DC_IUSB_VOLTUV) {
 				states_change = STS_CHE_NORMAL_TO_STPCHG;
 				pseudo_chg_ui = 1;
@@ -176,19 +155,6 @@ determine_lge_charging_state(enum lge_battemp_states battemp_st, int batt_volt)
 			pseudo_chg_ui = 0;
 			next_state = CHG_BATT_NORMAL_STATE;
 		}
-#if defined(CONFIG_LGE_PM_CHARGING_TEMP_SCENARIO_V1_8)
-		else if (battemp_st == CHG_BATTEMP_44_45 ||
-				 battemp_st == CHG_BATTEMP_46_52) {
-			if (batt_volt > DC_IUSB_VOLTUV) {
-				pseudo_chg_ui = 1;
-				next_state = CHG_BATT_STPCHG_STATE;
-			} else {
-				states_change = STS_CHE_STPCHG_TO_DECCUR;
-				pseudo_chg_ui = 0;
-				next_state = CHG_BATT_DECCUR_STATE;
-			}
-		}
-#endif
 		else if (battemp_st >= CHG_BATTEMP_AB_OT) {
 			pseudo_chg_ui = 0;
 			next_state = CHG_BATT_STPCHG_STATE;

@@ -191,9 +191,9 @@ u8 latest_firmware[] = {
 #define jitter_sub(x, y)	(x > y ? x - y : y - x)
 #define get_interval(a,b) a>=b ? a-b : 1000000+a-b
 
-//                                                           
+// LGE_CHANGE_S [naomi.kim@lge.com] 13.06.17, set data format
 #define TOUCHEVENTFILTER	1
-//                                                           
+// LGE_CHANGE_E [naomi.kim@lge.com] 13.06.17, set data format
 #endif
 
 static bool must_calibration;
@@ -232,11 +232,11 @@ struct t_data {
 	u16	x_position;
 	u16	y_position;
 	u8	touch_major;
-	//                                                           
+	// LGE_CHANGE_S [naomi.kim@lge.com] 13.06.17, set data format
 	#if TOUCHEVENTFILTER
 	u8	touch_minor;
 	#endif //TOUCHEVENTFILTER
-	//                                                           
+	// LGE_CHANGE_E [naomi.kim@lge.com] 13.06.17, set data format
 	u8	pressure;
 	u8	orientation;
 	int tool;
@@ -1694,10 +1694,10 @@ static void mxt_proc_t9_message(struct mxt_data *data, u8 *message)
 #ifdef CHANGE_PEN_CFG
 		    data->stylus_pen_pressed = true;
 #endif
-		//                                                           
+		// LGE_CHANGE_S [naomi.kim@lge.com] 13.06.17, set data format
 		} else if ((status & MXT_T9_SUPPRESS) /*& (status & MXT_T9_UNGRIP)*/) {
 			tool = MT_TOOL_PALM;
-		//                                                           
+		// LGE_CHANGE_E [naomi.kim@lge.com] 13.06.17, set data format
 			data->palm_pressed = true;
 		} else {
 			tool = MT_TOOL_FINGER;
@@ -2456,7 +2456,7 @@ static int mxt_read_and_process_messages(struct mxt_data *data, u8 count)
 	return num_valid;
 }
 
-//                                                                 
+// LGE_CHANGE_S [naomi.kim@lge.com] 13.06.18, make width minor data
 #if TOUCHEVENTFILTER
 int set_minor_data(struct mxt_data *data, int area, u8 vector)
 {
@@ -2519,7 +2519,7 @@ int set_minor_data(struct mxt_data *data, int area, u8 vector)
 	return minor;
 }
 #endif	//TOUCHEVENTFILTER
-//                                                                 
+// LGE_CHANGE_E [naomi.kim@lge.com] 13.06.18, make width minor data
 
 static bool tracking_palm_coordinate(struct mxt_data *data) {
 	struct device *dev = &data->client->dev;
@@ -2797,7 +2797,7 @@ static irqreturn_t mxt_process_messages_t44(struct mxt_data *data)
 			input_report_abs(data->input_dev, ABS_MT_WIDTH_MAJOR,
 					data->ts_data.curr_data[i].touch_major);
 
-			//                                                                   
+			// LGE_CHANGE_S [naomi.kim@lge.com] 13.06.18, report width minor data
 #ifdef USE_FW_11AA//0//TOUCHEVENTFILTER
 			input_report_abs(data->input_dev, ABS_MT_WIDTH_MINOR,
 					data->ts_data.curr_data[i].touch_minor);
@@ -2811,9 +2811,9 @@ static irqreturn_t mxt_process_messages_t44(struct mxt_data *data)
 			input_report_abs(data->input_dev, ABS_MT_WIDTH_MINOR,
 					data->ts_data.curr_data[i].touch_minor);
 #endif	//TOUCHEVENTFILTER
-			//                                                                   
+			// LGE_CHANGE_E [naomi.kim@lge.com] 13.06.18, report width minor data
 
-			//                                                                   
+			// LGE_CHANGE_S [naomi.kim@lge.com] 13.06.18, add more debugging data
 			#if TOUCHEVENTFILTER
 			dev_dbg(dev,
 				"report_data[%d] : x: %d y: %d, z: %d, M: %d, m: %d, orient: %d)\n",
@@ -2835,7 +2835,7 @@ static irqreturn_t mxt_process_messages_t44(struct mxt_data *data)
 					data->ts_data.curr_data[i].orientation
 			);
 			#endif	//TOUCHEVENTFILTER
-			//                                                                   
+			// LGE_CHANGE_E [naomi.kim@lge.com] 13.06.18, add more debugging data
 		}
 #if DEBUG_ABS
 		if (data->ts_data.curr_data[i].status == FINGER_PRESSED) {
@@ -4658,7 +4658,7 @@ static void mxt_stop(struct mxt_data *data)
 	touch_disable_irq(data->irq);
 
 #if 0//def CHANGE_PEN_CFG
-//                                         
+//	change_config(data, LGE_CFG_TYPE_UNPEN);
 	data->stylus_pen_cfg_adapted= false;
 	data->pen_pressed_ids= 0;
 #endif

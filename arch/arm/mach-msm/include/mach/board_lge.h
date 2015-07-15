@@ -64,6 +64,11 @@ int lge_pm_get_cable_info(struct chg_cable_info *, int32_t);
 acc_cable_type lge_pm_get_cable_type(void);
 unsigned lge_pm_get_ta_current(void);
 unsigned lge_pm_get_usb_current(void);
+
+#if defined(CONFIG_PRE_SELF_DIAGNOSIS)
+int lge_pre_self_diagnosis(char *drv_bus_code, int func_code, char *dev_code, char *drv_code, int errno);
+#endif
+
 enum lge_boot_cable_type lge_get_boot_cable_type(void);
 #endif
 
@@ -180,19 +185,6 @@ void get_dt_cn_prop_str(const char *name, char *value);
 void get_dt_cn_prop_u64(const char *name, uint64_t *u64);
 void get_dt_cn_prop_u32(const char *name, uint32_t *u32);
 
-#ifdef CONFIG_LGE_LCD_TUNING
-struct lcd_platform_data {
-	int (*set_values) (int *tun_lcd_t);
-	int (*get_values) (int *tun_lcd_t);
-	int (*read_regset)(unsigned long);
-	int (*write_regset)(unsigned long);
-	int (*read_porch)(unsigned long);
-	int (*write_porch)(unsigned long);
-};
-
-void __init lge_add_lcd_misc_devices(void);
-#endif
-
 #define UART_MODE_ALWAYS_OFF_BMSK   BIT(0)
 #define UART_MODE_ALWAYS_ON_BMSK    BIT(1)
 #define UART_MODE_INIT_BMSK         BIT(2)
@@ -246,7 +238,9 @@ void __init lge_add_qsdl_device(void);
 int lge_get_kswitch_status(void);
 #endif
 
-
+#ifdef CONFIG_LGE_LCD_OFF_DIMMING
+int lge_get_bootreason(void);
+#endif
 
 #endif
 

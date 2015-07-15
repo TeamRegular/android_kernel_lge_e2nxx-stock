@@ -275,8 +275,8 @@ static struct gpiomux_setting cam_settings[] = {
 };
 
 /*
-                                                       
-                                              
+ * This source has changed to match at lgps15 HDK board
+ * changed by junil0814.lee@lge.com 2013-06-05
  */
 static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
 	{
@@ -697,7 +697,7 @@ static struct msm_gpiomux_config ags04_ts_configs[] __initdata = {
 };
 
 
-/*                                                       */
+/*  LGE_CHANGE_S, [NFC][taesik.kim@lge.com], NFC Bring up*/
 #ifdef CONFIG_LGE_NFC_PN547_C2
 
 
@@ -793,7 +793,7 @@ static struct msm_gpiomux_config msm_nfc_configs_rev_c[] __initdata = {
 	},
 };
 #endif
-/*                                                       */
+/*  LGE_CHANGE_E, [NFC][taesik.kim@lge.com], NFC Bring up*/
 void __init msm8610_init_gpiomux(void)
 {
 	int rc;
@@ -832,7 +832,7 @@ void __init msm8610_init_gpiomux(void)
 	} else {
 		msm_gpiomux_install(sd_card_det, ARRAY_SIZE(sd_card_det));
 	}
-	/*                                                                                  */
+	/* LGE_CHANGE_S, Add gpiomux for ex-ldo used gpio, 2013-09-04, hyungtae.lee@lge.com */
 	if(revision == HW_REV_0) {
 		msm_gpiomux_install(msm_sensor_configs, ARRAY_SIZE(msm_sensor_configs));
 		printk(KERN_ERR " [Camera] below HW_REV_0 is using power source from PM\n");
@@ -845,12 +845,12 @@ void __init msm8610_init_gpiomux(void)
 		msm_gpiomux_install(msm_sensor_configs_rev_b, ARRAY_SIZE(msm_sensor_configs_rev_b));
 		printk(KERN_ERR " [Camera] In greater than HW_REV_B, MAIN_CAM0_RESET_N has been changed from GPIO_98 to GPIO_114\n");
 	}
-/*                                                                                  */
+/* LGE_CHANGE_E, Add gpiomux for ex-ldo used gpio, 2013-09-04, hyungtae.lee@lge.com */
 
 	msm_gpiomux_install(msm_gpio_int_configs,
 			ARRAY_SIZE(msm_gpio_int_configs));
 
-	/*                                                        */
+	/*  LGE_CHANGE_S, [NFC][taesik.kim@lge.com], NFC Bring up */
 #ifdef CONFIG_LGE_NFC_PN547_C2
 	if (revision <= HW_REV_B){
 		msm_gpiomux_install(msm_nfc_configs, ARRAY_SIZE(msm_nfc_configs));
@@ -859,5 +859,5 @@ void __init msm8610_init_gpiomux(void)
 		msm_gpiomux_install(msm_nfc_configs_rev_c, ARRAY_SIZE(msm_nfc_configs_rev_c));
 	}
 #endif
-/*                                                        */
+/*  LGE_CHANGE_E, [NFC][taesik.kim@lge.com], NFC Bring up */
 }

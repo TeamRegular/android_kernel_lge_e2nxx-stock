@@ -71,22 +71,26 @@
 			status = "disable";
 		};
 
-      rmi_s3320@20  {
-				compatible = "rmi,s3320";
+          synaptics_dsx@20  {
+      				compatible = "synaptics,dsx";
 				status = "disable";
 				reg = <0x20>;
 				interrupt-parent = <&msmgpio>;
 				interrupts = <17 0x2>;
 				#vdd_ana-supply = <&pm8226_l28>;
 				vcc_i2c-supply = <&pm8226_l6>;
-				#rmi4,x_flip;
-				#rmi4,y_flip;
-				#rmi4,regulator_en;
-				rmi4,reset_gpio = <&msmgpio 16 0x00>;
-				rmi4,irq_gpio = <&msmgpio 17 0x00>;
-				rmi4,irq_flags = <0x00000002>;
-				rmi4,panel_x = <720>;
-				rmi4,panel_y = <1280>;
+      				synaptics,pwr-reg-name = "vdd_ana";
+      				synaptics,bus-reg-name = "vcc_i2c";
+      				synaptics,irq-gpio = <&msmgpio 17 0x00>;
+      				synaptics,irq-on-state = <0>;
+      				synaptics,irq-flags = <0x2002>; /* IRQF_ONESHOT | IRQF_TRIGGER_FALLING */
+      				synaptics,reset-gpio = <&msmgpio 16 0x00>;
+      				synaptics,reset-on-state = <0>;
+      				synaptics,reset-active-ms = <50>;
+      				synaptics,power-delay-ms = <160>;
+      				synaptics,reset-delay-ms = <100>;
+      				#synaptics,max-y-for-2d = <800>; /* remove if no virtual buttons */
+      				synaptics,vir-button-codes = <102 100 900 100 60 158 300 900 100 60>;
 			};
 
 			synaptics_s3320@20 {
@@ -95,7 +99,7 @@
 				reg = <0x20>;
 				interrupt-parent = <&msmgpio>;
 				interrupts = <17 0x2>;
-				vdd_ana-supply = <&pm8226_l28>;
+				#vdd_ana-supply = <&pm8226_l28>;
 				vcc_i2c-supply = <&pm8226_l6>;
 				reset-gpio = <&msmgpio 16 0x00>;
 				irq-gpio = <&msmgpio 17 0x00>;
@@ -119,7 +123,7 @@
 				reset_delay = <10>;
 				wake_up_by_touch = <1>;
 				use_sleep_mode = <1>;
-				thermal_check = <1>;
+				thermal_check = <0>;
 				palm_ctrl_mode = <0>;
 				mini_os_finger_amplitude = <41>;
 				irqflags = <0x00000002>;
@@ -135,11 +139,18 @@
 				jitter.enable = <0>;
 				jitter.curr_ratio = <115>;
 				quickcover.enable = <1>;
-				quickcover.X1 = <148>;
-				quickcover.X2 = <1292>;
-				quickcover.Y1 = <0>;
-				quickcover.Y2 = <1101>;
-				crack.enable = <1>;
+				quickcover.x1 = <0>;
+				quickcover.x2 = <719>;
+				quickcover.y1 = <0>;
+				quickcover.y2 = <269>;
+				quickcover.use_halfcover = <1>;
+				quickcover.half_x1 = <0>;
+				quickcover.half_x2 = <719>;
+				quickcover.half_y1 = <0>;
+				quickcover.half_y2 = <932>;
+				quickcover.grip_margin = <34>;
+				quickcover.cover_proxi = <0>;
+				crack.enable = <0>;
 				crack.min.cap = <300>;
 				/*ghost_detection -S*/
 				ghost_detection_enable = <1>;
@@ -169,7 +180,8 @@
 				rebase_repetition_chk = <1>;
 				rebase_since_init = <3>;
 				rebase_since_rebase = <5>;
-				use_lpwg_all = <0>;
+				use_lpwg_all = <1>;
+				use_jdi_incell = <1>;
 				/*ghost_detection -E*/
 				/*pwr*/
 				use_regulator = <0>;
@@ -947,6 +959,8 @@
 			lge,maker = "Melfas";
 			lge,product = "L0M45P1";
 			lge,fw_image = "melfas/mit200/e2/L0M45P1_1_13.fw";
+			lge,p3_product = "L0M45P3";
+			lge,p3_fw_image = "melfas/mit200/e2/L0M45P3_0_02.fw";
 
 			/* panel status check */
 			openshort_enable = <1>;
@@ -1036,6 +1050,8 @@
 			lge,maker = "Melfas";
 			lge,product = "L0M45P1";
 			lge,fw_image = "melfas/mit200/e2/L0M45P1_1_13.fw";
+			lge,p3_product = "L0M45P3";
+			lge,p3_fw_image = "melfas/mit200/e2/L0M45P3_0_02.fw";
 
 			/* panel status check */
 			openshort_enable = <1>;
@@ -1125,6 +1141,8 @@
 			lge,maker = "Melfas";
 			lge,product = "L0M45P1";
 			lge,fw_image = "melfas/mit200/e2/L0M45P1_1_13.fw";
+			lge,p3_product = "L0M45P3";
+			lge,p3_fw_image = "melfas/mit200/e2/L0M45P3_0_02.fw";
 
 			/* panel status check */
 			openshort_enable = <1>;

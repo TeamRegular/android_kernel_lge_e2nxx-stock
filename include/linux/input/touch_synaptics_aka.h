@@ -36,7 +36,8 @@
 
 //#define S3621	0
 #define S3320_A0	1
-#define S3320_PRODUCT_ID	"s3320"
+#define S3320_A1		2
+#define S3320_PRODUCT_ID	"PLG431"
 /*
 #define S3528_A0	1
 #define S3528_A1	2

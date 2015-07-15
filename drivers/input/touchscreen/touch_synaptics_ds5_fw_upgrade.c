@@ -164,9 +164,12 @@ int FirmwareUpgrade (struct synaptics_ts_data *ts, const char* fw_path) {
 
 	CompleteReflash(ts);
 
+	release_firmware(fw_entry);
+
 	return ret;
 error:
-	memset(&fw_entry, 0, sizeof(fw_entry));
+	if(fw_entry)
+		release_firmware(fw_entry);
 	return ret;
 }
 

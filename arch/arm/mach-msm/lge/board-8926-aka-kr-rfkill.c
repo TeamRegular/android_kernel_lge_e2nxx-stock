@@ -102,7 +102,7 @@ void bcm_bt_unlock(int cookie)
 		PR("btlock released, cookie: %s\n", cookie_msg);
 	} else {
 		memcpy(owner_msg, &owner_cookie, sizeof(owner_cookie));
-		PR("ignore lock release,  cookie mismatch: %s owner %s \n", cookie_msg, 
+		PR("ignore lock release,  cookie mismatch: %s owner %s \n", cookie_msg,
 				owner_cookie == 0 ? "NULL" : owner_msg);
 	}
 }
@@ -131,11 +131,11 @@ static ssize_t btlock_write(struct file *file, const char __user *buffer, size_t
 	}
 
 	if (lock_para.lock == 0) {
-		bcm_bt_unlock(lock_para.cookie);	
+		bcm_bt_unlock(lock_para.cookie);
 	} else if (lock_para.lock == 1) {
-		ret = bcm_bt_lock(lock_para.cookie);	
+		ret = bcm_bt_lock(lock_para.cookie);
 	} else if (lock_para.lock == 2) {
-		ret = bcm_bt_lock(lock_para.cookie);	
+		ret = bcm_bt_lock(lock_para.cookie);
 	}
 
 	return ret;
@@ -183,15 +183,15 @@ static void bcm_btlock_exit(void)
 	misc_deregister(&btlock_misc);
 }
 //---BRCM
-#endif // defined(CONFIG_BCM4335BT) 
+#endif // defined(CONFIG_BCM4335BT)
 static int bluetooth_set_power(void *data, bool blocked)
 {
 #if defined(CONFIG_BCM4335BT)
 //+++BRCM 4335 AXI Patch
 	int lock_cookie_bt = 'B' | 'T'<<8 | '3'<<16 | '5'<<24;	/* cookie is "BT35" */
 //---BRCM
-#endif // defined(CONFIG_BCM4335BT) 
-    
+#endif // defined(CONFIG_BCM4335BT)
+
 	BTRFKILLDBG("bluetooth_set_power set blocked=%d", blocked);
 	if (!blocked) {
 
@@ -200,7 +200,7 @@ static int bluetooth_set_power(void *data, bool blocked)
 		if (bcm_bt_lock(lock_cookie_bt) != 0)
 			printk("** BT rfkill: timeout in acquiring bt lock**\n");
 //---BRCM
-#endif // defined(CONFIG_BCM4335BT) 
+#endif // defined(CONFIG_BCM4335BT)
 
 		gpio_direction_output(GPIO_BT_RESET_N, 0);
 		msleep(30);
@@ -226,7 +226,7 @@ static int bluetooth_rfkill_probe(struct platform_device *pdev)
 //+++BRCM 4335 AXI Patch
 	bcm_btlock_init();
 //---BRCM
-#endif // defined(CONFIG_BCM4335BT) 
+#endif // defined(CONFIG_BCM4335BT)
 
 	BTRFKILLDBG("bluetooth_rfkill_probe");
 	rc = gpio_request(GPIO_BT_RESET_N, "bt_reset");
@@ -282,7 +282,7 @@ static int bluetooth_rfkill_remove(struct platform_device *dev)
 //+++BRCM 4335 AXI Patch
 	bcm_btlock_exit();
 //---BRCM
-#endif // defined(CONFIG_BCM4335BT)	
+#endif // defined(CONFIG_BCM4335BT)
 	return 0;
 }
 struct bluetooth_rfkill_platform_data {

@@ -43,16 +43,7 @@
 #define MIN_FREQUENCY_UP_THRESHOLD		(11)
 #define MAX_FREQUENCY_UP_THRESHOLD		(100)
 #define MIN_FREQUENCY_DOWN_DIFFERENTIAL		(1)
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-#define DEF_MIDDLE_GRID_STEP		(35)
-#define DEF_HIGH_GRID_STEP			(30)
-#define DEF_MIDDLE_GRID_LOAD		(55)
-#define DEF_HIGH_GRID_LOAD			(80)
-#define DEF_OPTIMAL_FREQ			(1000000)
-#define DEF_OLPM_FREQ				(1000000)
-#define DEF_SET_ONDEMAND			(0)
-#define DEF_IS_ASMP				(1)
-#endif
+
 /*
  * The polling frequency of this governor depends on the capability of
  * the processor. Default polling frequency is 1000 times the transition
@@ -154,18 +145,6 @@ static struct dbs_tuners {
 	int          powersave_bias;
 	unsigned int io_is_busy;
 	unsigned int input_boost;
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-	unsigned int optimal_max_freq; /* in kHz */
-	unsigned int middle_grid_step;
-	unsigned int high_grid_step;
-	unsigned int middle_grid_load;
-	unsigned int high_grid_load;
-	unsigned int debug_mask;
-	unsigned int lpm_state;
-	unsigned int optimal_lpm_freq; /* in kHz */
-	unsigned int set_ondemand;
-	unsigned int is_asmp; /* SMP or asynchronous SMP*/
-#endif
 } dbs_tuners_ins = {
 	.up_threshold_multi_core = DEF_FREQUENCY_UP_THRESHOLD,
 	.up_threshold = DEF_FREQUENCY_UP_THRESHOLD,
@@ -178,18 +157,6 @@ static struct dbs_tuners {
 	.sync_freq = 0,
 	.optimal_freq = 0,
 	.input_boost = 0,
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-	.middle_grid_step = DEF_MIDDLE_GRID_STEP,
-	.high_grid_step = DEF_HIGH_GRID_STEP,
-	.middle_grid_load = DEF_MIDDLE_GRID_LOAD,
-	.high_grid_load = DEF_HIGH_GRID_LOAD,
-	.optimal_max_freq = DEF_OPTIMAL_FREQ,
-	.debug_mask = 0,
-	.optimal_lpm_freq = DEF_OLPM_FREQ,
-	.lpm_state = 0,
-	.set_ondemand = DEF_SET_ONDEMAND,
-	.is_asmp = DEF_IS_ASMP,
-#endif
 };
 
 #ifdef CONFIG_MACH_MSM8X10_L70P /* Boost Cpu when wake up */
@@ -360,18 +327,6 @@ show_one(optimal_freq, optimal_freq);
 show_one(up_threshold_any_cpu_load, up_threshold_any_cpu_load);
 show_one(sync_freq, sync_freq);
 show_one(input_boost, input_boost);
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-show_one(middle_grid_step, middle_grid_step);
-show_one(high_grid_step, high_grid_step);
-show_one(middle_grid_load, middle_grid_load);
-show_one(high_grid_load, high_grid_load);
-show_one(debug_mask,debug_mask);
-show_one(optimal_max_freq, optimal_max_freq);
-show_one(optimal_lpm_freq, optimal_lpm_freq);
-show_one(lpm_state,lpm_state);
-show_one(set_ondemand, set_ondemand);
-show_one(is_asmp, is_asmp);
-#endif
 
 static ssize_t show_powersave_bias
 (struct kobject *kobj, struct attribute *attr, char *buf)
@@ -751,140 +706,6 @@ skip_this_cpu_bypass:
 	return count;
 }
 
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-static ssize_t store_middle_grid_step(struct kobject *a, struct attribute *b,
-				   const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-
-	ret = sscanf(buf, "%u", &input);
-	if (ret != 1)
-		return -EINVAL;
-	dbs_tuners_ins.middle_grid_step = input;
-	return count;
-}
-
-static ssize_t store_high_grid_step(struct kobject *a, struct attribute *b,
-				   const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-
-	ret = sscanf(buf, "%u", &input);
-	if (ret != 1)
-		return -EINVAL;
-	dbs_tuners_ins.high_grid_step = input;
-	return count;
-}
-
-static ssize_t store_optimal_max_freq(struct kobject *a, struct attribute *b,
-				   const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-
-	ret = sscanf(buf, "%u", &input);
-	if (ret != 1)
-		return -EINVAL;
-	dbs_tuners_ins.optimal_max_freq = input;
-	return count;
-}
-
-static ssize_t store_optimal_lpm_freq(struct kobject *a, struct attribute *b,
-				   const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-
-	ret = sscanf(buf, "%u", &input);
-	if (ret != 1)
-		return -EINVAL;
-	dbs_tuners_ins.optimal_lpm_freq = input;
-	return count;
-}
-
-static ssize_t store_middle_grid_load(struct kobject *a,
-			struct attribute *b, const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-	ret = sscanf(buf, "%u", &input);
-
-	if (ret != 1)
-		return -EINVAL;
-	dbs_tuners_ins.middle_grid_load = input;
-	return count;
-}
-
-static ssize_t store_high_grid_load(struct kobject *a,
-			struct attribute *b, const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-	ret = sscanf(buf, "%u", &input);
-
-	if (ret != 1)
-		return -EINVAL;
-	dbs_tuners_ins.high_grid_load = input;
-	return count;
-}
-
-static ssize_t store_debug_mask(struct kobject *a,
-			struct attribute *b, const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-	ret = sscanf(buf, "%u", &input);
-
-	if (ret != 1)
-		return -EINVAL;
-	dbs_tuners_ins.debug_mask= input;
-	return count;
-}
-
-static ssize_t store_lpm_state(struct kobject *a,
-			struct attribute *b, const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-	ret = sscanf(buf, "%u", &input);
-
-	if (ret != 1)
-		return -EINVAL;
-	dbs_tuners_ins.lpm_state= input;
-	return count;
-}
-
-static ssize_t store_set_ondemand(struct kobject *a, struct attribute *b,
-				   const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-
-	ret = sscanf(buf, "%u", &input);
-	if (ret != 1)
-		return -EINVAL;
-	dbs_tuners_ins.set_ondemand = input;
-
-	return count;
-}
-
-static ssize_t store_is_asmp(struct kobject *a, struct attribute *b,
-				   const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-
-	ret = sscanf(buf, "%u", &input);
-	if (ret != 1)
-		return -EINVAL;
-	dbs_tuners_ins.is_asmp = input;
-
-	return count;
-}
-#endif
-
 define_one_global_rw(sampling_rate);
 define_one_global_rw(io_is_busy);
 define_one_global_rw(up_threshold);
@@ -898,18 +719,6 @@ define_one_global_rw(optimal_freq);
 define_one_global_rw(up_threshold_any_cpu_load);
 define_one_global_rw(sync_freq);
 define_one_global_rw(input_boost);
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-define_one_global_rw(optimal_max_freq);
-define_one_global_rw(middle_grid_step);
-define_one_global_rw(high_grid_step);
-define_one_global_rw(middle_grid_load);
-define_one_global_rw(high_grid_load);
-define_one_global_rw(debug_mask);
-define_one_global_rw(lpm_state);
-define_one_global_rw(optimal_lpm_freq);
-define_one_global_rw(set_ondemand);
-define_one_global_rw(is_asmp);
-#endif
 
 static struct attribute *dbs_attributes[] = {
 	&sampling_rate_min.attr,
@@ -926,18 +735,6 @@ static struct attribute *dbs_attributes[] = {
 	&up_threshold_any_cpu_load.attr,
 	&sync_freq.attr,
 	&input_boost.attr,
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-	&optimal_max_freq.attr,
-	&middle_grid_step.attr,
-	&high_grid_step.attr,
-	&middle_grid_load.attr,
-	&high_grid_load.attr,
-	&debug_mask.attr,
-	&lpm_state.attr,
-	&optimal_lpm_freq.attr,
-	&set_ondemand.attr,
-	&is_asmp.attr,
-#endif
 	NULL
 };
 
@@ -969,15 +766,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 	unsigned int max_load_other_cpu = 0;
 	struct cpufreq_policy *policy;
 	unsigned int j;
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-	unsigned int avg_load = 0;
-	unsigned int total_load = 0;
-	unsigned int total_freq = 0;
-	unsigned int cpu_num = 0;
-	unsigned int avg_load_freq = 0;
-	unsigned int cpu_avg_freq = 0;
 
-#endif
 	this_dbs_info->freq_lo = 0;
 	policy = this_dbs_info->cur_policy;
 
@@ -1060,24 +849,8 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		load_freq = cur_load * freq_avg;
 		if (load_freq > max_load_freq)
 			max_load_freq = load_freq;
-
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-		if (!dbs_tuners_ins.is_asmp) {
-			total_load += cur_load;
-			total_freq += freq_avg;
-			cpu_num++;
-		}
-#endif
 	}
 
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-	if (!dbs_tuners_ins.is_asmp) {
-		avg_load = total_load / cpu_num;
-		cpu_avg_freq = total_freq / cpu_num;
-		avg_load_freq = avg_load * cpu_avg_freq;
-		cur_load = avg_load;
-	}
-#endif
 	for_each_online_cpu(j) {
 		struct cpu_dbs_info_s *j_dbs_info;
 		j_dbs_info = &per_cpu(od_cpu_dbs_info, j);
@@ -1119,45 +892,14 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 #endif
 	/* Check for frequency increase */
 	if (max_load_freq > dbs_tuners_ins.up_threshold * policy->cur) {
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-		unsigned int freq_target = 0, freq_div = 0;
-
-		if(load_at_max_freq > dbs_tuners_ins.high_grid_load) {
-			freq_div = (policy->cpuinfo.max_freq * dbs_tuners_ins.high_grid_step) / 100;
-			freq_target = min(policy->max, policy->cur + freq_div);
-
-			if((dbs_tuners_ins.lpm_state)&&(policy->cpuinfo.max_freq != policy->max))
-				freq_target = min(freq_target, dbs_tuners_ins.optimal_lpm_freq);
-
-		} else if(load_at_max_freq > dbs_tuners_ins.middle_grid_load) {
-			freq_div = (policy->cpuinfo.max_freq * dbs_tuners_ins.middle_grid_step) / 100;
-			freq_target = min(policy->max, policy->cur + freq_div);
-		} else {
-			if(policy->max < dbs_tuners_ins.optimal_max_freq)
-				freq_target = policy->max;
-			else
-				freq_target = dbs_tuners_ins.optimal_max_freq;
-
-		}
-#endif
 		/* If switching to max speed, apply sampling_down_factor */
 		if (policy->cur < policy->max)
 			this_dbs_info->rate_mult =
 				dbs_tuners_ins.sampling_down_factor;
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-		if(!dbs_tuners_ins.set_ondemand)
-			dbs_freq_increase(policy, freq_target);
-		else
-#endif
 		dbs_freq_increase(policy, policy->max);
-#ifdef CONFIG_CPU_FREQ_GOV_LOG
-		pr_info("[DBG UP to MAX][%u] load : %u, cur_freq : %u, next_freq : %u\n", policy->cpu, max_load_freq, policy->cur, policy->max);
-#endif
 		return;
 	}
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-	if(dbs_tuners_ins.is_asmp) {
-#endif
+
 	if (num_online_cpus() > 1) {
 
 		if (max_load_other_cpu >
@@ -1176,9 +918,6 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 			return;
 		}
 	}
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-	}
-#endif
 
 	/* Check for frequency decrease */
 	/* if we cannot reduce the frequency anymore, break out early */
@@ -1190,12 +929,6 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 	 * can support the current CPU usage without triggering the up
 	 * policy. To be safe, we focus 10 points under the threshold.
 	 */
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-	if(!dbs_tuners_ins.is_asmp) {
-		if(!dbs_tuners_ins.set_ondemand)
-			max_load_freq = avg_load_freq;
-	}
-#endif
 	if (max_load_freq <
 	    (dbs_tuners_ins.up_threshold - dbs_tuners_ins.down_differential) *
 	     policy->cur) {
@@ -1209,9 +942,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 		if (freq_next < policy->min)
 			freq_next = policy->min;
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-		if(dbs_tuners_ins.is_asmp) {
-#endif
+
 		if (num_online_cpus() > 1) {
 			if (max_load_other_cpu >
 			(dbs_tuners_ins.up_threshold_multi_core -
@@ -1225,15 +956,8 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 				  policy->cur) &&
 				freq_next < dbs_tuners_ins.optimal_freq)
 				freq_next = dbs_tuners_ins.optimal_freq;
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-			}
-#endif
+
 		}
-
-#ifdef CONFIG_CPU_FREQ_GOV_LOG
-		pr_info("[DBG DOWN][%u] load : %u, cur_freq : %u, next_freq : %u\n", policy->cpu, max_load_freq, policy->cur, freq_next);
-#endif
-
 		if (!dbs_tuners_ins.powersave_bias) {
 			__cpufreq_driver_target(policy, freq_next,
 					CPUFREQ_RELATION_L);
@@ -1493,17 +1217,8 @@ static void dbs_input_event(struct input_handle *handle, unsigned int type,
 		}
 	}
 #endif
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-	/*check Touch UP && EV_SYN or EV_key*/
-	if((code == ABS_MT_TRACKING_ID&&value==-1)||type==EV_KEY)
-	{
-		for_each_online_cpu(i)
-			queue_work_on(i, dbs_wq, &per_cpu(dbs_refresh_work, i).work);
-	}
-#else
 	for_each_online_cpu(i)
 		queue_work_on(i, dbs_wq, &per_cpu(dbs_refresh_work, i).work);
-#endif
 }
 
 static int dbs_input_connect(struct input_handler *handler,
@@ -1608,12 +1323,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 			set_cpus_allowed(j_dbs_info->sync_thread,
 					 *cpumask_of(j));
 			if (!dbs_tuners_ins.powersave_bias)
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-			/* Grid governor does not use sync_enabled*/
-				atomic_set(&j_dbs_info->sync_enabled, 0);
-#else
 				atomic_set(&j_dbs_info->sync_enabled, 1);
-#endif
 		}
 		this_dbs_info->cpu = cpu;
 		this_dbs_info->rate_mult = 1;
@@ -1761,10 +1471,6 @@ static int __init cpufreq_gov_dbs_init(void)
 							 "dbs_sync/%d", i);
 	}
 
-#ifdef CONFIG_MACH_MSM8926_VFP_KR
-	/*8x26 scaling_available_frequencies : 300000 384000 600000 787200 998400 1094400 1190400*/
-	dbs_tuners_ins.input_boost = 787200;
-#endif
 	return cpufreq_register_governor(&cpufreq_gov_ondemand);
 }
 

@@ -73,11 +73,9 @@
                        /*add*/
                        Avago,ppcount = <8>;
                        Avago,pdrive = <0>;
-                       Avago,near_offset = <300>;
-                       Avago,far_offset = <100>;
+                       Avago,near_offset = <130>;
+                       Avago,far_offset = <50>;
                        Avago,crosstalk_max = <770>;
-                       Avago,bright_threshold = <2000>;
-                       Avago,dark_threshold = <1000>;
 		};
 		
 	};

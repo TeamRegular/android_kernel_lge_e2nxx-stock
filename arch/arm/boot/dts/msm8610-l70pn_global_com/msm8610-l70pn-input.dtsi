@@ -21,27 +21,22 @@
 			status = "ok";
 			lge,auto_fw_update = <1>;
 			lge,product = "L0M45P2";
-			lge,fw_image = "melfas/mit200/l70p/L0M45P1_1_13.fw";
+			lge,fw_image = "melfas/mit200/l70p/L0M45P2_0_05.fw";
 			button_name = <158 139>;
 			lge,id-gpio = <&msmgpio 0 0x00>;
 			lge,id2-gpio = <&msmgpio 0 0x00>;
 			booting_delay = <10>;
                         reset_delay = <5>;
-                        use_crack_mode = <0>;
-			active_area_gap = <24>;
+                        use_crack_mode = <1>;
+                        gap = <24>;
 
 			/* Limitation Value. */
 			raw_data_max = <42125>;
 			raw_data_min = <11394>;
-			raw_data_margin = <1000>;
-			raw_data_otp_min = <15000>;
-			raw_data_otp_max = <39000>;
-			open_short_min = <10>;
+			open_short_max = <550>;
+			open_short_min = <100>;
 			slope_max = <110>;
-			slope_min = <90>;
-
-                        /* panel status check */
-                        openshort_enable = <1>;
+			slope_min = <90>;  
 			
 			/* platform_data->pwr*/
 			/* type 0: none(default) */
@@ -71,28 +66,24 @@
 			status = "ok";
 			lge,auto_fw_update = <1>;
 			lge,product = "L0M45P2";
-			lge,fw_image = "melfas/mit200/l70p/L0M45P1_1_13.fw";
+			lge,fw_image = "melfas/mit200/l70p/L0M45P2_0_05.fw";
 			button_name = <158 139>;
 			lge,id-gpio = <&msmgpio 0 0x00>;
 			lge,id2-gpio = <&msmgpio 0 0x00>;
 			booting_delay = <10>;
                         reset_delay = <5>;
-                        use_crack_mode = <0>;
-			active_area_gap = <24>;
+                        use_crack_mode = <1>;
+                        gap = <24>;
 
 			/* Limitation Value. */
 			raw_data_max = <42125>;
 			raw_data_min = <11394>;
-			raw_data_margin = <1000>;
-			raw_data_otp_min = <15000>;
-			raw_data_otp_max = <39000>;
-			open_short_min = <10>;
+			open_short_max = <550>;
+			open_short_min = <100>;
 			slope_max = <110>;
 			slope_min = <90>;  
 
-                        /* panel status check */
-                        openshort_enable = <1>;
-
+			
 			/* platform_data->pwr*/
 			/* type 0: none(default) */
 			/*      1: gpio */
