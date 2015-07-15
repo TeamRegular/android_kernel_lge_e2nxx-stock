@@ -884,6 +884,11 @@ endmenu
 
 menu "LGE Specific Patches"
 
+config DTS_TARGET
+        string "DTS target dir"
+        help
+          CONFIG_DTS_TARGET should be set to support appended dts.
+
 config LGE_BOOTLOADER_LOG
 	tristate "Support LGE bootloader log"
 	default n
